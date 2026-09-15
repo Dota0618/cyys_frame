@@ -1,0 +1,97 @@
+# ==== Java / Maven ====
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+replay_pid*
+.flattened-pom.xml
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# ==== IDE ====
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.project
+.classpath
+.settings/
+*.swp
+*.swo
+*~
+.factorypath
+.springBeans
+.sts4-cache
+
+# ==== Node.js / Frontend ====
+node_modules/
+dist/
+dist-ssr/
+build/
+.cache/
+.parcel-cache/
+.umi/
+.umi-production/
+test-results/
+playwright-report/
+.docz/
+.npm
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==== OS ====
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ==== Logs ====
+logs/
+*.log
+*.out
+*.pid
+
+# ==== Local configuration & Secrets ====
+.env
+.env.local
+.env.*.local
+application-local.yml
+application-dev.yml.override
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_rsa.pub
+
+# ==== Database / Redis dumps ====
+*.db
+*.sqlite
+dump.rdb
+*.sql.bak
+
+# ==== Uploads & temp ====
+uploads/
+temp/
+tmp/
+*.tmp
+*.bak
+*.old
