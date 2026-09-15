@@ -1,0 +1,79 @@
+server:
+  port: ${CYYS_PORT:8080}
+  forward-headers-strategy: none
+
+spring:
+  application:
+    name: cyys-framework
+  data:
+    redis:
+      host: ${CYYS_REDIS_HOST:127.0.0.1}
+      port: ${CYYS_REDIS_PORT:6379}
+      password: ${CYYS_REDIS_PASSWORD:}
+      database: ${CYYS_REDIS_DATABASE:0}
+      timeout: 2s
+  datasource:
+    url: ${CYYS_DB_URL}
+    username: ${CYYS_DB_USERNAME}
+    password: ${CYYS_DB_PASSWORD}
+    hikari:
+      minimum-idle: 1
+      maximum-pool-size: 20
+      connection-timeout: 30000
+  flyway:
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    baseline-on-migrate: false
+    clean-disabled: true
+    fail-on-missing-locations: true
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    local-cache-scope: statement
+  global-config:
+    db-config:
+      id-type: assign_id
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  is-read-header: true
+  is-read-cookie: false
+  is-read-body: false
+  timeout: 7200
+  active-timeout: 1800
+  is-concurrent: true
+  is-share: false
+  token-style: uuid
+  is-log: false
+
+cyys:
+  environment: ${CYYS_ENV:local}
+  auth:
+    login-max-error-count: 5
+    lock-minutes: 15
+  data-isolation:
+    mode: ${CYYS_ISOLATION_MODE:single}
+    single-scope-id: ${CYYS_SINGLE_SCOPE_ID:}
+
+springdoc:
+  api-docs:
+    enabled: ${CYYS_API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${CYYS_API_DOCS_ENABLED:false}
+
+logging:
+  level:
+    root: INFO
+    com.cyys: INFO

@@ -1,3 +1,7 @@
+# ==== Incomplete documentation (temporary) ====
+/docs/
+/admin-ui/docs/
+
 # ==== Java / Maven ====
 target/
 *.class
@@ -10,6 +14,7 @@ target/
 *.rar
 hs_err_pid*
 replay_pid*
+*.hprof
 .flattened-pom.xml
 pom.xml.tag
 pom.xml.releaseBackup
@@ -20,7 +25,7 @@ dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
-.m2
+.m2/
 
 # ==== IDE ====
 .idea/
@@ -28,6 +33,7 @@ buildNumber.properties
 *.iml
 *.ipr
 .vscode/
+.history/
 .project
 .classpath
 .settings/
@@ -50,8 +56,7 @@ build/
 test-results/
 playwright-report/
 .docz/
-.npm
-*.log
+.npm/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -72,10 +77,15 @@ logs/
 
 # ==== Local configuration & Secrets ====
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!.env.*.example
+!.env.template
+!.env.*.template
 application-local.yml
+application-local.yaml
 application-dev.yml.override
+application-dev.yaml.override
 *.p12
 *.pfx
 *.jks
@@ -93,6 +103,9 @@ dump.rdb
 uploads/
 temp/
 tmp/
+.temp/
 *.tmp
 *.bak
 *.old
+*.orig
+*.rej

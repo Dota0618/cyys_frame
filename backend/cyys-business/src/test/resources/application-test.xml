@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+    <entry key="CYYS_TEST_DB_URL">jdbc:mysql://127.0.0.1:3306/cyys_frame?useUnicode=true&amp;characterEncoding=utf8</entry>
+    <entry key="CYYS_TEST_DB_USERNAME">root</entry>
+    <entry key="CYYS_TEST_DB_PASSWORD">root123</entry>
+    <entry key="CYYS_TEST_REDIS_PASSWORD">123456</entry>
+
+    <entry key="spring.data.redis.port">6379</entry>
+    <entry key="spring.data.redis.password">${CYYS_TEST_REDIS_PASSWORD}</entry>
+    <entry key="spring.datasource.url">${CYYS_TEST_DB_URL}</entry>
+    <entry key="spring.datasource.username">${CYYS_TEST_DB_USERNAME}</entry>
+    <entry key="spring.datasource.password">${CYYS_TEST_DB_PASSWORD}</entry>
+    <entry key="spring.datasource.driver-class-name">com.mysql.cj.jdbc.Driver</entry>
+
+    <entry key="cyys.environment">phase3-test</entry>
+    <entry key="cyys.data-isolation.mode">single</entry>
+    <entry key="cyys.data-isolation.single-scope-id">scope-a</entry>
+    <entry key="logging.level.root">WARN</entry>
+</properties>
