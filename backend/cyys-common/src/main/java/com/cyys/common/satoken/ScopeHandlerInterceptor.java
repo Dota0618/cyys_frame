@@ -28,7 +28,9 @@ public class ScopeHandlerInterceptor implements HandlerInterceptor {
                 && "GET".equals(request.getMethod());
         boolean platformControl = handler instanceof org.springframework.web.method.HandlerMethod method
                 && method.getBeanType().isAnnotationPresent(com.cyys.common.web.PlatformControl.class);
-        if (!"/api/auth/me".equals(request.getServletPath()) && !globalRead && !platformControl) {
+        boolean accountOperation = handler instanceof org.springframework.web.method.HandlerMethod method
+                && method.hasMethodAnnotation(com.cyys.common.web.AccountOperation.class);
+        if (!accountOperation && !globalRead && !platformControl) {
             identity.requireScopeId();
         }
         ScopeContext.set(identity);

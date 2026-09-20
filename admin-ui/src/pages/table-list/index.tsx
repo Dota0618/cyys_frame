@@ -22,6 +22,7 @@ import { session, setDirty, updateSession } from '@/utils/session';
 import ScopeSwitch from '@/components/ScopeSwitch';
 import CreateForm from './components/CreateForm';
 import UpdateForm from './components/UpdateForm';
+import ResetPasswordForm from './components/ResetPasswordForm';
 
 export default function TableList() {
   const access = useAccess();
@@ -32,6 +33,7 @@ export default function TableList() {
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [roles, setRoles] = useState<Option[]>([]);
   const [editing, setEditing] = useState<Member>();
+  const [resetting, setResetting] = useState<Member>();
   const [detail, setDetail] = useState<MemberDetail>();
   const [granting, setGranting] = useState<MemberDetail>();
   const [loadError, setLoadError] = useState('');
@@ -113,7 +115,7 @@ export default function TableList() {
     {
       title: '操作',
       valueType: 'option',
-      width: all ? 130 : 180,
+      width: all ? 130 : 260,
       render: (_, row) =>
         all
           ? [
@@ -143,6 +145,7 @@ export default function TableList() {
                   角色
                 </a>
               ),
+              access.canResetAccountPasswords && <a key="password" onClick={() => setResetting(row)}>重置密码</a>,
             ].filter(Boolean),
     },
   ];
@@ -232,6 +235,7 @@ export default function TableList() {
           await action.current?.reload();
         }}
       />
+      {resetting && <ResetPasswordForm account={resetting} onClose={() => setResetting(undefined)} />}
 
       <ModalForm<{ roleIds: string[] }>
         name="member-roles"

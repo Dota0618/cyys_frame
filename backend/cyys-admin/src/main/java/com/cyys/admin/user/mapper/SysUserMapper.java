@@ -16,6 +16,14 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
     @Select("select * from sys_user where id=#{id} and deleted=0")
     SysUser selectAccountById(@Param("id") String id);
 
+    @Select("select * from sys_user where id=#{id} and deleted=0 for update")
+    SysUser lockAccount(@Param("id") String id);
+
+    @Update("update sys_user set password_hash=#{hash},pwd_last_changed=CURRENT_TIMESTAMP,"
+            + "pwd_error_count=0,pwd_lock_time=null,updated_by=#{actor},updated_at=CURRENT_TIMESTAMP "
+            + "where id=#{id} and deleted=0")
+    int replacePassword(@Param("id") String id,@Param("hash") String hash,@Param("actor") String actor);
+
     /** 锁定账号行，使同一账号的并发密码尝试按事务串行计数。 */
     @Select("""
             select * from sys_user

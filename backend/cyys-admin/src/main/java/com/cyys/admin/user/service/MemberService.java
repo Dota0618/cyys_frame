@@ -1,6 +1,6 @@
 package com.cyys.admin.user.service;
 
-import cn.dev33.satoken.secure.BCrypt;
+import com.cyys.admin.auth.service.PasswordPolicy;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
@@ -72,14 +72,14 @@ public class MemberService {
     public MemberView create(@Valid CreateMemberCommand command) {
         authorize("user:create",DataPolicyRegistry.Access.WRITE);
         String scope=ScopeContext.get().requireScopeId();
-        if(command.password().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>72) throw new ApiException(400,"密码不能超过 72 个 UTF-8 字节");
+        PasswordPolicy.validateNew(command.password());
         if(command.orgId()!=null&&departments.forCreate(command.orgId())==null) throw new ApiException(403,"关联部门不可用");
         var member=new SysUserScope();
         member.setId(IdWorker.getIdStr()); member.setUserId(IdWorker.getIdStr()); member.setScopeId(scope);
         member.setDisplayName(command.displayName()); member.setOrgId(command.orgId()); member.setStatus(1);
         member.setMemberRole("MEMBER"); member.setDefaultFlag(1);
         try {
-            accounts.createAccount(member.getUserId(),command.loginName(),BCrypt.hashpw(command.password()),ScopeContext.get().loginId());
+            accounts.createAccount(member.getUserId(),command.loginName(),PasswordPolicy.hash(command.password()),ScopeContext.get().loginId());
             if(mapper.insert(member)!=1) throw new ApiException(409,"新增成员失败");
         } catch(DataIntegrityViolationException error) { throw new ApiException(409,"登录账号不可使用"); }
         audit.success("user",member.getId(),"CREATE");

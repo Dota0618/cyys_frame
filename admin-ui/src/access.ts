@@ -34,6 +34,7 @@ export default (initialState?: { user?: UserInfo }) => {
             platform.includes('platform:data:operate'))),
     canCreateUsers: canWrite('user:create'),
     canEditUsers: canWrite('user:update'),
+    canResetAccountPasswords: platformHas('platform:account:reset-password'),
     canGrantRoles: !all && selected && unitHas('role:grant'),
     canReadDepartments: canReadInSelectedUnit('department:read'),
     canCreateDepartments: canWrite('department:create'),

@@ -33,6 +33,7 @@ Spring Boot backend migration workspace under `F:\git\frame\cyys-framework\`.
 
 - Latest user scope (2026-09-20): omit holiday management; pause code generation, guide pages and unit-notice development. System notices are platform-maintained shared content with no read tracking or receipts. Preserve existing historical implementations while paused.
 - Keep verification proportional: compile/typecheck during development; defer page-operation/browser tests and full regression to final acceptance, as requested on 2026-09-20. Do not repeatedly run tests after small edits.
+- Password reset: administrators do not re-enter their own password; require the independent platform reset permission and only ask for the target account's new password and confirmation. Personal password changes still verify the current password.
 
 - Save development checkpoints with local Git commits; do not create additional source archive snapshots. Review the diff and record completed checks and remaining work before committing. Do not push unless requested. Existing ignored documentation, local configuration, logs and build outputs remain excluded. This workflow was approved by the user on 2026-09-20.
 

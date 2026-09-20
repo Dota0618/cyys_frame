@@ -3,3 +3,7 @@ import { api } from '@/utils/request';
 export const login = (body: { loginName: string; password: string }) => api<LoginResult>('/api/auth/login', { method: 'POST', body, anonymous: true, quiet: true });
 export const currentUser = () => api<UserInfo>('/api/auth/me', { quiet: true });
 export const logout = () => api<void>('/api/auth/logout', { method: 'POST', quiet: true });
+export const changePassword = (body: { currentPassword: string; newPassword: string }) =>
+  api<void>('/api/auth/password', { method: 'POST', body });
+export const resetAccountPassword = (id: string, body: { newPassword: string }) =>
+  api<void>(`/api/admin/platform/accounts/${encodeURIComponent(id)}/password`, { method: 'POST', body });

@@ -83,6 +83,7 @@ class BrowserAcceptance extends IsolationTestSupport {
         platformUser();
         for (String permission : List.of("user:read","user:create")) allow("role-platform",permission,false);
         allow("role-platform","platform:data:read-all",true);
+        allow("role-platform","platform:account:reset-password",true);
         for (String permission : List.of("menu:read","menu:create","menu:update","menu:delete",
                 "platform:role:read","platform:role:create","platform:role:update","platform:role:delete",
                 "platform:role:grant")) allow("role-platform",permission,true);

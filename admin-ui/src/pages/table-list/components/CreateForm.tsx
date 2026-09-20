@@ -8,6 +8,7 @@ import {
 import { useMutation } from '@tanstack/react-query';
 import { App, Button } from 'antd';
 import ScopeSwitch from '@/components/ScopeSwitch';
+import NewPasswordFields from '@/components/NewPasswordFields';
 import { createMember } from '@/services/system/users';
 import type { CreateMember, DepartmentOption } from '@/types/api';
 import { departmentTreeData } from '@/utils/departments';
@@ -67,12 +68,7 @@ export default function CreateForm({
           },
         ]}
       />
-      <ProFormText.Password
-        name="password"
-        label="初始密码"
-        fieldProps={{ autoComplete: 'new-password', maxLength: 72 }}
-        rules={[{ required: true }, { min: 12, message: '密码至少 12 位' }]}
-      />
+      <NewPasswordFields name="password" label="初始密码" confirm={false} />
       <ProFormText
         name="displayName"
         label="本单位姓名"
