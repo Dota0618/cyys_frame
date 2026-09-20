@@ -1,0 +1,6 @@
+**
+!admin-ui/
+!admin-ui/dist/
+!admin-ui/dist/**
+!deploy/
+!deploy/nginx.conf

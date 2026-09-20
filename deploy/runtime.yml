@@ -1,0 +1,20 @@
+spring:
+  config:
+    import: configtree:/run/secrets/
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB
+server:
+  # api 没有宿主机端口，唯一入口 Nginx 覆盖代理身份头。
+  forward-headers-strategy: framework
+cyys:
+  storage:
+    active: local-main
+    max-bytes: 20971520
+    max-resumable-bytes: 1073741824
+    part-bytes: 5242880
+    profiles:
+      local-main:
+        driver: local
+        root: /var/lib/cyys/files

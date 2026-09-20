@@ -1,0 +1,89 @@
+name: cyys-framework
+services:
+  api:
+    image: ${CYYS_API_IMAGE:?Set a unique tested release image}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+      args:
+        JAVA_RUNTIME_IMAGE: ${CYYS_JAVA_RUNTIME_IMAGE:?Pin a JDK 25 runtime image by digest}
+    restart: unless-stopped
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 1536m
+    cpus: 2
+    pids_limit: 256
+    stop_grace_period: 60s
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m,uid=10001,gid=10001,mode=1700
+    environment:
+      SPRING_CONFIG_ADDITIONAL_LOCATION: file:/run/cyys/runtime.yml
+      CYYS_ENV: ${CYYS_ENV:?Set a stable production cache namespace}
+      CYYS_DB_URL: ${CYYS_DB_URL:?Set the existing MySQL URL without embedded credentials}
+      CYYS_DB_USERNAME: ${CYYS_DB_USERNAME:?Set the MySQL account}
+      CYYS_REDIS_HOST: ${CYYS_REDIS_HOST:?Set the existing Redis host}
+      CYYS_REDIS_PORT: ${CYYS_REDIS_PORT:-6379}
+      CYYS_REDIS_DATABASE: ${CYYS_REDIS_DATABASE:-0}
+      CYYS_ISOLATION_MODE: ${CYYS_ISOLATION_MODE:?Choose single or multi explicitly}
+      CYYS_SINGLE_SCOPE_ID: ${CYYS_SINGLE_SCOPE_ID:-}
+      CYYS_PORT: 8080
+      CYYS_API_DOCS_ENABLED: "false"
+    secrets:
+      - source: db_password
+        target: spring.datasource.password
+      - source: redis_password
+        target: spring.data.redis.password
+    volumes:
+      - type: bind
+        source: ./runtime.yml
+        target: /run/cyys/runtime.yml
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${CYYS_FILE_ROOT:?Set the existing private storage directory}
+        target: /var/lib/cyys/files
+        bind:
+          create_host_path: false
+    logging:
+      driver: json-file
+      options: {max-size: "20m", max-file: "3"}
+  web:
+    image: ${CYYS_WEB_IMAGE:?Set the matching frontend release image}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+      args:
+        NGINX_RUNTIME_IMAGE: ${CYYS_NGINX_RUNTIME_IMAGE:?Pin an Nginx runtime image by digest}
+    depends_on: [api]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    cpus: 1
+    pids_limit: 64
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,uid=10001,gid=10001,mode=1700
+    ports:
+      - "${CYYS_BIND_ADDRESS:-0.0.0.0}:80:8080"
+      - "${CYYS_BIND_ADDRESS:-0.0.0.0}:443:8443"
+    secrets:
+      - source: tls_certificate
+        target: tls.crt
+      - source: tls_key
+        target: tls.key
+    logging:
+      driver: json-file
+      options: {max-size: "20m", max-file: "3"}
+secrets:
+  db_password:
+    file: ${CYYS_DB_PASSWORD_FILE:?Set the database password file outside the repository}
+  redis_password:
+    file: ${CYYS_REDIS_PASSWORD_FILE:?Set the Redis password file outside the repository}
+  tls_certificate:
+    file: ${CYYS_TLS_CERTIFICATE_FILE:?Set the certificate chain file}
+  tls_key:
+    file: ${CYYS_TLS_KEY_FILE:?Set the private key file outside the repository}
