@@ -73,16 +73,16 @@ class SerialNumberIntegrationTest extends IsolationTestSupport {
             status.setRollbackOnly();
         });
         assertThat(next(numbers,"u-alice","scope-a","ticket")).isEqualTo("TKT-02");
-        jdbc.update("insert into sys_serial_counter(id,scope_id,business_code,period_key,last_value,updated_by) values('serial-old','scope-a','order','20000101',998,'u-alice')");
+        jdbc.update("insert into sys_serial_counter(id,scope_id,business_code,period_key,sequence_value,updated_by) values('serial-old','scope-a','order','20000101',998,'u-alice')");
         assertThat(next(numbers,"u-alice","scope-a","order")).endsWith("-001");
         assertThat(next(numbers,"u-alice","scope-a","order")).endsWith("-002");
-        assertThat(jdbc.queryForObject("select last_value from sys_serial_counter where id='serial-old'",Long.class)).isEqualTo(998L);
+        assertThat(jdbc.queryForObject("select sequence_value from sys_serial_counter where id='serial-old'",Long.class)).isEqualTo(998L);
     }
 
     @Test void exhaustedNumbersAndHistoricalRuleChangesNeverRestartSequence() {
         String first=next(numbers,"u-alice","scope-a","order");
         String period=first.substring(4,12);
-        jdbc.update("update sys_serial_counter set last_value=999 where scope_id='scope-a' and business_code='order' and period_key=?",period);
+        jdbc.update("update sys_serial_counter set sequence_value=999 where scope_id='scope-a' and business_code='order' and period_key=?",period);
         assertThatThrownBy(() -> next(numbers,"u-alice","scope-a","order")).hasMessageContaining("耗尽");
         assertThat(count("select count(*) from sys_data_audit where scope_id='scope-a' and resource='serial' and operation='RESERVE'"))
                 .isEqualTo(1);

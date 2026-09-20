@@ -22,10 +22,10 @@ CREATE TABLE sys_serial_counter (
  scope_id varchar(32) NOT NULL,
  business_code varchar(32) NOT NULL,
  period_key varchar(16) NOT NULL,
- last_value bigint NOT NULL DEFAULT 0,
+ sequence_value bigint NOT NULL DEFAULT 0,
  updated_by varchar(32) NOT NULL,
  updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
  UNIQUE KEY uk_serial_period (scope_id,business_code,period_key),
  CONSTRAINT ck_serial_counter_scope CHECK(scope_id<>'' AND scope_id<>'GLOBAL'),
- CONSTRAINT ck_serial_counter_value CHECK(last_value BETWEEN 0 AND 999999999999999999)
+ CONSTRAINT ck_serial_counter_value CHECK(sequence_value BETWEEN 0 AND 999999999999999999)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;

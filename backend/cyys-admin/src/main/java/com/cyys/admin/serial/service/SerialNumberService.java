@@ -73,10 +73,10 @@ public class SerialNumberService {
         var counter = numbers.lockCounter(scope, businessCode, period);
         if (counter == null) throw new ApiException(409, "流水号初始化冲突，请重试");
         long maximum = Long.parseLong("9".repeat(rule.width()));
-        if (counter.lastValue() >= maximum) throw new ApiException(409, "当前周期流水号已耗尽");
-        long next = counter.lastValue() + 1;
+        if (counter.sequenceValue() >= maximum) throw new ApiException(409, "当前周期流水号已耗尽");
+        long next = counter.sequenceValue() + 1;
         authorization.authorizeCurrentScope(rule.permission(), DataPolicyRegistry.Access.WRITE, identity);
-        if (numbers.advance(counter.id(), scope, businessCode, period, counter.lastValue(), next, identity.loginId()) != 1) {
+        if (numbers.advance(counter.id(), scope, businessCode, period, counter.sequenceValue(), next, identity.loginId()) != 1) {
             throw new ApiException(409, "流水号状态已变化，请重试");
         }
         audit.success("serial", counter.id(), "RESERVE");

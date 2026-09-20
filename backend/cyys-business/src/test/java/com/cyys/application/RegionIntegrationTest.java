@@ -47,7 +47,9 @@ class RegionIntegrationTest extends HttpTestSupport {
         var edit=new LinkedHashMap<String,Object>(Map.of("version",0,"cityCode","000002","name","修改地区","sort",1));
         edit.put("longitude",null); edit.put("latitude",null);
         assertThat(request("PUT",ROOT+"/"+child,admin,null,JSON.writeValueAsString(edit)).status()).isEqualTo(200);
-        assertThat(request("GET",ROOT+"/"+child,admin,null,null).body().at("/data/longitude").isNull()).isTrue();
+        var cleared=request("GET",ROOT+"/"+child,admin,null,null).body().at("/data/longitude");
+        assertThat(cleared.isNull() || cleared.isMissingNode()).isTrue();
+        assertThat(jdbc.queryForObject("select longitude from param_region where id=?",java.math.BigDecimal.class,child)).isNull();
         assertThat(request("PUT",ROOT+"/"+child,admin,null,JSON.writeValueAsString(edit)).status()).isEqualTo(409);
         assertThat(request("DELETE",ROOT+"/"+child+"?version=1",admin,null,null).status()).isEqualTo(200);
         assertThat(request("POST",ROOT,admin,null,region(null,"000002","重用历史编码")).status()).isEqualTo(409);
@@ -59,9 +61,9 @@ class RegionIntegrationTest extends HttpTestSupport {
         try(var workers=Executors.newFixedThreadPool(2)) {
             var created=workers.submit(() -> request("POST",ROOT,admin,null,region(parent,"000002","并发子级")));
             var deleted=workers.submit(() -> request("DELETE",ROOT+"/"+parent+"?version=0",admin,null,null));
-            assertThat(List.of(created.get().status(),deleted.get().status()))
-                    .satisfiesAnyOf(values -> assertThat(values).containsExactly(200,409),
-                            values -> assertThat(values).containsExactly(404,200));
+            var statuses=List.of(created.get().status(),deleted.get().status());
+            assertThat(statuses.equals(List.of(200,409)) || statuses.equals(List.of(404,200)))
+                    .as("create/delete outcomes: %s",statuses).isTrue();
         }
         assertThat(jdbc.queryForObject("select count(*) from param_region c join param_region p on p.id=c.parent_id where c.deleted=0 and p.deleted=1",Integer.class)).isZero();
     }

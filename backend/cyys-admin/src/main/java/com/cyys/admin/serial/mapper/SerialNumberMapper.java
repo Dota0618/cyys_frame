@@ -22,16 +22,16 @@ public interface SerialNumberMapper {
     @Select("select prefix,period_type,width,zone_id,permission from sys_serial_rule where scope_id=#{scope} and business_code=#{code} for update")
     SerialRule lockRule(@Param("scope") String scope, @Param("code") String code);
 
-    @Insert("insert into sys_serial_counter(id,scope_id,business_code,period_key,last_value,updated_by) "
-            + "values(#{id},#{scope},#{code},#{period},0,#{actor}) on duplicate key update last_value=last_value")
+    @Insert("insert into sys_serial_counter(id,scope_id,business_code,period_key,sequence_value,updated_by) "
+            + "values(#{id},#{scope},#{code},#{period},0,#{actor}) on duplicate key update sequence_value=sequence_value")
     int ensureCounter(@Param("id") String id, @Param("scope") String scope, @Param("code") String code,
                       @Param("period") String period, @Param("actor") String actor);
 
-    @Select("select id,last_value from sys_serial_counter where scope_id=#{scope} and business_code=#{code} and period_key=#{period} for update")
+    @Select("select id,sequence_value from sys_serial_counter where scope_id=#{scope} and business_code=#{code} and period_key=#{period} for update")
     SerialCounter lockCounter(@Param("scope") String scope, @Param("code") String code, @Param("period") String period);
 
-    @Update("update sys_serial_counter set last_value=#{next},updated_by=#{actor},updated_at=CURRENT_TIMESTAMP "
-            + "where id=#{id} and scope_id=#{scope} and business_code=#{code} and period_key=#{period} and last_value=#{previous}")
+    @Update("update sys_serial_counter set sequence_value=#{next},updated_by=#{actor},updated_at=CURRENT_TIMESTAMP "
+            + "where id=#{id} and scope_id=#{scope} and business_code=#{code} and period_key=#{period} and sequence_value=#{previous}")
     int advance(@Param("id") String id, @Param("scope") String scope, @Param("code") String code,
                 @Param("period") String period, @Param("previous") long previous, @Param("next") long next, @Param("actor") String actor);
 }
