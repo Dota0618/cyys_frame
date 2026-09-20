@@ -3,7 +3,7 @@
 I often build Java applications for standalone projects, and I see many that are over-engineered. Actually, your system design doesn't need to be complex. If your project has few users, serves as an internal government or corporate system, or just needs to be delivered fast — I believe this is what you need.
 
 
-基于 JDK 25 / Spring Boot 4.1.1 的框架改造工程。A 方案目录、身份基础及 Phase 3 / G1、Phase 4.1 已完成；Phase 4.2 已完成部门管理、组织树与负责人选择、单位角色、共享菜单、GLOBAL 平台角色、全局配置/字典、两类审计、受控缓存及本地私有文件/断点续传、个人目录和文件回收切片。最新完整后端回归为 104 项通过，正式迁移执行至 V12；真实浏览器分轮覆盖当前 32 组用例并通过（全套首轮 31 项通过，新增目录用例修正定位后文件专项 4 项通过）。附件关联、自动清理等 Phase 4.2 其余能力及 G2 仍待办，实际范围见 [改造进度](docs/migration/progress.md)。
+基于 JDK 25 / Spring Boot 4.1.1 的框架改造工程。A 方案目录、身份基础及 Phase 3 / G1、Phase 4.1 已完成；Phase 4.2 已完成部门管理、组织树与负责人选择、单位角色、共享菜单、GLOBAL 平台角色、全局配置/字典、两类审计、受控缓存及本地私有文件/断点续传、个人目录、文件回收及后台临时清理切片。最新完整后端回归为 111 项通过，正式迁移执行至 V13；真实浏览器分轮覆盖当前 32 组用例并通过（全套首轮 31 项通过，新增目录用例修正定位后文件专项 4 项通过）。附件关联等 Phase 4.2 其余能力及 G2 仍待办，实际范围见 [改造进度](docs/migration/progress.md)。
 
 ## 开发入口
 

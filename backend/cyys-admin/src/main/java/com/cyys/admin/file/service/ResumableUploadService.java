@@ -26,6 +26,7 @@ public class ResumableUploadService {
     private final StorageProperties settings;
     private final DataAuditService audit;
     private final FileDirectoryService directories;
+    private final TemporaryFileCleaner temporaryCleaner;
 
     public FileUploadLimitsDTO limits() {
         if (settings.getPartBytes() < 1024 || settings.getPartBytes() > settings.getMaxBytes()
@@ -115,11 +116,8 @@ public class ResumableUploadService {
     public void cleanup(String id) {
         FileEntry file = owned(id, true);
         if ("UPLOADING".equals(file.getState())) throw new ApiException(409, "请先完成或取消上传");
-        var target = storage.resolve(file.getStorageProfile());
-        try {
-            for (var part : entries(file)) target.storage().delete(part.objectKey());
-            if ("FAILED".equals(file.getState())) target.storage().delete(file.getObjectKey());
-        } catch (IOException error) { throw new ApiException(503, "临时文件清理失败，可以重试"); }
+        temporaryCleaner.clean(file);
+        requireOne(files.temporaryCleaned(id,file.getVersion()));
     }
 
     @Transactional

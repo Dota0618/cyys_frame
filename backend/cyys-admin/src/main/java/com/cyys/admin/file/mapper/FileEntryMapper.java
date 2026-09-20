@@ -14,6 +14,10 @@ public interface FileEntryMapper extends BaseMapper<FileEntry> {
     @Select("select * from sys_file_entry where id=#{id} and deleted=0 for update")
     FileEntry lock(String id);
 
+    @Update("update sys_file_entry set temporary_cleaned_at=CURRENT_TIMESTAMP,cleanup_retry_at=null "
+            + "where id=#{id} and version=#{version} and state in ('READY','FAILED')")
+    int temporaryCleaned(@Param("id") String id,@Param("version") int version);
+
     @Select("select * from sys_file_entry where dir_id=#{directory} and created_by=#{actor} order by id limit 1001 for update")
     List<FileEntry> directoryFiles(@Param("directory") String directory, @Param("actor") String actor);
 

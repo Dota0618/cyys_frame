@@ -1,6 +1,15 @@
 package com.cyys.application;
 
 import com.cyys.common.storage.StorageProperties;
+import com.cyys.admin.file.service.*;
+import com.cyys.admin.file.mapper.FileCleanupMapper;
+import com.cyys.admin.audit.service.DataAuditService;
+import com.cyys.common.satoken.*;
+import com.cyys.common.mybatis.*;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import java.time.LocalDateTime;
+import java.util.concurrent.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,6 +23,7 @@ import java.nio.file.*;
 import java.security.MessageDigest;
 import java.util.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ActiveProfiles("test")
 @SpringBootTest(classes=CyysApplication.class, webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -22,10 +32,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 class FileIntegrationTest extends IsolationTestSupport {
     private static final String BASE_FILE = "/api/admin/files";
     @Autowired StorageProperties storage;
+    @Autowired FileCleanupService cleanup;
+    @Autowired FileCleanupProperties cleanupSettings;
+    @Autowired FileCleanupMapper cleanupMapper;
+    @Autowired TemporaryFileCleaner temporaryCleaner;
+    @Autowired DataAuditService fileAudit;
+    @Autowired PlatformTransactionManager transactionManager;
+    @Autowired FileService fileService;
     private Path root;
     private Path second;
 
     @BeforeEach void setupFiles() throws Exception {
+        cleanupSettings.setBatchSize(25);
         Path target = Path.of("target").toAbsolutePath().normalize();
         root = Files.createTempDirectory(target, "file-test-");
         second = Files.createTempDirectory(target, "file-next-");
@@ -240,6 +258,152 @@ class FileIntegrationTest extends IsolationTestSupport {
         assertThat(request("GET",BASE_FILE+"/recycle",alice,"scope-a",null).body().at("/data/total").asInt()).isZero();
         assertThat(count("select count(*) from sys_data_audit where resource='file' and operation='PURGE'")).isEqualTo(1);
     }
+
+    @Test void backgroundCleanupExpiresTasksKeepsReadyMainAndIgnoresUnknownObjects() throws Exception {
+        String alice=token("alice"); byte[] bytes=data(1300);
+        String expired=start(alice,bytes),live=start(alice,bytes),ready=start(alice,bytes);
+        assertThat(part(expired,0,alice,Arrays.copyOfRange(bytes,0,1024)).status()).isEqualTo(200);
+        assertThat(part(live,0,alice,Arrays.copyOfRange(bytes,0,1024)).status()).isEqualTo(200);
+        for(int index=0;index<2;index++) assertThat(part(ready,index,alice,Arrays.copyOfRange(bytes,index*1024,Math.min(bytes.length,(index+1)*1024))).status()).isEqualTo(200);
+        assertThat(request("POST",BASE_FILE+"/uploads/"+ready+"/complete",alice,"scope-a",null).status()).isEqualTo(200);
+        jdbc.update("update sys_file_entry set expires_at=DATE_SUB(CURRENT_TIMESTAMP,INTERVAL 1 DAY) where id=?",expired);
+        Path unknown=root.resolve("unregistered-object"); Files.writeString(unknown,"must remain");
+        try {
+            // 上传人撤权后，服务维护仍只能执行到期和临时对象清理，不能冒充其业务权限。
+            jdbc.update("update sys_menu set status=0 where code='file:upload'");
+            cleanup.runBatch(); cleanup.runBatch();
+            assertThat(ScopeContext.current()).isEmpty();
+            assertThat(state(expired)).isEqualTo("FAILED"); assertThat(state(live)).isEqualTo("UPLOADING");
+            assertThat(download(ready,alice,"scope-a").body()).isEqualTo(bytes);
+            assertThat(Files.readString(unknown)).isEqualTo("must remain");
+            for(String key:partKeys(expired)) assertThat(root.resolve(key)).doesNotExist();
+            for(String key:partKeys(ready)) assertThat(root.resolve(key)).doesNotExist();
+            assertThat(root.resolve(partKeys(live).getFirst())).exists();
+            assertThat(count("select count(*) from sys_data_audit where actor_id='system:file-cleanup' and operation='EXPIRE_UPLOAD'")).isEqualTo(1);
+            assertThat(count("select count(*) from sys_data_audit where actor_id='system:file-cleanup' and operation='CLEAN_UPLOAD'")).isEqualTo(2);
+        } finally { Files.deleteIfExists(unknown); }
+    }
+
+    @Test void failedCleanupRemainsExpiredAndRetriesOnlyAfterRecordedDelay() throws Exception {
+        String alice=token("alice"); String id=start(alice,data(1300));
+        Path broken=root.resolve(partKeys(id).getFirst()); Files.createDirectory(broken);
+        jdbc.update("update sys_file_entry set expires_at=DATE_SUB(CURRENT_TIMESTAMP,INTERVAL 1 DAY) where id=?",id);
+        try {
+            cleanup.runBatch();
+            assertThat(state(id)).isEqualTo("FAILED"); assertThat(ScopeContext.current()).isEmpty();
+            assertThat(count("select count(*) from sys_file_entry where cleanup_retry_at>CURRENT_TIMESTAMP and temporary_cleaned_at is null")).isEqualTo(1);
+            assertThat(count("select count(*) from sys_data_audit where operation='CLEAN_UPLOAD'")).isZero();
+            assertThat(part(id,0,alice,new byte[1024]).status()).isEqualTo(409);
+            Files.delete(broken); cleanup.runBatch();
+            assertThat(count("select count(*) from sys_file_entry where temporary_cleaned_at is not null")).isZero();
+            jdbc.update("update sys_file_entry set cleanup_retry_at=DATE_SUB(CURRENT_TIMESTAMP,INTERVAL 1 SECOND) where id=?",id);
+            cleanup.runBatch(); cleanup.runBatch();
+            assertThat(count("select count(*) from sys_file_entry where temporary_cleaned_at is not null and cleanup_retry_at is null")).isEqualTo(1);
+            assertThat(count("select count(*) from sys_data_audit where operation='CLEAN_UPLOAD'")).isEqualTo(1);
+            assertThat(count("select count(*) from sys_data_audit where operation='EXPIRE_UPLOAD'")).isEqualTo(1);
+        } finally { Files.deleteIfExists(broken); }
+    }
+
+    @Test void crashedDirectUploadIsCleanedWithSingleScopeCeilingAndBoundedBatches() throws Exception {
+        String alice=token("alice"),bob=token("bob");
+        String a=multipart("POST",BASE_FILE,alice,"scope-a","crash-a.bin",data(10)).body().at("/data/id").asText();
+        String a2=multipart("POST",BASE_FILE,alice,"scope-a","crash-a2.bin",data(11)).body().at("/data/id").asText();
+        String b=multipart("POST",BASE_FILE,bob,"scope-b","crash-b.bin",data(12)).body().at("/data/id").asText();
+        jdbc.update("update sys_file_entry set state='UPLOADING',expires_at=DATE_SUB(CURRENT_TIMESTAMP,INTERVAL 1 DAY) where id in (?,?,?)",a,a2,b);
+        cleanupSettings.setBatchSize(1);
+        var single=new FileCleanupService(cleanupMapper,temporaryCleaner,fileAudit,
+                new DataIsolationProperties(DataIsolationProperties.Mode.SINGLE,"scope-a"),cleanupSettings,transactionManager);
+        single.runBatch();
+        assertThat(count("select count(*) from sys_file_entry where scope_id='scope-a' and temporary_cleaned_at is not null")).isEqualTo(1);
+        assertThat(state(b)).isEqualTo("UPLOADING");
+        single.runBatch(); assertThat(state(b)).isEqualTo("UPLOADING");
+        cleanup.runBatch(); assertThat(state(b)).isEqualTo("FAILED");
+        try(var objects=Files.list(root)) { assertThat(objects.count()).isZero(); }
+        assertThat(count("select count(*) from sys_data_audit where scope_id='scope-b' and actor_id='system:file-cleanup' and operation='CLEAN_UPLOAD'")).isEqualTo(1);
+        as("u-alice","scope-a");
+        try { assertThatThrownBy(cleanup::runBatch).isInstanceOf(IllegalStateException.class); assertThat(ScopeContext.get().loginId()).isEqualTo("u-alice"); }
+        finally { ScopeContext.clear(); }
+    }
+
+    @Test void lockedUploadIsSkippedAndTwoWorkersDoNotDuplicateCleanupAudits() throws Exception {
+        String alice=token("alice"); String id=start(alice,data(1200));
+        jdbc.update("update sys_file_entry set expires_at=DATE_SUB(CURRENT_TIMESTAMP,INTERVAL 1 DAY) where id=?",id);
+        var locked=new CountDownLatch(1); var release=new CountDownLatch(1);
+        try(var workers=Executors.newFixedThreadPool(2)) {
+            var owner=workers.submit(() -> new TransactionTemplate(transactionManager).execute(status -> {
+                jdbc.queryForObject("select id from sys_file_entry where id=? for update",String.class,id);
+                locked.countDown(); await(release); return null;
+            }));
+            try {
+                assertThat(locked.await(5,TimeUnit.SECONDS)).isTrue();
+                workers.submit(cleanup::runBatch).get(5,TimeUnit.SECONDS);
+                assertThat(state(id)).isEqualTo("UPLOADING");
+            } finally { release.countDown(); owner.get(5,TimeUnit.SECONDS); }
+            var start=new CountDownLatch(1);
+            var first=workers.submit(() -> { await(start); cleanup.runBatch(); assertThat(ScopeContext.current()).isEmpty(); });
+            var second=workers.submit(() -> { await(start); cleanup.runBatch(); assertThat(ScopeContext.current()).isEmpty(); });
+            start.countDown(); first.get(5,TimeUnit.SECONDS); second.get(5,TimeUnit.SECONDS);
+        }
+        assertThat(state(id)).isEqualTo("FAILED");
+        assertThat(count("select count(*) from sys_data_audit where operation='EXPIRE_UPLOAD'")).isEqualTo(1);
+        assertThat(count("select count(*) from sys_data_audit where operation='CLEAN_UPLOAD'")).isEqualTo(1);
+    }
+
+    @Test void directWriteHoldsFileLockUntilPhysicalWriteFinishes() throws Exception {
+        var writing=new CountDownLatch(1); var release=new CountDownLatch(1); byte[] bytes=data(14);
+        var source=new org.springframework.mock.web.MockMultipartFile("file","slow.bin","application/octet-stream",bytes) {
+            @Override public InputStream getInputStream() {
+                writing.countDown(); await(release); return new ByteArrayInputStream(bytes);
+            }
+        };
+        try(var worker=Executors.newSingleThreadExecutor()) {
+            var upload=worker.submit(() -> {
+                as("u-alice","scope-a"); DataPermissionContext.set("file:upload",DataPolicyRegistry.View.CURRENT_SCOPE);
+                try { return fileService.upload(source,null); }
+                finally { ScopeContext.clear(); DataPermissionContext.clear(); }
+            });
+            try {
+                assertThat(writing.await(5,TimeUnit.SECONDS)).isTrue();
+                String id=jdbc.queryForObject("select id from sys_file_entry where name='slow.bin'",String.class);
+                var inaccessible=new TransactionTemplate(transactionManager).execute(status ->
+                        cleanupMapper.lockDue(id,"scope-a",LocalDateTime.now().plusHours(2)));
+                assertThat(inaccessible).isNull();
+            } finally { release.countDown(); }
+            String id=upload.get(5,TimeUnit.SECONDS).id();
+            assertThat(download(id,token("alice"),"scope-a").body()).isEqualTo(bytes);
+        }
+    }
+
+    @Test void readyFileSurvivesTemporaryCleanupFailureAndOrphanOwnershipIsQuarantined() throws Exception {
+        String alice=token("alice"); byte[] bytes=data(1200); String id=start(alice,bytes);
+        for(int index=0;index<2;index++) assertThat(part(id,index,alice,Arrays.copyOfRange(bytes,index*1024,Math.min(bytes.length,(index+1)*1024))).status()).isEqualTo(200);
+        assertThat(request("POST",BASE_FILE+"/uploads/"+id+"/complete",alice,"scope-a",null).status()).isEqualTo(200);
+        Path broken=root.resolve(partKeys(id).getFirst()); Files.delete(broken); Files.createDirectory(broken);
+        try {
+            cleanup.runBatch();
+            assertThat(state(id)).isEqualTo("READY");
+            assertThat(download(id,alice,"scope-a").body()).isEqualTo(bytes);
+            assertThat(count("select count(*) from sys_data_audit where operation='CLEAN_UPLOAD'")).isZero();
+            Files.delete(broken);
+            // 无法解析归属的历史记录不交给服务身份自动处理。
+            jdbc.update("update sys_file_entry set scope_id='missing-scope',cleanup_retry_at=null where id=?",id);
+            cleanup.runBatch();
+            assertThat(count("select count(*) from sys_file_entry where id='"+id+"' and temporary_cleaned_at is null")).isEqualTo(1);
+        } finally {
+            jdbc.update("update sys_file_entry set scope_id='scope-a',cleanup_retry_at=null where id=?",id);
+            Files.deleteIfExists(broken);
+        }
+        cleanup.runBatch();
+        assertThat(download(id,alice,"scope-a").body()).isEqualTo(bytes);
+        assertThat(count("select count(*) from sys_data_audit where operation='CLEAN_UPLOAD'")).isEqualTo(1);
+    }
+
+    private static void await(CountDownLatch signal) {
+        try { if(!signal.await(10,TimeUnit.SECONDS)) throw new IllegalStateException("Test latch timed out"); }
+        catch(InterruptedException error) { Thread.currentThread().interrupt(); throw new IllegalStateException(error); }
+    }
+    private String state(String id) { return jdbc.queryForObject("select state from sys_file_entry where id=?",String.class,id); }
+    private List<String> partKeys(String id) { return jdbc.queryForList("select object_key from sys_file_part where file_id=? order by part_index",String.class,id); }
 
     private String start(String token,byte[] bytes) throws Exception {
         List<String> hashes=new ArrayList<>();

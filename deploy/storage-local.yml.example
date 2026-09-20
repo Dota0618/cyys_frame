@@ -1,6 +1,11 @@
 # 作为外部 Spring 配置导入；先创建并限制 CYYS_FILE_ROOT 的访问权限。
 # 不要放到 frontend/dist 或 Nginx 公开静态目录。
 cyys:
+  file-cleanup:
+    enabled: true
+    interval-ms: 60000
+    batch-size: 25
+    retry-seconds: 300
   storage:
     active: ${CYYS_STORAGE_ACTIVE:local-main}
     max-bytes: 20971520

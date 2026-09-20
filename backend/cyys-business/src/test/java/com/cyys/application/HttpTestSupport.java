@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @ContextConfiguration(initializers = MySqlTestDatabaseGuard.class)
 @Import(MySqlTestFixtures.class)
+@org.springframework.test.context.TestPropertySource(properties="cyys.file-cleanup.enabled=false")
 abstract class HttpTestSupport {
     static final String PASSWORD = "correct-password";
     static final String PASSWORD_HASH = BCrypt.hashpw(PASSWORD, BCrypt.gensalt(4));

@@ -7,7 +7,6 @@ import com.cyys.admin.audit.service.DataAuditService;
 import com.cyys.admin.file.dto.*;
 import com.cyys.admin.file.mapper.FileEntryMapper;
 import com.cyys.admin.file.mapper.FileOwnerMapper;
-import com.cyys.admin.file.mapper.FilePartMapper;
 import com.cyys.admin.file.model.FileEntry;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.storage.ConfiguredStorage;
@@ -28,14 +27,14 @@ public class FileService {
     private final FileOwnerMapper owners;
     private final ConfiguredStorage storage;
     private final DataAuditService audit;
-    private final FilePartMapper parts;
+    private final TemporaryFileCleaner temporaryCleaner;
     private final FileDirectoryService directories;
     private final TransactionTemplate transactions;
 
     public FileService(FileEntryMapper mapper, FileOwnerMapper owners, ConfiguredStorage storage,
-                       DataAuditService audit, FilePartMapper parts, FileDirectoryService directories, PlatformTransactionManager manager) {
+                       DataAuditService audit, TemporaryFileCleaner temporaryCleaner, FileDirectoryService directories, PlatformTransactionManager manager) {
         this.mapper = mapper; this.owners = owners; this.storage = storage; this.audit = audit;
-        this.parts = parts;
+        this.temporaryCleaner = temporaryCleaner;
         this.directories = directories;
         this.transactions = new TransactionTemplate(manager);
     }
@@ -69,22 +68,32 @@ public class FileService {
             entry.setStorageProfile(target.profileId());
             entry.setObjectKey(ConfiguredStorage.newKey());
             entry.setState("UPLOADING");
+            entry.setExpiresAt(java.time.LocalDateTime.now().plusHours(1));
             requireOne(mapper.insert(entry));
             // 新增也必须在该操作的数据范围内；失败时回滚登记，不开始物理写入。
             if (mapper.selectById(entry.getId()) == null) throw new ApiException(403, "没有当前部门的文件上传权限");
             return entry;
         });
         ObjectStorage.Written written;
-        try (InputStream input = source.getInputStream()) {
-            written = target.storage().write(file.getObjectKey(), input, target.maxBytes());
-        } catch (IOException | RuntimeException error) {
+        try {
+            written = transactions.execute(status -> {
+                // 持有文件行锁覆盖实际写入；清理任务跳过此行，进程中断后锁自动释放。
+                var current=mapper.lock(file.getId());
+                if(current==null || !"UPLOADING".equals(current.getState())) throw new ApiException(409,"上传记录状态已变化");
+                try(InputStream input=source.getInputStream()) {
+                    return target.storage().write(file.getObjectKey(),input,target.maxBytes());
+                } catch(IOException error) { throw new UncheckedIOException(error); }
+            });
+        } catch (RuntimeException error) {
             // 失败对象保留位置和失败状态；清理失败也不会被当成可下载文件。
             try {
                 transactions.executeWithoutResult(status -> {
                     FileEntry current = mapper.lock(file.getId());
                     if (current == null) throw new ApiException(409, "上传记录不可访问");
-                    current.setState("FAILED");
-                    requireOne(mapper.updateById(current));
+                    if("UPLOADING".equals(current.getState())) {
+                        current.setState("FAILED");
+                        requireOne(mapper.updateById(current));
+                    }
                 });
             } catch (RuntimeException marking) { error.addSuppressed(marking); }
             if (error instanceof ApiException api) throw api;
@@ -130,11 +139,8 @@ public class FileService {
             throw new ApiException(409, "文件不可删除、正在上传或版本已变化");
         }
         if (file.getPartBytes() != null || "FAILED".equals(file.getState())) {
-            var target = storage.resolve(file.getStorageProfile());
-            try {
-                for (var part : parts.list(id, file.getScopeId(), file.getCreatedBy())) target.storage().delete(part.objectKey());
-                if ("FAILED".equals(file.getState())) target.storage().delete(file.getObjectKey());
-            } catch (IOException error) { throw new ApiException(503, "临时文件清理失败，尚未删除记录"); }
+            temporaryCleaner.clean(file);
+            requireOne(mapper.temporaryCleaned(id,file.getVersion()));
         }
         requireOne(mapper.trash(id, version, ScopeContext.get().loginId()));
         audit.success("file", id, "DELETE");
