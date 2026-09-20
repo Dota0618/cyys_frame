@@ -13,6 +13,19 @@ class LocalObjectStorageTest {
     @TempDir Path root;
     private static final String KEY="0123456789abcdef0123456789abcdef";
 
+    @Test void historicalCopyLengthBoundariesPreserveEveryByte() throws Exception {
+        var storage = new LocalObjectStorage(root);
+        for (int length : new int[]{0, 3, 1023, 1024, 1025}) {
+            byte[] bytes = new byte[length];
+            new Random(length).nextBytes(bytes);
+            assertThat(storage.write(KEY, new ByteArrayInputStream(bytes), Math.max(1, length)).bytes()).isEqualTo(length);
+            try (var input = storage.read(KEY)) {
+                assertThat(input.readAllBytes()).as("copy length %s", length).isEqualTo(bytes);
+            }
+            storage.delete(KEY);
+        }
+    }
+
     @Test void exactByteCopyAndFailureCleanupDoNotOverwriteExistingObjects() throws Exception {
         var storage=new LocalObjectStorage(root);
         byte[] bytes=new byte[8193]; new Random(10).nextBytes(bytes);

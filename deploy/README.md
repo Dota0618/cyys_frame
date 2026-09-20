@@ -1,6 +1,6 @@
 # Linux / Docker / Nginx 部署准备
 
-用户于 2026-09-20 确认该部署方式，并指定本机 Docker 演练。已在 Docker Desktop Linux 引擎构建并启动 api/web、连接现有 MySQL/Redis，通过 HTTPS/静态路由/未登录拒绝/413 JSON 和 API 停机重建检查；仅绑定本机地址，没有连接生产主机、新建数据库或执行上线。专属 A/B 单位样本与附件的停写备份恢复、多/单单位来回切换已通过；这不等于真实旧库生产切换。正式使用前仍需完成实际数据迁移验收和维护窗口确认。
+用户于 2026-09-20 确认该部署方式，并指定本机 Docker 演练。已在 Docker Desktop Linux 引擎构建并启动 api/web、连接现有 MySQL/Redis，通过 HTTPS/静态路由/未登录拒绝/413 JSON 和 API 停机重建检查；仅绑定本机地址，没有连接生产主机、新建数据库或执行上线。专属 A/B 单位样本与附件的停写备份恢复、多/单单位来回切换已通过；这不等于真实旧库生产切换。用户本轮选择的基础数据已导入现有测试库并核对，见 [迁移记录](../docs/migration/legacy-basic-data.md)；生产切换另需真实环境和维护窗口。
 
 ## 构建和验收
 
@@ -63,3 +63,5 @@ docker compose --env-file /etc/cyys/release.env -f deploy/compose.yml logs --tai
 发布记录必须包含新旧源码提交与镜像 digest、验收报告、迁移前后版本/行数核对、备份位置和恢复证据、文件 profile、单位模式、密码/会话/缓存转换方案、开始结束时间和实际 smoke 结果。框架派生项目按提交/changelog 选择并验证补丁，不会因复制目录自动获得后续修复。
 
 技术依据：[Docker Compose secrets](https://docs.docker.com/compose/how-tos/use-secrets/)、[Spring 外部配置与 configtree](https://docs.spring.io/spring-boot/reference/features/external-config.html)、[Nginx 路由与 try_files](https://nginx.org/en/docs/http/ngx_http_core_module.html#try_files)。
+
+2026-09-20 17:02：本机 API 在基础数据导入后重新启动，健康 200、Flyway 校验 V18。现在测试库有保留数据，以上要求空库的全量测试及样本恢复脚本会拒绝；不要为执行它们删除导入数据。普通日常登录需要另行受控初始化身份，交付不含默认管理员。

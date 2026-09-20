@@ -3,25 +3,21 @@
 I often build Java applications for standalone projects, and I see many that are over-engineered. Actually, your system design doesn't need to be complex. If your project has few users, serves as an internal government or corporate system, or just needs to be delivered fast — I believe this is what you need.
 
 
-基于 JDK 25 / Spring Boot 4.1.1 的框架改造工程。A 方案目录、身份基础及 Phase 3 / G1、Phase 4.1 已完成；Phase 4.2 已完成部门管理、组织树与负责人选择、单位角色、共享菜单、GLOBAL 平台角色、全局配置/字典、两类审计、受控缓存及本地私有文件/断点续传、个人目录、文件回收、后台临时清理及组织通知/首次阅读/附件引用切片。最新完整后端回归为 127 项通过（含统一出站 HTTP/TLS 和 Jackson 转换链隔离），正式迁移执行至 V14；当前 35 组真实浏览器用例分轮覆盖通过（全套首轮 31 项通过，修正测试定位与字典样本计数后，通知专项 3 项和全局配置/字典专项 10 项通过）。系统通知、指南、版本等 Phase 4.2 其余能力及 G2 仍待办，实际范围见 [改造进度](docs/migration/progress.md)。
+基于 JDK 25 / Spring Boot 4.1.1 的框架改造工程，采用一个可执行后端与一个 Ant Design Pro 前端。已实现身份与单位隔离、成员/部门/角色与平台授权、全局配置/字典、审计、受控缓存、本地私有文件与断点续传、文件目录与回收、系统通知、版本附件、地区、密码管理、成员/地区导出及通用流水号。
+
+2026-09-20 验收：完整后端回归 149 项通过，另补充导出途中撤权及两个独立 JVM 取号各 1 项通过；40 项真实页面用例分轮通过，正式迁移已执行至 V18。本机 Docker 的 HTTPS/代理、A/B 样本与附件备份恢复、多→单→多模式切换通过。用户选定的基础数据已导入现有 MySQL：17 类字典、41 项、3720 个地区和 3 个普通配置；本轮框架交付已收口，不包含全部旧业务或生产切换。逐项证据与边界见 [最终验收对照](docs/migration/final-acceptance.md) 和 [改造进度](docs/migration/progress.md)。
 
 ## 开发入口
 
-- 地区参数 V17 的管理接口和页面已开发，采用逐级分页及旧字段；迁移、真实数据与功能验收待最终集中执行。
-- 地区支持当前层级和已应用名称筛选的同步 XLSX 导出，最多 5000 条，需独立 GLOBAL `region:export`；字段由后端固定，复用公共下载与有界 POI 生成。此项只通过编译/类型检查，最终功能验收待办。
-- 用户管理支持当前单位成员同步导出：独立 `user:export`，遵守操作对应的数据范围、姓名筛选和 5000 条上限，生成后复核成员与部门可见性；全部单位只读视图不导出。编译/类型检查通过，最终功能验收待办。
-- 已按确认的 Linux + Docker + Nginx 目标补齐 [部署准备与回滚顺序](deploy/README.md)，并提供 `scripts/verify-release.ps1` 集中验收入口。当前仅通过脚本语法和 Compose 配置检查，未执行容器部署或最终验收。
-- 旧“系统编号”经源码核对为微信 AppID/AppSecret 配置，随微信接入暂缓；独立业务流水号尚无实际消费者，保留待接入事项，不用数据库主键生成器替代。正式迁移目前执行至 V15，V16/V17 待最终集中验证。
-
-- 密码管理源码已补齐：头像菜单个人改密、用户列表平台管理员重置；管理员无需再次输入自己的密码。复用现有 BCrypt/凭据指纹机制，功能及页面验收待最后集中执行。
-
-- 最新补充：引导页也暂停；版本更新 V16 的接口、页面和共享附件源码已完成，迁移及功能验收待最终集中执行，不视为已通过 G2。
-
-- 2026-09-20 最新范围：节假日不做；代码生成器、单位通知暂停。系统通知 V15 的平台管理接口和页面已实现，无阅读状态/回执；后端专项 3 项及前端类型检查/构建通过，页面操作验收留到最后。上述 127 项是上一节点的完整回归，本轮没有重新运行全量。
+- 地区使用平台共享的逐级分页与旧字段。成员/地区同步 XLSX 导出各需独立权限，最多 5000 条、服务端固定字段；成员导出使用当前单位和操作对应的行范围，生成后复核授权及可见性。全部单位只读视图不导出。
+- 通用流水号按用户要求已实现，使用数据库事务和唯一约束保证单位/业务/周期计数；服务器配置规则，业务 Service 调用，无任意取号 HTTP 接口。旧“系统编号”实际是微信 AppID/AppSecret 配置，随微信接入暂缓。
+- 个人改密需验证原密码；平台管理员重置只输入目标账号的新密码与确认，不再输入管理员自身密码。改密/重置后旧会话失效。
+- 系统通知、版本由平台维护、单位共享；系统通知没有阅读状态/回执。节假日不做，代码生成器、引导页、单位通知后续开发暂停，历史单位通知实现保留。
+- [部署与回滚顺序](deploy/README.md) 提供 Linux + Docker + Nginx 配置、本机恢复脚本与集中验收入口；当前会话为进程内存储，只部署一个 API 实例。两 JVM 流水号验收不代表分布式登录会话已接入。
 
 - 开发节点使用本地 Git 提交保存，不再另存源码快照。现有 `docs/` 忽略设置保留；未跟踪文档不包含在提交中。
 
-- 执行本次改造：先读 [改造期规则](docs/migration/execution-rules.md) 和 [实际进度](docs/migration/progress.md)。
+- 查阅本轮交付：见 [最终验收对照](docs/migration/final-acceptance.md) 和 [实际进度](docs/migration/progress.md)；临时改造规则已结束，后续按现有开发指南执行。
 - 后续功能开发：按任务查询 [开发规则索引](docs/development/README.md)，单项指南在能力稳定并获用户批准后建立。
 - 阶段来源为仓库外层的 `F:\git\frame\docs\task.md`，该文件保留为输入计划；本工程的实际完成依据在进度记录中。
 - 旧工具、视图、表和接口去向见 [输入盘点](docs/migration/source-inventory.md)。存储按 [三模式配置切换规则](docs/development/backend/storage.md) 推进，目前不接真实云 API；微信、支付、短信和视频暂不接入。
@@ -58,7 +54,7 @@ Start-Process -FilePath "$env:MAVEN_HOME\bin\mvn.cmd" -ArgumentList @(
 
 数据库测试直接连接现有 MySQL，不使用 H2，也不自动创建数据库。本机测试连接配置在 `backend/cyys-business/src/test/resources/application-test.xml`；也可执行 `scripts/verify.ps1 -Clean` 统一构建并记录日志。必须选择用于验证的空 schema，或此前由本套测试初始化且已清理的 schema；启动预检发现未知表或已有业务数据会立即拒绝，且发生在 Flyway 和测试写入之前。该测试配置只用于当前本地验收，正式运行仍使用外部参数。
 
-测试通过 HTTP 调用随机端口的实际应用、真实 Mapper 和 Flyway 脚本；每例结束只清理该组记录和缓存键，测试类结束清理测试单位。正式结构及已执行的 V1/V3/V4/V5/V6/V7/V8 历史保留。V7 全局配置与字典已通过真实后端测试及两个新页面的浏览器验收，详见 [验收记录](docs/migration/phase4-2-global-acceptance.md)。旧结构演练仅创建并清理专属测试表；测试材料不进入应用 JAR。完整旧业务库的升级需单独核对。实际测试和清理结果见 [改造进度](docs/migration/progress.md)。
+测试通过 HTTP 调用随机端口的实际应用、真实 Mapper 和 Flyway 脚本；每例结束只清理该组记录和缓存键，测试类结束清理测试单位。正式结构及已执行的 V1、V3–V18 历史保留。旧结构演练只创建和清理专属测试表；测试材料不进入应用 JAR。运行同库测试前先停止本机演练 API，避免并发写库。当前库已导入用户选定的基础数据，空库集成/浏览器测试会拒绝，不能清空这些数据来重跑。实际测试与迁移结果见 [改造进度](docs/migration/progress.md)。
 
 出站 HTTP 统一注入 Boot `RestClient.Builder`，默认连接/读取期限为 3 秒/15 秒，可用 `CYYS_HTTP_CONNECT_TIMEOUT`、`CYYS_HTTP_READ_TIMEOUT` 调整（1 毫秒至 2 分钟）。`CYYS_HTTP_MAX_RESPONSE_BYTES` 默认 1048576，最大 16 MiB；禁止自动重定向和 Cookie 共享。正常信任库/主机名校验保持启用，私有 CA 使用外部 SSL Bundle。对应规则见 [API 与 HTTP 边界](docs/development/backend/api-command-validation.md)，不代表供应商 API 已接入。
 
@@ -73,11 +69,11 @@ npm ci
 npm run dev
 ```
 
-开发页面默认在 8000 端口，`/api` 转发到 `http://127.0.0.1:8080`；可用 `CYYS_API_TARGET` 指定实际后端。前端用 `npm run typecheck`、`npm run build` 独立检查和构建，输出为 `admin-ui/dist`。后端需先注入运行参数及受控的初始身份，当前空库没有可用于日常登录的管理员。
+开发页面默认在 8000 端口，`/api` 转发到 `http://127.0.0.1:8080`；可用 `CYYS_API_TARGET` 指定实际后端。前端用 `npm run typecheck`、`npm run build` 独立检查和构建，输出为 `admin-ui/dist`。后端需先注入运行参数及受控的初始身份，当前测试库保留迁入基础数据，没有可用于日常登录的管理员。
 
 从工程目录运行 `scripts/verify-ui.ps1`：完成类型检查、构建，再用本机 Chrome 无界面浏览器访问真实测试后端。测试服务只绑定回环地址，前端 18041 端口必须空闲；Spring 使用随机端口。`-SkipBuild` 仅适用于前端产物已与源码一致时。浏览器用例不会使用运行中的业务后端或模拟 API；日志在 `backend/logs`，截图在 `admin-ui/test-results`。验收用静态转发服务不是部署方案。
 
-单个功能复验可传 `-Spec caches.spec.ts -LogPrefix phase4_cache`，默认不传 Spec 则运行全套；用独立日志前缀保留既有验收证据。
+专项复验可传 `-Spec caches.spec.ts -LogPrefix phase4_cache`，或多个文件 `-Spec passwords.spec.ts,releases.spec.ts`；不传 Spec 则运行全套。仅在实际失败或新增改动需要时复验，用独立日志前缀保留证据。
 
 ## 运行参数
 
@@ -139,3 +135,5 @@ single 固定到配置的真实单位主键；multi 的每次单位业务请求�
 业务成功与失败均使用 R 响应；预期错误同时设置对应 HTTP 状态（400/401/403/409/423 等）。健康检查保留独立健康响应。ID 为字符串；时间字段使用 ISO 本地日期时间字符串，部署实例应采用一致时区。分页返回 records/total/current/size，size 上限 200。现有成员编辑不修改全局姓名、账号和密码；已有账号加入其他单位及独立账号管理仍待实现。
 
 旧账号密码必须在迁移时重置/转换为有效 BCrypt，旧 Token 失效，不引入第二条兼容鉴权链。密码散列或重置时间改变后，旧会话的后续请求会被拒绝。更详细的迁移和模式变更限制见迁移说明。
+
+选择性旧基础数据迁移与复核入口： [迁移记录](docs/migration/legacy-basic-data.md)。
