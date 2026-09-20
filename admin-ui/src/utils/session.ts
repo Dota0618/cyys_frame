@@ -5,16 +5,16 @@ let stored: StoredSession;
 try { stored = JSON.parse(sessionStorage.getItem(KEY) || '{}'); }
 catch { stored = {}; sessionStorage.removeItem(KEY); }
 let revision = 0;
-let dirty = false;
+const dirtyOwners = new Set<string>();
 
 export const session = () => ({ ...stored, revision });
-export const setDirty = (value: boolean) => { dirty = value; };
-export const hasUnsavedChanges = () => dirty;
+export const setDirty = (value: boolean, owner = 'page') => { if (value) dirtyOwners.add(owner); else dirtyOwners.delete(owner); };
+export const hasUnsavedChanges = () => dirtyOwners.size > 0;
 export const advanceRevision = () => ++revision;
 
 export function updateSession(value: StoredSession) {
   stored = value;
-  dirty = false;
+  dirtyOwners.clear();
   revision++;
   sessionStorage.setItem(KEY, JSON.stringify(value));
   window.dispatchEvent(new Event(CONTEXT_CHANGED));
@@ -22,6 +22,6 @@ export function updateSession(value: StoredSession) {
 export const clearSession = () => updateSession({});
 export const refreshIdentity = () => {
   revision++;
-  dirty = false;
+  dirtyOwners.clear();
   window.dispatchEvent(new Event(CONTEXT_CHANGED));
 };

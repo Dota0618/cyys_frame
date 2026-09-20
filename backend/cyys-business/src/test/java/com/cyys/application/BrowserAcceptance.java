@@ -20,6 +20,9 @@ class BrowserAcceptance extends IsolationTestSupport {
     private Path fileRoot;
 
     @AfterEach void cleanupBrowserRoles() throws Exception {
+        jdbc.update("delete from sys_file_binding where scope_id in ('scope-a','scope-b')");
+        jdbc.update("delete from sys_org_notice_ref where scope_id in ('scope-a','scope-b')");
+        jdbc.update("delete from sys_org_notice where scope_id in ('scope-a','scope-b')");
         if (fileRoot != null) {
             for (String key : jdbc.queryForList("select object_key from sys_file_part where scope_id in ('scope-a','scope-b') "
                     + "union all select object_key from sys_file_entry where scope_id in ('scope-a','scope-b')", String.class)) {
@@ -35,6 +38,8 @@ class BrowserAcceptance extends IsolationTestSupport {
                 + "(select id from param_basic where system_name like 'g4-browser-global-%')");
         jdbc.update("delete from param_basic where system_name like 'g4-browser-global-%'");
         jdbc.update("delete from sys_configure where name like 'g4-browser-global-%'");
+        jdbc.update("delete from param_basic_type where basic_id=98111");
+        jdbc.update("delete from param_basic where id=98111");
         for (String id : jdbc.queryForList("select id from sys_role where code in ('G4_BROWSER_ROLE','G4_BROWSER_PLATFORM_ROLE','G4_BROWSER_GLOBAL_ROLE')", String.class)) {
             jdbc.update("delete from sys_user_role where role_id=?", id);
             jdbc.update("delete from sys_role_menu where role_id=?", id);
@@ -55,6 +60,10 @@ class BrowserAcceptance extends IsolationTestSupport {
         for (String permission : List.of("file:read", "file:upload", "file:update", "file:delete", "file:content:read")) allow("role-a",permission,false);
         for (String action : List.of("move","directory:create","directory:update","directory:delete","recycle:read","restore","purge")) allow("role-a","file:"+action,false);
         for (String permission : List.of("file:read", "file:content:read")) allow("role-b",permission,false);
+        for (String action : List.of("read","create","update","delete","receipts:read")) allow("role-a","org-notice:"+action,false);
+        allow("role-b","org-notice:read",false);
+        jdbc.update("insert into param_basic(id,system_name,name,created_by,updated_by) values('98111','NOTICE_TYPE','通知类型','u-alice','u-alice')");
+        jdbc.update("insert into param_basic_type(id,basic_id,param_key,param_value,created_by,updated_by) values('98112','98111','normal','普通通知','u-alice','u-alice')");
         for (String permission : List.of("user:read","user:create","user:update","role:grant",
                 "role:read","role:create","role:update","role:delete")) allow("role-a",permission,false);
         allow("role-b","user:read",false);

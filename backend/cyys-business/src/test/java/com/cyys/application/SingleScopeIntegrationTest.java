@@ -32,7 +32,7 @@ class SingleScopeIntegrationTest extends HttpTestSupport {
                 .map(Class::getSimpleName).distinct().toList())
                 .containsExactlyInAnyOrder("AuthController", "HealthController", "MemberController",
                         "DepartmentController", "RoleController", "MenuController", "PlatformRoleController",
-                        "ConfigurationController", "DictionaryController", "AuditController", "LoginAuditController", "CacheController", "FileController", "FileDirectoryController");
+                        "ConfigurationController", "DictionaryController", "AuditController", "LoginAuditController", "CacheController", "FileController", "FileDirectoryController", "OrgNoticeController");
     }
 
     @Test

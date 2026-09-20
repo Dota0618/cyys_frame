@@ -11,12 +11,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ContentDisposition;
+import com.cyys.common.web.DownloadResponse;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Validated
@@ -66,12 +65,7 @@ public class FileController {
     @GetMapping("/{id}/content") @SaCheckPermission("file:content:read")
     public void download(@PathVariable String id, HttpServletResponse response) throws IOException {
         try (var file = service.download(id)) {
-            response.setContentType("application/octet-stream");
-            response.setContentLengthLong(file.bytes());
-            response.setHeader("Content-Disposition", ContentDisposition.attachment().filename(file.name(), StandardCharsets.UTF_8).build().toString());
-            response.setHeader("X-Content-Type-Options", "nosniff");
-            response.setHeader("Cache-Control", "no-store");
-            file.stream().transferTo(response.getOutputStream());
+            DownloadResponse.send(response,file.name(),file.bytes(),file.stream());
         }
     }
 

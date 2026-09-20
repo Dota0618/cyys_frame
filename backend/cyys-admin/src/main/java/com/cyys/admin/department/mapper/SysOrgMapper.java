@@ -20,6 +20,9 @@ public interface SysOrgMapper extends BaseMapper<SysOrg> {
     @Select("select * from sys_org where id=#{id} and deleted=0 and status=1 for update")
     SysOrg parentForCreate(@Param("id") String id);
 
+    @Select("select * from sys_org where id=#{id} and deleted=0 and status=1 for share")
+    SysOrg forReference(@Param("id") String id);
+
     @Select("select * from sys_org where id=#{id} and deleted=0 for update")
     SysOrg selectForUpdate(@Param("id") String id);
 

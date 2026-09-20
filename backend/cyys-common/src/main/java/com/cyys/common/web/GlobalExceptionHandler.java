@@ -55,6 +55,11 @@ public class GlobalExceptionHandler {
         return failure(404, "接口不存在");
     }
 
+    @ExceptionHandler(org.springframework.dao.ConcurrencyFailureException.class)
+    public ResponseEntity<R<Void>> handleConcurrentChange(Exception error) {
+        return failure(409,"数据正在被其他操作修改，请刷新后重试");
+    }
+
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<R<Void>> handleMethod(HttpRequestMethodNotSupportedException error) {
         return failure(405, "请求方法不支持");

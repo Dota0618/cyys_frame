@@ -13,6 +13,7 @@ public interface DepartmentReferenceMapper {
             + "or exists(select 1 from sys_user_scope where org_id=#{id} and scope_id=#{scope} and deleted=0) "
             + "or exists(select 1 from sys_role_org where org_id=#{id} and scope_id=#{scope}) "
             + "or exists(select 1 from sys_file_entry where org_id=#{id} and scope_id=#{scope} and deleted=0) "
-            + "or exists(select 1 from sys_file_dir where org_id=#{id} and scope_id=#{scope} and deleted=0)")
+            + "or exists(select 1 from sys_file_dir where org_id=#{id} and scope_id=#{scope} and deleted=0) "
+            + "or exists(select 1 from sys_org_notice where org_id=#{id} and scope_id=#{scope} and deleted=0)")
     boolean hasActiveReferences(@Param("id") String id, @Param("scope") String scope);
 }

@@ -29,13 +29,15 @@ public class FileService {
     private final DataAuditService audit;
     private final TemporaryFileCleaner temporaryCleaner;
     private final FileDirectoryService directories;
+    private final FileAttachmentService attachments;
     private final TransactionTemplate transactions;
 
     public FileService(FileEntryMapper mapper, FileOwnerMapper owners, ConfiguredStorage storage,
-                       DataAuditService audit, TemporaryFileCleaner temporaryCleaner, FileDirectoryService directories, PlatformTransactionManager manager) {
+                       DataAuditService audit, TemporaryFileCleaner temporaryCleaner, FileDirectoryService directories, FileAttachmentService attachments, PlatformTransactionManager manager) {
         this.mapper = mapper; this.owners = owners; this.storage = storage; this.audit = audit;
         this.temporaryCleaner = temporaryCleaner;
         this.directories = directories;
+        this.attachments = attachments;
         this.transactions = new TransactionTemplate(manager);
     }
 
@@ -138,6 +140,7 @@ public class FileService {
         if (file == null || file.getVersion() != version || "UPLOADING".equals(file.getState())) {
             throw new ApiException(409, "文件不可删除、正在上传或版本已变化");
         }
+        attachments.requireUnbound(file);
         if (file.getPartBytes() != null || "FAILED".equals(file.getState())) {
             temporaryCleaner.clean(file);
             requireOne(mapper.temporaryCleaned(id,file.getVersion()));
@@ -155,6 +158,7 @@ public class FileService {
             if(file==null || !file.getVersion().equals(command.version()) || "UPLOADING".equals(file.getState())) {
                 throw new ApiException(409,"批次包含不可删除、正在上传或版本已变化的文件");
             }
+            attachments.requireUnbound(file);
         }
         for(var command:commands) trash(command.id(),command.version());
     }

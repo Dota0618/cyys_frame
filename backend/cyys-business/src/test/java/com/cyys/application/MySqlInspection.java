@@ -26,7 +26,7 @@ public class MySqlInspection {
                         System.out.println("EXACT_ROWS=" + table + ":" + rows.getLong(1));
                     }
                 }
-                for (String table : java.util.List.of("sys_configure", "param_basic", "param_basic_type", "sys_login_audit", "sys_file_entry", "sys_file_part", "sys_file_dir")) {
+                for (String table : java.util.List.of("sys_configure", "param_basic", "param_basic_type", "sys_login_audit", "sys_file_entry", "sys_file_part", "sys_file_dir", "sys_org_notice", "sys_org_notice_ref", "sys_file_binding")) {
                     try (var exists = connection.prepareStatement(
                             "select count(*) from information_schema.tables where table_schema=database() and table_name=?")) {
                         exists.setString(1, table);

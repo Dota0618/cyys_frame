@@ -195,27 +195,28 @@ test('配置、字典分类与项分页和空查询均由真实数据库返回',
     dictionaries.push(await dictionary(page, String(990042100000 + index), `page-${index}`));
     items.push(await item(page, dictionaries[0].id, String(index), `page-${index}`));
   }
-  async function verifyPagination(table: Locator, endpoint: string, searchLabel: string) {
+  async function verifyPagination(table: Locator, endpoint: string, searchLabel: string, expectedTotal = 21) {
     await expect(table.locator('tbody tr[data-row-key]')).toHaveCount(20);
     const response = page.waitForResponse(r => r.url().includes(endpoint + '?') && new URL(r.url()).searchParams.get('page') === '2');
     await table.locator('.ant-pagination-item-2').click();
     const result = (await (await response).json()).data;
-    expect(result.total).toBe(21); expect(result.records).toHaveLength(1);
-    await expect(table.locator('tbody tr[data-row-key]')).toHaveCount(1);
+    expect(result.total).toBe(expectedTotal); expect(result.records).toHaveLength(expectedTotal - 20);
+    await expect(table.locator('tbody tr[data-row-key]')).toHaveCount(expectedTotal - 20);
     await expect(table.locator(`tr[data-row-key="${result.records[0].id}"]`)).toBeVisible();
     await table.locator('.ant-pagination-options-size-changer').click();
     await page.locator('.ant-select-dropdown:visible').getByText('50 条/页', { exact: true }).click();
-    await expect(table.locator('tbody tr[data-row-key]')).toHaveCount(21);
+    await expect(table.locator('tbody tr[data-row-key]')).toHaveCount(expectedTotal);
     await table.getByLabel(searchLabel, { exact: true }).fill('no-such-record');
     await table.getByRole('button', { name: '查 询' }).click();
     await expect(table.locator('.ant-empty-description')).toHaveText('暂无数据');
     await table.getByRole('button', { name: '重 置' }).click();
-    await expect(table.locator('tbody tr[data-row-key]')).toHaveCount(21);
+    await expect(table.locator('tbody tr[data-row-key]')).toHaveCount(expectedTotal);
   }
   await navigate(page, '通用配置');
   await verifyPagination(page.locator('.ant-pro-table').first(), CONFIG, '配置名称');
   await navigate(page, '数据字典');
-  await verifyPagination(page.locator('.ant-pro-table').first(), DICT, '字典名称');
+  // 通知消费使用一条真实 NOTICE_TYPE 基础分类，另有本例创建的 21 条。
+  await verifyPagination(page.locator('.ant-pro-table').first(), DICT, '字典名称', 22);
   await row(page, dictionaries[0].id).getByText('字典项', { exact: true }).click();
   await verifyPagination(page.locator('.ant-pro-table').last(), `${DICT}/${dictionaries[0].id}/items`, '字典值');
   for (const record of items) await api(page, 'DELETE', `${DICT}/${dictionaries[0].id}/items/${record.id}?version=0`);

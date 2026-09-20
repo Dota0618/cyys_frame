@@ -25,11 +25,13 @@ public class FileRecycleService {
     private final FilePartMapper parts;
     private final ConfiguredStorage storage;
     private final DataAuditService audit;
+    private final FileAttachmentService attachments;
     private final TransactionTemplate transactions;
 
     public FileRecycleService(FileEntryMapper files,FilePartMapper parts,ConfiguredStorage storage,
-                              DataAuditService audit,PlatformTransactionManager manager) {
+                              DataAuditService audit,FileAttachmentService attachments,PlatformTransactionManager manager) {
         this.files=files; this.parts=parts; this.storage=storage; this.audit=audit;
+        this.attachments=attachments;
         this.transactions=new TransactionTemplate(manager);
     }
 
@@ -62,6 +64,7 @@ public class FileRecycleService {
             if(current==null || current.getVersion()!=version || !List.of("READY","FAILED","PURGING").contains(current.getState())) {
                 throw new ApiException(409,"文件不可永久删除或版本已变化");
             }
+            attachments.requireUnbound(current);
             if(!"PURGING".equals(current.getState())) {
                 requireOne(files.purgeState(id,version,"PURGING",ScopeContext.get().loginId()));
                 current.setVersion(version+1); current.setState("PURGING");

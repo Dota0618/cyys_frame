@@ -75,5 +75,10 @@ export default (initialState?: { user?: UserInfo }) => {
     canReadFileRecycle: canReadInSelectedUnit('file:recycle:read'),
     canRestoreFiles: canWrite('file:restore'),
     canPurgeFiles: canWrite('file:purge'),
+    canReadOrgNotices: canReadInSelectedUnit('org-notice:read'),
+    canCreateOrgNotices: canWrite('org-notice:create'),
+    canEditOrgNotices: canWrite('org-notice:update'),
+    canDeleteOrgNotices: canWrite('org-notice:delete'),
+    canReadNoticeReceipts: canReadInSelectedUnit('org-notice:receipts:read'),
   };
 };
