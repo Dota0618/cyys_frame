@@ -82,5 +82,6 @@ export default [
   { path: '/system/file-recycle', name: '文件回收站', icon: 'DeleteOutlined', access: 'canReadFileRecycle', component: './system/file-recycle' },
   { path: '/system/org-notices', name: '组织通知', icon: 'NotificationOutlined', access: 'canReadOrgNotices', component: './system/org-notices' },
   { path: '/system/system-notices', name: '系统通知', icon: 'NotificationOutlined', access: 'canReadSystemNotices', component: './system/system-notices' },
+  { path: '/system/releases', name: '版本更新', icon: 'HistoryOutlined', access: 'canReadReleases', component: './system/releases' },
   { path: '*', component: './exception/404', hideInMenu: true },
 ];

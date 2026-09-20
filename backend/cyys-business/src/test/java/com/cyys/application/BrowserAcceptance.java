@@ -20,6 +20,8 @@ class BrowserAcceptance extends IsolationTestSupport {
     private Path fileRoot;
 
     @AfterEach void cleanupBrowserRoles() throws Exception {
+        jdbc.update("delete from sys_file_binding where scope_id='GLOBAL' and resource='RELEASE' and record_id in (select id from sys_version where created_by='u-platform')");
+        jdbc.update("delete from sys_version where created_by='u-platform'");
         jdbc.update("delete from sys_notice where created_by='u-platform' and title like 'g4-browser-notice-%'");
         jdbc.update("delete from param_basic_type where basic_id='98311'");
         jdbc.update("delete from param_basic where id='98311'");
@@ -84,7 +86,7 @@ class BrowserAcceptance extends IsolationTestSupport {
         for (String permission : List.of("menu:read","menu:create","menu:update","menu:delete",
                 "platform:role:read","platform:role:create","platform:role:update","platform:role:delete",
                 "platform:role:grant")) allow("role-platform",permission,true);
-        for (String resource : List.of("configuration", "dictionary", "system-notice")) {
+        for (String resource : List.of("configuration", "dictionary", "system-notice", "release")) {
             for (String operation : List.of("read", "create", "update", "delete")) {
                 allow("role-platform", resource + ":" + operation, true);
             }

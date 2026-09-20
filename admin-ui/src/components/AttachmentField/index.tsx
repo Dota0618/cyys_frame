@@ -6,8 +6,8 @@ import FileUpload from '@/components/FileUpload';
 import type { Page } from '@/types/api';
 
 /** 表单只维护有序文件对象；移除仅改表单值，物理删除由文件管理负责。 */
-export default function AttachmentField({ value = [], onChange, load, canUpload = false, limit = 10 }: {
-  value?: FileChoice[]; onChange?: (value: FileChoice[]) => void; canUpload?: boolean; limit?: number;
+export default function AttachmentField({ value = [], onChange, load, canUpload = false, canSelect = true, limit = 10 }: {
+  value?: FileChoice[]; onChange?: (value: FileChoice[]) => void; canUpload?: boolean; canSelect?: boolean; limit?: number;
   load: (page: number, size: number, search?: string) => Promise<Page<FileChoice>>;
 }) {
   const [selecting, setSelecting] = useState(false);
@@ -17,7 +17,7 @@ export default function AttachmentField({ value = [], onChange, load, canUpload 
     const ordered = [...value]; [ordered[index], ordered[index + offset]] = [ordered[index + offset], ordered[index]]; onChange?.(ordered);
   };
   return <div>
-    <Button onClick={() => setSelecting(true)}>选择已有附件</Button>
+    {canSelect && <Button onClick={() => setSelecting(true)}>选择已有附件</Button>}
     {canUpload && value.length < limit && <FileUpload onChanged={() => {}} onUploaded={(file) => {
       const selected = current.current;
       if (selected.length < limit && !selected.some((item) => item.id === file.id)) {

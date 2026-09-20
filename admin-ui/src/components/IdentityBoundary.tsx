@@ -99,6 +99,7 @@ function IdentityContent({ children }: PropsWithChildren) {
     '/system/file-recycle': access.canReadFileRecycle,
     '/system/org-notices': access.canReadOrgNotices,
     '/system/system-notices': access.canReadSystemNotices,
+    '/system/releases': access.canReadReleases,
     '/system/roles': access.canReadRoles,
     '/system/platform-menus': access.canReadPlatformMenus,
     '/system/platform-roles': access.canReadPlatformRoles,

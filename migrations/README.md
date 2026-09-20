@@ -20,7 +20,8 @@
 - V13：文件增加临时清理完成时间、失败重试时间及候选索引；为此前未登记期限的直传 UPLOADING 补充创建后一小时期限。后台到期先标 FAILED，再删除登记临时对象；READY 主文件保留。
 - V14：组织通知 `sys_org_notice`、首次阅读关系 `sys_org_notice_ref` 及有序文件引用 `sys_file_binding`；新表排序规则跟随 sys_org，不建立外键，不写入默认通知或字典数据。
 - V15：平台共享系统通知 `sys_notice`，无单位字段、无阅读关系；标题、类型、纯文本正文及是否显示，保留版本和审计。不写默认字典或通知数据。
-- 后续正式迁移从 V16 递增，system/business 共用版本序列。
+- V16（已编写，尚未执行）：平台版本更新 `sys_version`；文件关联增加源单位 `file_scope_id`，既有 V14 关系按原单位回填。父业务范围、源单位和资源组合受约束，引用保护使用源单位查找全部关系。
+- 后续正式迁移从 V17 递增，system/business 共用版本序列。
 - 测试单位由测试配置在正式迁移之后准备、测试类结束时清理，不占用版本号、不留下测试迁移历史。
 
 `baseline-on-migrate=false`、`clean-disabled=true`、`validate-on-migrate=true` 防止把未核对的旧库自动当成新基线。V1 在本次调整前尚未接入版本迁移权威；改造前内容已保存到本地源码快照。不要拿新 V1 覆盖某个已有迁移历史的已部署库。
@@ -112,6 +113,8 @@ V2 在本地首次初始化时按 V1 → V2 → V3 顺序执行。已经到 V3 �
 ## 旧数据与模式切换
 
 ### 系统通知（V15）
+
+版本更新 V16 同样为全局内容；旧业务 `version` 映射 `release_number`（最多 10 字符），旧 date_update 保留日期语义，content 最多 1000 字符，类型为 `VERSION_TYPE`。`version` 新字段只用于并发控制；旧附件字符串须另行导入显式关联，不能把旧 URL 当作新文件 ID。当前源码完成，V16 运行及迁移验收尚未执行。
 
 `sys_notice` 保留旧 title/type/content/is_show 语义；类型来自 `SYSTEM_NOTICE_TYPE`，标题最多 100、正文最多 2000 个字符，API 以 visible 布尔值表达是否显示。新增默认隐藏；修改必须显式提交显示状态与版本。历史失效类型允许原记录保留，不能新选；标签批量查询并保留创建/改选时的备份。管理接口为 `/api/admin/platform/system-notices`，必须有 GLOBAL `platform:scope:access` 和相应 `system-notice:read/create/update/delete`，同名单位权限不能维护平台内容。切换单位不改变内容归属，操作审计记 GLOBAL。
 
