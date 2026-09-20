@@ -25,6 +25,27 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class DatabaseFoundationTest extends HttpTestSupport {
     @Autowired SysOrgMapper orgMapper;
     @Autowired SysScopeMapper scopeMapper;
+    @Autowired org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter mvc;
+    @Autowired org.springframework.beans.factory.ObjectProvider<org.springframework.web.client.RestClient.Builder> restClients;
+
+    @Test
+    void jacksonTwoUsedByApiDocsDoesNotReplaceApiOrOutboundJsonConverters() throws Exception {
+        var inbound = mvc.getMessageConverters().stream().map(converter -> converter.getClass().getName()).toList();
+        var outbound = new java.util.ArrayList<String>();
+        restClients.getObject().configureMessageConverters(builder -> builder.configureMessageConverters(
+                converter -> outbound.add(converter.getClass().getName()))).build();
+        for (var converters : List.of(inbound, outbound)) {
+            assertThat(converters).contains("org.springframework.http.converter.json.JacksonJsonHttpMessageConverter");
+            assertThat(converters).noneMatch(name -> name.contains("MappingJackson2") || name.contains("FastJson"));
+        }
+        var yaml = java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://localhost:" + port + "/api/auth/login"))
+                .header("Content-Type", "application/yaml")
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString("username: alice\npassword: ignored")).build();
+        assertThat(CLIENT.send(yaml, java.net.http.HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(415);
+        var unacceptable = java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://localhost:" + port + "/api/health"))
+                .header("Accept", "application/yaml").GET().build();
+        assertThat(CLIENT.send(unacceptable, java.net.http.HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(406);
+    }
 
     @Test
     void auditUsesVerifiedActorAndPreservesCreationFields() {

@@ -50,6 +50,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
     public ResponseEntity<R<Void>> handleUploadTooLarge(Exception error) { return failure(413, "文件超过允许大小"); }
 
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<R<Void>> handleUnsupportedContent(Exception error) { return failure(415, "不支持该请求内容格式"); }
+
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<R<Void>> handleUnsupportedResponse(Exception error) { return failure(406, "不支持该响应内容格式"); }
+
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<R<Void>> handleNotFound(NoResourceFoundException error) {
         return failure(404, "接口不存在");
@@ -65,10 +71,16 @@ public class GlobalExceptionHandler {
         return failure(405, "请求方法不支持");
     }
 
+    @ExceptionHandler(com.cyys.common.integration.OutboundHttpException.class)
+    public ResponseEntity<R<Void>> handleOutbound(com.cyys.common.integration.OutboundHttpException error) {
+        return failure(error.isTimeout() ? 504 : 502, error.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<R<Void>> handleUnexpected(Exception error) {
         for (Throwable cause = error.getCause(); cause != null; cause = cause.getCause()) {
             if (cause instanceof ApiException api) return failure(api.getStatus(), api.getMessage());
+            if (cause instanceof com.cyys.common.integration.OutboundHttpException outbound) return handleOutbound(outbound);
         }
         log.error("请求处理失败", error);
         return failure(500, "系统内部错误");
@@ -84,6 +96,6 @@ public class GlobalExceptionHandler {
                     identity.map(com.cyys.common.satoken.RequestIdentity::scopeId).orElse("unselected"),
                     route, servlet.getRequest().getMethod(), status);
         }
-        return ResponseEntity.status(status).body(R.fail(status, message));
+        return ResponseEntity.status(status).contentType(org.springframework.http.MediaType.APPLICATION_JSON).body(R.fail(status, message));
     }
 }

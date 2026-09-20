@@ -3,6 +3,14 @@ server:
   forward-headers-strategy: none
 
 spring:
+  http:
+    clients:
+      imperative:
+        factory: jdk
+      connect-timeout: ${CYYS_HTTP_CONNECT_TIMEOUT:3s}
+      read-timeout: ${CYYS_HTTP_READ_TIMEOUT:15s}
+      redirects: dont-follow
+      cookie-handling: disable
   servlet:
     multipart:
       max-file-size: ${CYYS_UPLOAD_REQUEST_MAX:20MB}
@@ -63,6 +71,8 @@ sa-token:
   is-log: false
 
 cyys:
+  http:
+    max-response-bytes: ${CYYS_HTTP_MAX_RESPONSE_BYTES:1048576}
   environment: ${CYYS_ENV:local}
   auth:
     login-max-error-count: 5
