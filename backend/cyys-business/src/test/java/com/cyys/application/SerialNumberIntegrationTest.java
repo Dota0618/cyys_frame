@@ -34,6 +34,7 @@ class SerialNumberIntegrationTest extends IsolationTestSupport {
     @Autowired SerialNumberService numbers;
     @Autowired ApplicationContext context;
     @Autowired PlatformTransactionManager transactions;
+    @Autowired org.springframework.core.env.Environment environment;
 
     @BeforeEach void serialPermissions() {
         allow("role-a", "user:create", false);
@@ -77,6 +78,50 @@ class SerialNumberIntegrationTest extends IsolationTestSupport {
         assertThat(next(numbers,"u-alice","scope-a","order")).endsWith("-001");
         assertThat(next(numbers,"u-alice","scope-a","order")).endsWith("-002");
         assertThat(jdbc.queryForObject("select sequence_value from sys_serial_counter where id='serial-old'",Long.class)).isEqualTo(998L);
+    }
+
+    @Test void independentJvmProcessesUseTheSameDatabaseSequenceWithoutDuplicates() throws Exception {
+        var directory=java.nio.file.Files.createTempDirectory(java.nio.file.Path.of("target").toAbsolutePath(),"serial-process-");
+        java.nio.file.Files.writeString(directory.resolve("fixture-owned"),"SerialNumberIntegrationTest");
+        var processes=new ArrayList<Process>();
+        try {
+            for(String worker:java.util.List.of("a","b")) {
+                var arguments=directory.resolve(worker+".args");
+                String classpath=System.getProperty("java.class.path").replace('\\','/');
+                java.nio.file.Files.write(arguments,java.util.List.of("-cp",'"'+classpath+'"',
+                        SerialNumberProcessWorker.class.getName(),'"'+directory.toString().replace('\\','/')+'"',worker));
+                String executable=System.getProperty("os.name").startsWith("Windows")?"java.exe":"java";
+                var builder=new ProcessBuilder(java.nio.file.Path.of(System.getProperty("java.home"),"bin",executable).toString(),"@"+arguments)
+                        .redirectErrorStream(true).redirectOutput(directory.resolve(worker+".log").toFile());
+                for(String[] setting:new String[][]{{"CYYS_DB_URL","spring.datasource.url"},{"CYYS_DB_USERNAME","spring.datasource.username"},
+                        {"CYYS_DB_PASSWORD","spring.datasource.password"},{"CYYS_REDIS_HOST","spring.data.redis.host"},
+                        {"CYYS_REDIS_PORT","spring.data.redis.port"},{"CYYS_REDIS_PASSWORD","spring.data.redis.password"}}) {
+                    builder.environment().put(setting[0],environment.getRequiredProperty(setting[1]));
+                }
+                builder.environment().put("CYYS_ENV","serial-process-test");
+                processes.add(builder.start());
+            }
+            var deadline=java.time.Instant.now().plusSeconds(45);
+            while(!java.nio.file.Files.exists(directory.resolve("a.ready")) || !java.nio.file.Files.exists(directory.resolve("b.ready"))) {
+                assertThat(processes).as("child startup logs: %s",directory).allMatch(Process::isAlive);
+                assertThat(java.time.Instant.now()).as("child startup timeout: %s",directory).isBefore(deadline);
+                Thread.sleep(50);
+            }
+            assertThat(java.nio.file.Files.readString(directory.resolve("a.ready"))).isNotEqualTo(java.nio.file.Files.readString(directory.resolve("b.ready")));
+            java.nio.file.Files.writeString(directory.resolve("go"),"allocate concurrently");
+            for(var process:processes) {
+                assertThat(process.waitFor(30,java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                assertThat(process.exitValue()).as("child result logs: %s",directory).isZero();
+            }
+            var results=new ArrayList<String>(java.nio.file.Files.readAllLines(directory.resolve("a.results")));
+            results.addAll(java.nio.file.Files.readAllLines(directory.resolve("b.results")));
+            assertThat(results.stream().filter(value->value.startsWith("A:")).toList()).hasSize(48).doesNotHaveDuplicates().contains("A:TKT-01","A:TKT-48");
+            assertThat(results.stream().filter(value->value.startsWith("B:")).toList()).containsExactlyInAnyOrder("B:TKT-01","B:TKT-02");
+            assertThat(results.stream().filter(value->value.startsWith("ORDER:")).toList()).hasSize(2).doesNotHaveDuplicates();
+            assertThat(count("select count(*) from sys_data_audit where resource='serial' and operation='RESERVE' and scope_id in ('scope-a','scope-b')")).isEqualTo(52);
+        } finally {
+            for(var process:processes) if(process.isAlive()) { process.destroyForcibly(); process.waitFor(10,java.util.concurrent.TimeUnit.SECONDS); }
+        }
     }
 
     @Test void exhaustedNumbersAndHistoricalRuleChangesNeverRestartSequence() {

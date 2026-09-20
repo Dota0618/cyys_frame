@@ -14,13 +14,28 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.apache.ibatis.executor.Executor;
+import org.apache.ibatis.mapping.MappedStatement;
+import org.apache.ibatis.plugin.*;
+import org.apache.ibatis.session.ResultHandler;
+import org.apache.ibatis.session.RowBounds;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles("test")
 @SpringBootTest(classes=CyysApplication.class,webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties={"cyys.data-isolation.mode=multi","cyys.data-isolation.single-scope-id="})
 @DirtiesContext(classMode=DirtiesContext.ClassMode.AFTER_CLASS)
+@Import(MemberExportIntegrationTest.ExportBarrierConfiguration.class)
 class MemberExportIntegrationTest extends IsolationTestSupport {
+    @Autowired ExportBarrier barrier;
     @BeforeEach void exportPermissions() {
         allow("role-a","user:export",false); allow("role-b","user:export",false);
         membership("u-bob","scope-a",false);
@@ -74,6 +89,57 @@ class MemberExportIntegrationTest extends IsolationTestSupport {
         var b=rows(export(admin,"scope-b","{}"));
         assertThat(b).hasSize(2);
         assertThat(b.get(1)).contains("另一个单位秘密").doesNotContain("alice");
+    }
+
+    @Test void revocationAfterRowsWereLoadedNeverReturnsThePreviouslyAuthorizedWorkbook() throws Exception {
+        String alice=token("alice");
+        try(var worker=Executors.newSingleThreadExecutor()) {
+            for(boolean removePermission : List.of(true,false)) {
+                jdbc.update("update sys_role_menu rm join sys_menu m on m.id=rm.menu_id set rm.deleted=0 where rm.role_id='role-a' and m.code='user:export'");
+                jdbc.update("update sys_role set data_range=1 where id='role-a'");
+                var gate=new ExportGate();
+                barrier.pending.set(gate);
+                var response=worker.submit(() -> export(alice,"scope-a","{}"));
+                try {
+                    assertThat(gate.loaded.await(10,TimeUnit.SECONDS)).as("real export SQL completed").isTrue();
+                    if(removePermission) {
+                        jdbc.update("update sys_role_menu rm join sys_menu m on m.id=rm.menu_id set rm.deleted=1 where rm.role_id='role-a' and m.code='user:export'");
+                    } else jdbc.update("update sys_role set data_range=5 where id='role-a'");
+                } finally { gate.resume.countDown(); barrier.pending.set(null); }
+                var denied=response.get(20,TimeUnit.SECONDS);
+                assertThat(denied.statusCode()).isEqualTo(removePermission?403:409);
+                assertThat(denied.headers().firstValue("Content-Type").orElse("")).startsWith("application/json");
+                assertThat(count("select count(*) from sys_data_audit where operation='EXPORT_GENERATED' and scope_id='scope-a'")).isZero();
+            }
+        }
+    }
+
+    static final class ExportGate {
+        final CountDownLatch loaded=new CountDownLatch(1);
+        final CountDownLatch resume=new CountDownLatch(1);
+    }
+    @TestConfiguration(proxyBeanMethods=false)
+    static class ExportBarrierConfiguration {
+        @Bean ExportBarrier exportBarrier() { return new ExportBarrier(); }
+    }
+    /** 仅在测试类路径暂停真实查询结果，不替换 SQL、授权或生成的内容。 */
+    @Intercepts({
+        @Signature(type=Executor.class,method="query",args={MappedStatement.class,Object.class,RowBounds.class,ResultHandler.class}),
+        @Signature(type=Executor.class,method="query",args={MappedStatement.class,Object.class,RowBounds.class,ResultHandler.class,org.apache.ibatis.cache.CacheKey.class,org.apache.ibatis.mapping.BoundSql.class})
+    })
+    static class ExportBarrier implements Interceptor {
+        final AtomicReference<ExportGate> pending=new AtomicReference<>();
+        @Override public Object intercept(Invocation invocation) throws Throwable {
+            Object result=invocation.proceed();
+            if(((MappedStatement)invocation.getArgs()[0]).getId().equals("com.cyys.admin.user.mapper.MemberMapper.export")) {
+                var gate=pending.getAndSet(null);
+                if(gate!=null) {
+                    gate.loaded.countDown();
+                    if(!gate.resume.await(15,TimeUnit.SECONDS)) throw new IllegalStateException("Export test barrier timed out");
+                }
+            }
+            return result;
+        }
     }
 
     private HttpResponse<byte[]> export(String token,String scope,String body) throws Exception {
