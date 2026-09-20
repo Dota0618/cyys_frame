@@ -21,11 +21,13 @@ class BrowserAcceptance extends IsolationTestSupport {
 
     @AfterEach void cleanupBrowserRoles() throws Exception {
         jdbc.update("delete from param_region where created_by='u-platform'");
-        jdbc.update("delete from sys_file_binding where scope_id='GLOBAL' and resource='RELEASE' and record_id in (select id from sys_version where created_by='u-platform')");
-        jdbc.update("delete from sys_version where created_by='u-platform'");
+        jdbc.update("delete from sys_file_binding where scope_id='GLOBAL' and resource='RELEASE' and record_id in (select id from sys_version where created_by in ('u-platform','g4-release-editor'))");
+        jdbc.update("delete from sys_version where created_by in ('u-platform','g4-release-editor')");
         jdbc.update("delete from sys_notice where created_by='u-platform' and title like 'g4-browser-notice-%'");
         jdbc.update("delete from param_basic_type where basic_id='98311'");
         jdbc.update("delete from param_basic where id='98311'");
+        jdbc.update("delete from param_basic_type where basic_id='98411'");
+        jdbc.update("delete from param_basic where id='98411'");
         jdbc.update("delete from sys_file_binding where scope_id in ('scope-a','scope-b')");
         jdbc.update("delete from sys_org_notice_ref where scope_id in ('scope-a','scope-b')");
         jdbc.update("delete from sys_org_notice where scope_id in ('scope-a','scope-b')");
@@ -55,6 +57,7 @@ class BrowserAcceptance extends IsolationTestSupport {
         jdbc.update("delete from sys_role_menu where menu_id in (select id from sys_menu where code='g4-browser-menu')");
         jdbc.update("delete from sys_menu where code='g4-browser-menu'");
         jdbc.update("delete from sys_data_audit where scope_id='GLOBAL' and actor_id='u-platform'");
+        jdbc.update("delete from sys_data_audit where scope_id='GLOBAL' and (actor_id='g4-release-editor' or actor_id in (select id from sys_user where login_name like 'g4-%'))");
     }
 
     @Test void actualBrowserFlows() throws Exception {
@@ -70,7 +73,7 @@ class BrowserAcceptance extends IsolationTestSupport {
         allow("role-b","org-notice:read",false);
         jdbc.update("insert into param_basic(id,system_name,name,created_by,updated_by) values('98111','NOTICE_TYPE','通知类型','u-alice','u-alice')");
         jdbc.update("insert into param_basic_type(id,basic_id,param_key,param_value,created_by,updated_by) values('98112','98111','normal','普通通知','u-alice','u-alice')");
-        for (String permission : List.of("user:read","user:create","user:update","role:grant",
+        for (String permission : List.of("user:read","user:create","user:update","user:export","role:grant",
                 "role:read","role:create","role:update","role:delete")) allow("role-a",permission,false);
         allow("role-b","user:read",false);
         allow("role-a", "cache:user:refresh", false);
@@ -93,6 +96,14 @@ class BrowserAcceptance extends IsolationTestSupport {
                 allow("role-platform", resource + ":" + operation, true);
             }
         }
+        allow("role-platform","region:export",true);
+        user("g4-release-editor","g4-release-editor");
+        role("g1-release","GLOBAL","RELEASE_EDITOR");
+        grant("g4-release-editor","g1-release","GLOBAL");
+        for(String permission:List.of("platform:scope:access","platform:data:operate","release:read","release:create","release:update","release:delete","file:upload","file:read","file:content:read"))
+            allow("g1-release",permission,true);
+        jdbc.update("insert into param_basic(id,system_name,name) values('98411','VERSION_TYPE','版本类型')");
+        jdbc.update("insert into param_basic_type(id,basic_id,param_key,param_value) values('98412','98411','normal','常规更新')");
 
         Path frontend=Path.of("..","..","admin-ui").toAbsolutePath().normalize();
         String logPrefix = System.getProperty("cyys.browser.log-prefix", "phase4");
@@ -103,8 +114,10 @@ class BrowserAcceptance extends IsolationTestSupport {
                 .directory(frontend.toFile()).redirectErrorStream(true).redirectOutput(log.toFile());
         String spec = System.getProperty("cyys.browser.spec");
         if (spec != null) {
-            if (!spec.matches("[a-z-]+\\.spec\\.ts")) throw new IllegalArgumentException("Invalid browser spec");
-            builder.command().add(spec);
+            for (String item : spec.split(",", -1)) {
+                if (!item.matches("[a-z-]+\\.spec\\.ts")) throw new IllegalArgumentException("Invalid browser spec");
+                builder.command().add(item);
+            }
         }
         builder.environment().put("CYYS_API_TARGET","http://127.0.0.1:"+port);
         // 前端测试进程只需要 HTTP 地址，不继承数据库和 Redis 凭据。

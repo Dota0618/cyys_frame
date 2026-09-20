@@ -40,13 +40,7 @@ function Invoke-Frontend([string]$Name, [string[]]$Arguments) {
     $process.WaitForExit()
     if ($process.ExitCode -ne 0) { throw "$Name failed; see $outLog and $errLog" }
     if ($Name -eq 'antd') {
-        $raw = Get-Content -LiteralPath $outLog -Raw
-        $start = $raw.IndexOf('{')
-        if ($start -lt 0) { throw 'Ant lint did not return a structured result.' }
-        $lint = $raw.Substring($start) | ConvertFrom-Json
-        if ($null -eq $lint.summary -or $null -eq $lint.summary.total -or $lint.summary.total -ne 0) {
-            throw "Ant lint findings remain; see $outLog"
-        }
+        & (Join-Path $PSScriptRoot 'check-antd-findings.ps1') -ReportPath $outLog
     }
 }
 

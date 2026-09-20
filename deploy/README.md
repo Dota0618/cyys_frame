@@ -1,6 +1,6 @@
 # Linux / Docker / Nginx 部署准备
 
-用户于 2026-09-20 确认该部署方式。本目录提供部署输入与操作顺序；当前没有连接生产主机、构建容器、创建数据库或执行上线。正式使用前必须完成最终验收、备份恢复演练和维护窗口确认。
+用户于 2026-09-20 确认该部署方式，并指定本机 Docker 演练。已在 Docker Desktop Linux 引擎构建并启动 api/web、连接现有 MySQL/Redis，通过 HTTPS/静态路由/未登录拒绝/413 JSON 和 API 停机重建检查；仅绑定本机地址，没有连接生产主机、新建数据库或执行上线。带业务数据的备份恢复仍未完成。正式使用前必须完成最终验收、备份恢复演练和维护窗口确认。
 
 ## 构建和验收
 
@@ -10,9 +10,11 @@
 ./scripts/verify-release.ps1 -InstallDependencies
 ```
 
-这是最终验收入口，当前开发阶段不自动执行。它要求已提交且干净的源码，按顺序运行后端完整 verify、前端类型检查/Ant lint/构建、真实后端浏览器验收、产物结构检查，生成 `backend/logs/<prefix>_release.json`。失败停止后续阶段，并记录失败阶段；浏览器和后端数据库套件不并行。多个该入口使用文件句柄互斥，直接运行其他验证脚本时仍须避免同库并发。
+这是最终验收入口。它要求已提交且干净的源码，按顺序运行后端完整 verify、前端类型检查/Ant lint/构建、真实后端浏览器验收、产物结构检查，生成 `backend/logs/<prefix>_release.json`。失败停止后续阶段，并记录失败阶段；浏览器和后端数据库套件不并行。多个该入口使用文件句柄互斥，直接运行其他验证脚本时仍须避免同库并发；连接同一测试库的容器也应先停止。已有分阶段验收记录保留，不因聚合脚本尚未执行而重复全部检查。
 
 报告保存提交号、步骤结果、JAR/前端文件摘要。结构检查覆盖唯一可执行 JAR、普通 common/admin 库、正式迁移内容匹配、排除部分明确的测试/旧运行库和凭据文件；它不是完整秘密扫描或 T01–T40 覆盖证明。此入口可供配置好环境的 CI runner 调用，目前尚未绑定外部 CI 服务。
+
+Ant 检查仍扫描全部 `src`。保留但未启用的官方示例页当前有 35 条告警（30 条弃用、5 条用法），明确登记在 `scripts/antd-template-baseline.json`；这不代表全源码零告警。检查器仅接受这些文件内容未变且位置、规则、消息完全匹配的 warning，拒绝新增告警、不完整扫描和文件变化；实际路由变化也要求重新核对模板是否启用。不要自动重建基线来消除失败；启用参考页时应解决对应告警。
 
 验收通过后，只使用该报告对应的 `cyys-business.jar` 和 `admin-ui/dist`。镜像构建不会重新编译源码；两个 Dockerfile 的专用忽略文件仅允许相应产物进入构建上下文，不发送 `.git`、本地配置、日志或源码快照。核对本轮所选 JDK 25 和 Nginx 基础镜像的真实 digest，写入外部环境文件；示例中的 digest 是必须替换的占位值，不能直接构建。API 镜像在构建时检查 Java 主版本为 25。
 
@@ -35,7 +37,7 @@ Compose 的 api 不发布宿主机端口，只允许 Nginx 从容器网络访问
 ```sh
 docker compose --env-file /etc/cyys/release.env -f deploy/compose.yml config --quiet
 docker compose --env-file /etc/cyys/release.env -f deploy/compose.yml build --pull
-docker compose --env-file /etc/cyys/release.env -f deploy/compose.yml run --rm --no-deps web nginx -t
+docker compose --env-file /etc/cyys/release.env -f deploy/compose.yml run --rm --no-deps web -t
 ```
 
 先停止旧系统写入及任务，停止当前 web/api，完成同一停写点的数据库、私有文件、外部配置和当前镜像版本备份，并在独立环境证明可以恢复。不得把旧服务接到已经改造的共享数据库继续写入。确认备份和演练记录后：

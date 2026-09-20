@@ -189,6 +189,7 @@ test('字典分类/项真实增改删、数字字符串编号、即时校验、�
 
 test('配置、字典分类与项分页和空查询均由真实数据库返回', async ({ page }) => {
   await login(page, 'platform');
+  const initialDictionaryTotal = (await direct(page, 'GET', `${DICT}?page=1&pageSize=20`)).body.data.total;
   const configurations: any[] = [], dictionaries: any[] = [], items: any[] = [];
   for (let index = 0; index < 21; index++) {
     configurations.push(await config(page, `page-${index}`, String(index)));
@@ -215,8 +216,7 @@ test('配置、字典分类与项分页和空查询均由真实数据库返回',
   await navigate(page, '通用配置');
   await verifyPagination(page.locator('.ant-pro-table').first(), CONFIG, '配置名称');
   await navigate(page, '数据字典');
-  // 通知消费使用一条真实 NOTICE_TYPE 基础分类，另有本例创建的 21 条。
-  await verifyPagination(page.locator('.ant-pro-table').first(), DICT, '字典名称', 22);
+  await verifyPagination(page.locator('.ant-pro-table').first(), DICT, '字典名称', initialDictionaryTotal + dictionaries.length);
   await row(page, dictionaries[0].id).getByText('字典项', { exact: true }).click();
   await verifyPagination(page.locator('.ant-pro-table').last(), `${DICT}/${dictionaries[0].id}/items`, '字典值');
   for (const record of items) await api(page, 'DELETE', `${DICT}/${dictionaries[0].id}/items/${record.id}?version=0`);

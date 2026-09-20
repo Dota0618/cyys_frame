@@ -1,0 +1,306 @@
+{
+  "description": "Ant Design Pro 6.0.1 retained reference pages, not enabled in config/routes.ts. Review this baseline before enabling any reference page; never regenerate it automatically.",
+  "routesSha256": "A945D07D9A6E9A6810EC234E5C382606B23145369EE622DCF40AFC95E1AC243A",
+  "files": [
+    {
+      "path": "src/pages/account/center/components/Applications/index.tsx",
+      "sha256": "01D11CCD9395C8F14B1E21764DDF4DDD523F0A8313B07E7B554ED8B50F92D549",
+      "issues": [
+        {
+          "line": 68,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 82,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        }
+      ]
+    },
+    {
+      "path": "src/pages/account/center/components/Articles/index.tsx",
+      "sha256": "673E544C49C1A4A1BC2ECD3630BFC01BF35038DE6EEA1A9CC14B14666A2D57CF",
+      "issues": [
+        {
+          "line": 28,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 38,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 50,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        }
+      ]
+    },
+    {
+      "path": "src/pages/account/center/components/Projects/index.tsx",
+      "sha256": "4A410D9BA1ED5A94023626264EBCE46782F01B3BA9AE5559DE4513026886A418",
+      "issues": [
+        {
+          "line": 18,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 32,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        }
+      ]
+    },
+    {
+      "path": "src/pages/account/settings/components/base.tsx",
+      "sha256": "A0B9D2793F21BA597F13EE71D11C3CC98F6B93D3854ED021C5B3AF124183528F",
+      "issues": [
+        {
+          "line": 49,
+          "rule": "usage",
+          "severity": "warning",
+          "message": "Static antd feedback API `message.success` cannot consume ConfigProvider context. Use App.useApp() instead."
+        }
+      ]
+    },
+    {
+      "path": "src/pages/account/settings/components/binding.tsx",
+      "sha256": "9D1D655593FB591815EF98D23E4C704254F771FA5CB07CCD216569643747B7A3",
+      "issues": [
+        {
+          "line": 32,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 36,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 37,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        }
+      ]
+    },
+    {
+      "path": "src/pages/account/settings/components/notification.tsx",
+      "sha256": "E1405928EA1D350A4808D9631ECD65AD66D169D00A3C97ED0A5E49C2B2FD429B",
+      "issues": [
+        {
+          "line": 32,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 36,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 37,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        }
+      ]
+    },
+    {
+      "path": "src/pages/account/settings/components/security.tsx",
+      "sha256": "C98CB2E87AD3D1BAF0ACE8339844FDC6E6171FCD149F34BB5C98942C6D23A548",
+      "issues": [
+        {
+          "line": 48,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 52,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 53,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        }
+      ]
+    },
+    {
+      "path": "src/pages/form/advanced-form/index.tsx",
+      "sha256": "4899E9E9F4EEFA0A75A267DF8BAC2BE590EEA177EFA01FBD31A801B47ED1A714",
+      "issues": [
+        {
+          "line": 129,
+          "rule": "usage",
+          "severity": "warning",
+          "message": "Static antd feedback API `message.success` cannot consume ConfigProvider context. Use App.useApp() instead."
+        }
+      ]
+    },
+    {
+      "path": "src/pages/form/basic-form/index.tsx",
+      "sha256": "D0A7624949D2FD4B5C010B7D9782698FD6130A5E3241C0D035E1BBC313B76BD4",
+      "issues": [
+        {
+          "line": 23,
+          "rule": "usage",
+          "severity": "warning",
+          "message": "Static antd feedback API `message.success` cannot consume ConfigProvider context. Use App.useApp() instead."
+        }
+      ]
+    },
+    {
+      "path": "src/pages/list/basic-list/index.tsx",
+      "sha256": "41D312481A971B50E6C2771D2D0C1F7A83A14B42154C4AD8FC23F1A96455A050",
+      "issues": [
+        {
+          "line": 124,
+          "rule": "usage",
+          "severity": "warning",
+          "message": "Static antd feedback API `Modal.confirm` cannot consume ConfigProvider context. Use App.useApp() instead."
+        },
+        {
+          "line": 219,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 226,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 240,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        }
+      ]
+    },
+    {
+      "path": "src/pages/list/card-list/index.tsx",
+      "sha256": "649C033FBE7ADEC4F7D9E9BDF2694262EA8B92D6029DBAD8669470351E63367F",
+      "issues": [
+        {
+          "line": 61,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 77,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 111,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        }
+      ]
+    },
+    {
+      "path": "src/pages/list/search/applications/index.tsx",
+      "sha256": "E09AFA8A89F88D87FF00C61D71A49EB7E0BC135F17374D974F1BDBCD80F80414",
+      "issues": [
+        {
+          "line": 177,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 191,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        }
+      ]
+    },
+    {
+      "path": "src/pages/list/search/articles/index.tsx",
+      "sha256": "65DB8475593F8F12206125DF1E00AC610830E064EB587C21FB3D0FE3A55E671B",
+      "issues": [
+        {
+          "line": 233,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 241,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 250,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        }
+      ]
+    },
+    {
+      "path": "src/pages/list/search/projects/index.tsx",
+      "sha256": "01BD8137D10055F1086F29399836EF96D9030F11F0EF6B68FB7B94DF76D9C4DB",
+      "issues": [
+        {
+          "line": 32,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        },
+        {
+          "line": 46,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "`List` is deprecated. List component has been deprecated. Will be removed in the next major version."
+        }
+      ]
+    },
+    {
+      "path": "src/pages/user/register/index.tsx",
+      "sha256": "AD0708C701115D5F3D863F2F861ACDA5DDE93621454B2CCBA63DCBC5569CAFAB",
+      "issues": [
+        {
+          "line": 102,
+          "rule": "usage",
+          "severity": "warning",
+          "message": "Static antd feedback API `message.success` cannot consume ConfigProvider context. Use App.useApp() instead."
+        },
+        {
+          "line": 203,
+          "rule": "deprecated",
+          "severity": "warning",
+          "message": "Popover `overlayStyle` is deprecated. Style of the tooltip card, please use `styles.root`"
+        }
+      ]
+    }
+  ]
+}
