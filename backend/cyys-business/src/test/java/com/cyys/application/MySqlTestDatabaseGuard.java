@@ -53,11 +53,13 @@ public class MySqlTestDatabaseGuard implements ApplicationContextInitializer<Con
             systemNoticeTables.add("sys_notice");
             var releaseTables=new HashSet<>(systemNoticeTables);
             releaseTables.add("sys_version");
+            var regionTables=new HashSet<>(releaseTables);
+            regionTables.add("param_region");
             if (!actualTables.equals(TABLES) && !actualTables.equals(upgradedTables)
                     && !actualTables.equals(phase4Tables) && !actualTables.equals(loginAuditTables)
                     && !actualTables.equals(fileTables) && !actualTables.equals(directoryTables)
                     && !actualTables.equals(noticeTables) && !actualTables.equals(systemNoticeTables)
-                    && !actualTables.equals(releaseTables)) {
+                    && !actualTables.equals(releaseTables) && !actualTables.equals(regionTables)) {
                 throw new IllegalStateException("测试拒绝未知或未纳管的数据库结构；不会删表或自动 baseline。");
             }
             try (var statement = connection.createStatement()) {

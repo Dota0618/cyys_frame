@@ -100,6 +100,7 @@ function IdentityContent({ children }: PropsWithChildren) {
     '/system/org-notices': access.canReadOrgNotices,
     '/system/system-notices': access.canReadSystemNotices,
     '/system/releases': access.canReadReleases,
+    '/system/regions': access.canReadRegions,
     '/system/roles': access.canReadRoles,
     '/system/platform-menus': access.canReadPlatformMenus,
     '/system/platform-roles': access.canReadPlatformRoles,
