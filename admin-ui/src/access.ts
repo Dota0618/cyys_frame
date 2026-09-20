@@ -80,6 +80,7 @@ export default (initialState?: { user?: UserInfo }) => {
     canReadSystemNotices: platformHas('system-notice:read'),
     canReadReleases: platformHas('release:read'),
     canReadRegions: platformHas('region:read'),
+    canExportRegions: platformHas('region:export'),
     canCreateRegions: platformHas('region:create'),
     canEditRegions: platformHas('region:update'),
     canDeleteRegions: platformHas('region:delete'),

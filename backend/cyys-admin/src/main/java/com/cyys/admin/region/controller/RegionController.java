@@ -5,6 +5,10 @@ import com.cyys.admin.region.dto.*;
 import com.cyys.admin.region.service.RegionService;
 import com.cyys.common.web.PlatformControl;
 import com.cyys.common.web.R;
+import com.cyys.common.web.DownloadResponse;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +23,14 @@ import java.util.List;
 @RequestMapping("/api/admin/platform/regions")
 public class RegionController {
     private final RegionService service;
+
+    @PostMapping("/export") @SaCheckPermission("region:export")
+    public void export(@Valid @RequestBody ExportRegionsCommand command, HttpServletResponse response) throws IOException {
+        byte[] content = service.export(command);
+        try (var input = new ByteArrayInputStream(content)) {
+            DownloadResponse.send(response, "地区.xlsx", content.length, input);
+        }
+    }
 
     @GetMapping @SaCheckPermission("region:read")
     public Object page(@RequestParam(defaultValue="1") @Min(1) int page,

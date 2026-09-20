@@ -10,13 +10,17 @@ import org.apache.ibatis.annotations.*;
 @ManualDataScope
 public interface RegionMapper {
     String COLUMNS="r.id,r.parent_id,r.city_code,r.name,r.short_name,r.zip_code,r.longitude,r.latitude,r.level,r.sort,r.version";
+    String FILTER="from param_region r where r.deleted=0 "
+            + "<choose><when test='parent != null'>and r.parent_id=#{parent}</when><otherwise>and r.parent_id is null</otherwise></choose> "
+            + "<if test='name != null and name != &quot;&quot;'>and r.name like concat('%',#{name},'%')</if> ";
 
     @Select("<script>select " + COLUMNS + ",exists(select 1 from param_region c where c.parent_id=r.id and c.deleted=0) as has_children "
-            + "from param_region r where r.deleted=0 "
-            + "<choose><when test='parent != null'>and r.parent_id=#{parent}</when><otherwise>and r.parent_id is null</otherwise></choose> "
-            + "<if test='name != null and name != &quot;&quot;'>and r.name like concat('%',#{name},'%')</if> "
+            + FILTER
             + "order by r.sort,r.id</script>")
     IPage<Region> page(Page<Region> page,@Param("parent") String parent,@Param("name") String name);
+
+    @Select("<script>select " + COLUMNS + " " + FILTER + "order by r.sort,r.id limit #{limit}</script>")
+    java.util.List<Region> export(@Param("parent") String parent, @Param("name") String name, @Param("limit") int limit);
 
     @Select("select " + COLUMNS + ",exists(select 1 from param_region c where c.parent_id=r.id and c.deleted=0) as has_children "
             + "from param_region r where r.id=#{id} and r.deleted=0")

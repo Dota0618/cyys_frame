@@ -3,24 +3,28 @@ import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Popconfirm, Space } from 'antd';
 import { useEffect, useRef, useState } from 'react';
-import { createRegion, deleteRegion, deleteRegions, listRegions, regionDetail, updateRegion } from '@/services/system/regions';
+import { createRegion, deleteRegion, deleteRegions, exportRegions, listRegions, regionDetail, updateRegion } from '@/services/system/regions';
 import type { Region, RegionFields } from '@/services/system/regions';
 import { ApiError, StaleRequest } from '@/utils/request';
 import { setDirty } from '@/utils/session';
+import { saveDownload } from '@/utils/download';
 
 export default function RegionsPage() {
   const access = useAccess();
   const action = useRef<ActionType | null>(null);
+  const querySequence = useRef(0);
   const [trail, setTrail] = useState<Region[]>([]);
   const [editor, setEditor] = useState<{ detail?: Region }>();
   const [selected, setSelected] = useState<Region[]>([]);
   const [error, setError] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [exportFilter, setExportFilter] = useState<{ parentId?: string; name: string }>();
   const parent = trail.at(-1);
   useEffect(() => () => setDirty(false), []);
   const failed = (failure: unknown) => {
     if (!(failure instanceof StaleRequest)) setError(failure instanceof ApiError ? failure.message : '操作失败，请重试');
   };
-  const navigate = (next: Region[]) => { setTrail(next); setSelected([]); setError(''); };
+  const navigate = (next: Region[]) => { querySequence.current++; setTrail(next); setSelected([]); setExportFilter(undefined); setError(''); };
   const changed = () => { setSelected([]); void action.current?.reload(); };
   const columns: ProColumns<Region>[] = [
     { title: '地区名称', dataIndex: 'name', fieldProps: { maxLength: 20 } },
@@ -41,7 +45,7 @@ export default function RegionsPage() {
       </Popconfirm>,
     ].filter(Boolean) },
   ];
-  return <PageContainer title="地区参数" subTitle="平台统一维护；按层级加载，编码在全部地区中唯一。">
+  return <PageContainer title="地区参数" subTitle="平台统一维护；导出当前层级和已查询名称下的全部匹配记录，最多 5000 条，不含下级层级。">
     <Space wrap style={{ marginBottom: 16 }}>
       <Button type="link" onClick={() => navigate([])}>全部顶级地区</Button>
       {trail.map((region, index) => <Button key={region.id} type="link" onClick={() => navigate(trail.slice(0, index + 1))}>{region.name}</Button>)}
@@ -54,11 +58,26 @@ export default function RegionsPage() {
       rowSelection={access.canDeleteRegions ? { selectedRowKeys: selected.map((row) => row.id), onChange: (_, rows) => setSelected(rows),
         getCheckboxProps: (row) => ({ disabled: row.hasChildren }) } : false}
       request={async ({ current = 1, pageSize = 20, name }) => {
+        const query = ++querySequence.current;
         setError('');
-        try { const data = await listRegions(current, pageSize, parent?.id, name); return { data: data.records, total: data.total, success: true }; }
-        catch (failure) { failed(failure); return { data: [], total: 0, success: false }; }
+        setExportFilter(undefined);
+        try {
+          const data = await listRegions(current, pageSize, parent?.id, name);
+          if (query !== querySequence.current) throw new StaleRequest();
+          setExportFilter({ parentId: parent?.id, name: name || '' });
+          return { data: data.records, total: data.total, success: true };
+        }
+        catch (failure) { if (query === querySequence.current) failed(failure); return { data: [], total: 0, success: false }; }
       }}
       toolBarRender={() => [
+        access.canExportRegions && <Button key="export" loading={exporting}
+          disabled={!exportFilter || exportFilter.parentId !== parent?.id} onClick={async () => {
+            if (!exportFilter) return;
+            setExporting(true); setError('');
+            try { await saveDownload(() => exportRegions(exportFilter), '地区.xlsx'); }
+            catch (failure) { failed(failure); }
+            finally { setExporting(false); }
+          }}>导出当前筛选</Button>,
         access.canCreateRegions && <Button key="create" type="primary" onClick={() => setEditor({})}>新增地区</Button>,
         access.canDeleteRegions && <Popconfirm key="batch" title={`删除选中的 ${selected.length} 个地区？`} okText="删除" cancelText="取消"
           disabled={!selected.length || selected.length > 100} onConfirm={async () => {

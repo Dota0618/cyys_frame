@@ -9,6 +9,7 @@ import { cancelUpload, cleanupUpload, downloadFile, listFiles, renameFile, trash
 import { createDirectory, deleteDirectory, listDirectories, moveDirectoryOptions, moveFiles, renameDirectory, trashFiles, type FileDirectory } from '@/services/system/files';
 import { ApiError, StaleRequest } from '@/utils/request';
 import { hasUnsavedChanges, setDirty } from '@/utils/session';
+import { saveDownload } from '@/utils/download';
 
 export default function FilesPage() {
   const access = useAccess();
@@ -52,9 +53,7 @@ export default function FilesPage() {
     { title: '上传时间', dataIndex: 'createdAt', valueType: 'dateTime', search: false },
     { title: '操作', valueType: 'option', render: (_, row) => [
       access.canDownloadFiles && row.state === 'READY' && <Button key="download" type="link" onClick={() => { void run(async () => {
-        const blob = await downloadFile(row.id);
-        const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
-        anchor.href = url; anchor.download = row.name; anchor.click(); URL.revokeObjectURL(url);
+        await saveDownload(() => downloadFile(row.id), row.name);
       }); }}>下载</Button>,
       access.canEditFiles && <Button key="rename" type="link" onClick={() => setEditing(row)}>重命名</Button>,
       access.canMoveFiles && row.ownUpload && <Button key="move" type="link" onClick={() => { void beginMove([row]); }}>移动</Button>,

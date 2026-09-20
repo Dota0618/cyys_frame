@@ -1,5 +1,5 @@
 import type { Page } from '@/types/api';
-import { api } from '@/utils/request';
+import { api, apiBlob } from '@/utils/request';
 
 export interface RegionFields {
   cityCode: string; name: string; shortName?: string | null; zipCode?: string | null;
@@ -7,6 +7,7 @@ export interface RegionFields {
 }
 export interface Region extends RegionFields { id: string; parentId?: string; level: number; sort: number; version: number; hasChildren: boolean }
 const root = '/api/admin/platform/regions';
+export const exportRegions = (body: { parentId?: string; name: string }) => apiBlob(`${root}/export`, { method: 'POST', body });
 export const listRegions = (page: number, size: number, parentId?: string, name = '') =>
   api<Page<Region>>(`${root}?page=${page}&size=${size}&parentId=${encodeURIComponent(parentId || '')}&name=${encodeURIComponent(name)}`);
 export const regionDetail = (id: string) => api<Region>(`${root}/${encodeURIComponent(id)}`);

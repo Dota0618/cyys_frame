@@ -35,10 +35,16 @@
         <hutool.version>5.8.47</hutool.version>
         <springdoc.version>3.1.1</springdoc.version>
         <mysql.version>8.0.33</mysql.version>
+        <poi.version>5.5.1</poi.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-ooxml</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-bom</artifactId>

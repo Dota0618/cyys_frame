@@ -12,6 +12,7 @@ import { createRelease, deleteRelease, listReleases, releaseAttachment, releaseD
 import type { Release, ReleaseDetail } from '@/services/system/releases';
 import { ApiError, StaleRequest } from '@/utils/request';
 import { setDirty } from '@/utils/session';
+import { saveDownload } from '@/utils/download';
 
 interface FormValue { releaseNumber: string; dateUpdate: string; type: string; content: string; attachments: FileChoice[] }
 export default function ReleasesPage() {
@@ -34,9 +35,7 @@ export default function ReleasesPage() {
   const download = async (file: FileChoice) => {
     if (!viewing) return;
     try {
-      const blob = await releaseAttachment(viewing.release.id, file.id);
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a'); anchor.href = url; anchor.download = file.name; anchor.click(); URL.revokeObjectURL(url);
+      await saveDownload(() => releaseAttachment(viewing.release.id, file.id), file.name);
     } catch (failure) { failed(failure); }
   };
   const columns: ProColumns<Release>[] = [
