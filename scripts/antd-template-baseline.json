@@ -1,6 +1,6 @@
 {
   "description": "Ant Design Pro 6.0.1 retained reference pages, not enabled in config/routes.ts. Review this baseline before enabling any reference page; never regenerate it automatically.",
-  "routesSha256": "A945D07D9A6E9A6810EC234E5C382606B23145369EE622DCF40AFC95E1AC243A",
+  "routesSha256": "B6F1F808711201884A2BA853AD0388B1C0E13F1E210F70BC266F19B96A32BF44",
   "files": [
     {
       "path": "src/pages/account/center/components/Applications/index.tsx",

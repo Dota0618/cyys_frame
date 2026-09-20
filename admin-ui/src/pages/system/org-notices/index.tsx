@@ -9,6 +9,7 @@ import ScopeSwitch from '@/components/ScopeSwitch';
 import { departmentTreeData } from '@/utils/departments';
 import { ApiError, StaleRequest } from '@/utils/request';
 import { session, setDirty } from '@/utils/session';
+import { saveDownload } from '@/utils/download';
 import { createNotice, listNotices, noticeAttachment, noticeDetail, noticeEdit, noticeFiles, noticeOptions, noticeReaders, readNotice, removeNotice, updateNotice } from '@/services/system/orgNotices';
 import type { Attachment, NoticeDetail, NoticeOptions, NoticeReader, OrgNotice } from '@/services/system/orgNotices';
 
@@ -36,9 +37,9 @@ export default function OrgNoticesPage() {
   };
   const download = async (attachment: Attachment) => {
     if (!viewing) return;
+    const noticeId = viewing.notice.id;
     try {
-      const blob = await noticeAttachment(viewing.notice.id, attachment.id); const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a'); anchor.href = url; anchor.download = attachment.name; anchor.click(); URL.revokeObjectURL(url);
+      await saveDownload(() => noticeAttachment(noticeId, attachment.id), attachment.name);
     } catch (failure) { failed(failure); }
   };
   const columns: ProColumns<OrgNotice>[] = [
@@ -58,7 +59,7 @@ export default function OrgNoticesPage() {
     ].filter(Boolean) },
   ];
   const detail = editor?.detail;
-  return <PageContainer title="组织通知" subTitle="保存后即可在授权范围内查看；记录首次阅读，编辑不会清空已有阅读记录。">
+  return <PageContainer title="单位通知" subTitle="当前单位内按授权范围查看；保存后即可阅读，记录首次阅读时间。">
     <ScopeSwitch />
     {error && <Alert type="error" title={error} showIcon />}
     <ProTable<OrgNotice> actionRef={action} rowKey="id" columns={columns} form={{ name: 'org-notice-search' }}

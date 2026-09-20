@@ -3,8 +3,8 @@ import { login, chooseScope, direct } from './browser-support';
 
 const BASE = '/api/admin/org-notices';
 async function openNotices(page: Page) {
-  await page.getByRole('menuitem').filter({ hasText: '组织通知' }).click();
-  await expect(page.getByRole('main').getByText('组织通知', { exact: true })).toBeVisible();
+  await page.getByRole('menuitem').filter({ hasText: '单位通知' }).click();
+  await expect(page.getByRole('main').getByText('单位通知', { exact: true })).toBeVisible();
 }
 async function editor(page: Page, title: string) {
   await page.getByRole('button', { name: '新增通知', exact: true }).click();
