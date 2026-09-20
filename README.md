@@ -7,6 +7,8 @@ I often build Java applications for standalone projects, and I see many that are
 
 ## 开发入口
 
+- 2026-09-20 最新范围：节假日不做；代码生成器、单位通知暂停。系统通知 V15 的平台管理接口和页面已实现，无阅读状态/回执；后端专项 3 项及前端类型检查/构建通过，页面操作验收留到最后。上述 127 项是上一节点的完整回归，本轮没有重新运行全量。
+
 - 开发节点使用本地 Git 提交保存，不再另存源码快照。现有 `docs/` 忽略设置保留；未跟踪文档不包含在提交中。
 
 - 执行本次改造：先读 [改造期规则](docs/migration/execution-rules.md) 和 [实际进度](docs/migration/progress.md)。

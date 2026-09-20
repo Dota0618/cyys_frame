@@ -81,5 +81,6 @@ export default [
   { path: '/system/files', name: '文件管理', icon: 'FileOutlined', access: 'canReadFiles', component: './system/files' },
   { path: '/system/file-recycle', name: '文件回收站', icon: 'DeleteOutlined', access: 'canReadFileRecycle', component: './system/file-recycle' },
   { path: '/system/org-notices', name: '组织通知', icon: 'NotificationOutlined', access: 'canReadOrgNotices', component: './system/org-notices' },
+  { path: '/system/system-notices', name: '系统通知', icon: 'NotificationOutlined', access: 'canReadSystemNotices', component: './system/system-notices' },
   { path: '*', component: './exception/404', hideInMenu: true },
 ];
