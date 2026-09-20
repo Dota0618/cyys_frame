@@ -1,6 +1,7 @@
 package com.cyys.admin.user.model;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.cyys.common.mybatis.DataResourceDefinition;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -8,6 +9,9 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("sys_user_scope")
+@DataResourceDefinition(name = "user", scopeColumn = "scope_id",
+        departmentColumn = "org_id", actorColumn = "user_id", versionColumn = "version",
+        immutableColumns = {"user_id", "member_role", "default_flag", "expire_at"})
 /**
  * Membership relation between a global account and a business scope.
  * 全局账号与业务单位之间的成员关系。

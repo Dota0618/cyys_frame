@@ -14,9 +14,15 @@ public class AuditMetaObjectHandler implements MetaObjectHandler {
         String actor = identity.loginId();
         if (metaObject.hasSetter("scopeId")) {
             Object supplied = getFieldValByName("scopeId", metaObject);
-            String scope = identity.requireScopeId();
-            if (supplied != null && !scope.equals(supplied)) throw DataPolicyRegistry.denied("新增不能指定其他单位归属");
-            setFieldValByName("scopeId", scope, metaObject);
+            if ("GLOBAL".equals(supplied)) {
+                if (!identity.platformPermissions().contains("platform:scope:access")) {
+                    throw DataPolicyRegistry.denied("新增平台记录需要平台控制权限");
+                }
+            } else {
+                String scope = identity.requireScopeId();
+                if (supplied != null && !scope.equals(supplied)) throw DataPolicyRegistry.denied("新增不能指定其他单位归属");
+                setFieldValByName("scopeId", scope, metaObject);
+            }
         }
         LocalDateTime now = LocalDateTime.now();
         // 审计字段由服务端覆盖，不能保留调用方传入的创建人。

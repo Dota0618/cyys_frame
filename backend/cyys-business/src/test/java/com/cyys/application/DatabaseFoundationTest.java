@@ -7,6 +7,8 @@ import com.cyys.admin.scope.service.ScopeConfigurationValidator;
 import com.cyys.common.satoken.DataIsolationProperties;
 import com.cyys.common.satoken.RequestIdentity;
 import com.cyys.common.satoken.ScopeContext;
+import com.cyys.common.mybatis.DataPermissionContext;
+import com.cyys.common.mybatis.DataPolicyRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.DefaultApplicationArguments;
@@ -38,9 +40,11 @@ class DatabaseFoundationTest extends HttpTestSupport {
         org.setCreatedBy("forged");
         org.setUpdatedBy("forged");
         ScopeContext.set(new RequestIdentity("u-alice", "scope-a", List.of(), List.of(), List.of()));
+        DataPermissionContext.set("department:create", DataPolicyRegistry.View.CURRENT_SCOPE);
         try {
             assertThat(orgMapper.insert(org)).isEqualTo(1);
         } finally {
+            DataPermissionContext.clear();
             ScopeContext.clear();
         }
         assertThat(jdbc.queryForObject("select created_by from sys_org where id='audit-org'", String.class))
@@ -48,9 +52,11 @@ class DatabaseFoundationTest extends HttpTestSupport {
         org.setName("已修改");
         org.setCreatedBy("forged-again");
         ScopeContext.set(new RequestIdentity("u-bob", "scope-a", List.of(), List.of(), List.of()));
+        DataPermissionContext.set("department:update", DataPolicyRegistry.View.CURRENT_SCOPE);
         try {
             assertThat(orgMapper.updateById(org)).isEqualTo(1);
         } finally {
+            DataPermissionContext.clear();
             ScopeContext.clear();
         }
         assertThat(jdbc.queryForObject("select created_by from sys_org where id='audit-org'", String.class)).isEqualTo("u-alice");

@@ -95,7 +95,16 @@ function IdentityContent({ children }: PropsWithChildren) {
   const routeAccess: Record<string, boolean> = {
     '/system/users': access.canReadUsers,
     '/system/departments': access.canReadDepartments,
+    '/system/files': access.canReadFiles,
+    '/system/file-recycle': access.canReadFileRecycle,
     '/system/roles': access.canReadRoles,
+    '/system/platform-menus': access.canReadPlatformMenus,
+    '/system/platform-roles': access.canReadPlatformRoles,
+    '/system/configurations': access.canReadConfigurations,
+    '/system/dictionaries': access.canReadDictionaries,
+    '/system/audits': access.canReadAudits,
+    '/system/login-audits': access.canReadLoginAudits,
+    '/system/caches': access.canManageCaches,
   };
   const inaccessibleRoute =
     !!initialState?.user &&

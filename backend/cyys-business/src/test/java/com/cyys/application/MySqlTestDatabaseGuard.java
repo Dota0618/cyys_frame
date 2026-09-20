@@ -12,6 +12,7 @@ public class MySqlTestDatabaseGuard implements ApplicationContextInitializer<Con
     private static final Set<String> TABLES = Set.of("sys_scope", "sys_user", "sys_user_scope",
             "sys_role", "sys_user_role", "sys_menu", "sys_role_menu", "sys_org", "flyway_schema_history");
     private static final Set<String> PHASE3_TABLES = Set.of("sys_role_org", "sys_data_audit");
+    private static final Set<String> PHASE4_TABLES = Set.of("sys_configure", "param_basic", "param_basic_type");
 
     @Override
     public void initialize(ConfigurableApplicationContext context) {
@@ -38,7 +39,17 @@ public class MySqlTestDatabaseGuard implements ApplicationContextInitializer<Con
             if (actualTables.isEmpty()) return;
             var upgradedTables = new HashSet<>(TABLES);
             upgradedTables.addAll(PHASE3_TABLES);
-            if (!actualTables.equals(TABLES) && !actualTables.equals(upgradedTables)) {
+            var phase4Tables = new HashSet<>(upgradedTables);
+            phase4Tables.addAll(PHASE4_TABLES);
+            var loginAuditTables = new HashSet<>(phase4Tables);
+            loginAuditTables.add("sys_login_audit");
+            var fileTables = new HashSet<>(loginAuditTables);
+            fileTables.addAll(Set.of("sys_file_entry", "sys_file_part"));
+            var directoryTables = new HashSet<>(fileTables);
+            directoryTables.add("sys_file_dir");
+            if (!actualTables.equals(TABLES) && !actualTables.equals(upgradedTables)
+                    && !actualTables.equals(phase4Tables) && !actualTables.equals(loginAuditTables)
+                    && !actualTables.equals(fileTables) && !actualTables.equals(directoryTables)) {
                 throw new IllegalStateException("测试拒绝未知或未纳管的数据库结构；不会删表或自动 baseline。");
             }
             try (var statement = connection.createStatement()) {

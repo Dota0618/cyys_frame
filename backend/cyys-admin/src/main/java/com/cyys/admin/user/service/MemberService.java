@@ -7,7 +7,13 @@ import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
 import com.cyys.admin.role.service.RoleGrantService;
-import com.cyys.admin.user.dto.MemberDTO;
+import com.cyys.admin.user.dto.MemberQuery;
+import com.cyys.admin.user.dto.CreateMemberCommand;
+import com.cyys.admin.user.dto.UpdateMemberCommand;
+import com.cyys.admin.user.dto.MemberView;
+import com.cyys.admin.user.dto.MemberDetail;
+import com.cyys.admin.user.dto.MemberOption;
+import com.cyys.admin.user.dto.MemberDepartmentOption;
 import com.cyys.admin.user.mapper.MemberAccountMapper;
 import com.cyys.admin.user.mapper.MemberMapper;
 import com.cyys.admin.user.mapper.MemberDepartmentMapper;
@@ -39,7 +45,7 @@ public class MemberService {
     private final UserDisplayService cache;
 
     @Transactional(readOnly=true)
-    public IPage<MemberDTO.View> page(@Valid MemberDTO.Query query) {
+    public IPage<MemberView> page(@Valid MemberQuery query) {
         var page = new Page<SysUserScope>(query.page(), query.size());
         page.setOptimizeCountSql(false);
         var filter = new QueryWrapper<SysUserScope>().like(query.name()!=null&&!query.name().isBlank(),"display_name",query.name())
@@ -48,7 +54,7 @@ public class MemberService {
     }
 
     @Transactional(readOnly=true)
-    public IPage<MemberDTO.View> all(@Valid MemberDTO.Query query) {
+    public IPage<MemberView> all(@Valid MemberQuery query) {
         var page = new Page<SysUserScope>(query.page(),query.size());
         page.setOptimizeCountSql(false);
         page.setRecords(mapper.acrossScopes(page));
@@ -56,15 +62,15 @@ public class MemberService {
     }
 
     @Transactional(readOnly=true)
-    public MemberDTO.Detail detail(String id) {
+    public MemberDetail detail(String id) {
         var member=mapper.selectById(id);
         if(member==null) throw new ApiException(404,"成员不存在或不可访问");
-        return new MemberDTO.Detail(view(member,names(List.of(member))),accounts.roleIds(member.getUserId(),member.getScopeId()));
+        return new MemberDetail(view(member,names(List.of(member))),accounts.roleIds(member.getUserId(),member.getScopeId()));
     }
 
     @Transactional
-    public MemberDTO.View create(@Valid MemberDTO.Create command) {
-        authorize("user:create",DataAccess.Operation.CREATE);
+    public MemberView create(@Valid CreateMemberCommand command) {
+        authorize("user:create",DataPolicyRegistry.Access.WRITE);
         String scope=ScopeContext.get().requireScopeId();
         if(command.password().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>72) throw new ApiException(400,"密码不能超过 72 个 UTF-8 字节");
         if(command.orgId()!=null&&departments.forCreate(command.orgId())==null) throw new ApiException(403,"关联部门不可用");
@@ -81,7 +87,7 @@ public class MemberService {
     }
 
     @Transactional
-    public MemberDTO.View edit(String id,@Valid MemberDTO.Edit command) {
+    public MemberView edit(String id,@Valid UpdateMemberCommand command) {
         var member=mapper.lockForEdit(id);
         if(member==null||!member.getVersion().equals(command.version())) throw new ApiException(409,"成员不可修改或已变更");
         if(command.orgId()!=null&&departments.forEdit(command.orgId())==null) throw new ApiException(403,"关联部门不可用");
@@ -99,33 +105,33 @@ public class MemberService {
         grants.replaceUnitRoles(member.getUserId(),roles);
     }
 
-    public List<MemberDTO.DepartmentOption> departments() {
-        authorize("user:read",DataAccess.Operation.READ);
+    public List<MemberDepartmentOption> departments() {
+        authorize("user:read",DataPolicyRegistry.Access.READ);
         return departments.options();
     }
 
-    public List<MemberDTO.Option> roles() {
-        authorize("role:grant",DataAccess.Operation.UPDATE);
-        return grants.grantableRoleOptions().stream().map(role -> new MemberDTO.Option(role.value(), role.label())).toList();
+    public List<MemberOption> roles() {
+        authorize("role:grant",DataPolicyRegistry.Access.WRITE);
+        return grants.grantableRoleOptions().stream().map(role -> new MemberOption(role.value(), role.label())).toList();
     }
 
-    private void authorize(String permission,DataAccess.Operation operation) {
+    private void authorize(String permission,DataPolicyRegistry.Access access) {
         var identity=ScopeContext.get();
-        DataTransactionGuard.bind(identity,DataAccess.View.CURRENT_SCOPE);
-        policy.authorize(new DataPolicyRegistry.Policy(registry.resource("user"),permission,operation,DataAccess.View.CURRENT_SCOPE),identity);
+        DataTransactionGuard.bind(identity,DataPolicyRegistry.View.CURRENT_SCOPE);
+        policy.authorize(new DataPolicyRegistry.Policy(registry.resource(SysUserScope.class),permission,access,DataPolicyRegistry.View.CURRENT_SCOPE),identity);
     }
-    private IPage<MemberDTO.View> views(IPage<SysUserScope> page) {
+    private IPage<MemberView> views(IPage<SysUserScope> page) {
         Map<String,String> names=names(page.getRecords());
         return page.convert(member->view(member,names));
     }
     private Map<String,String> names(List<SysUserScope> members) {
         if(members.isEmpty()) return Map.of();
         return accounts.accountNames(members.stream().map(SysUserScope::getUserId).distinct().toList()).stream()
-                .collect(Collectors.toMap(MemberDTO.Option::value,MemberDTO.Option::label));
+                .collect(Collectors.toMap(MemberOption::value,MemberOption::label));
     }
-    private MemberDTO.View view(SysUserScope member,Map<String,String> names) {
+    private MemberView view(SysUserScope member,Map<String,String> names) {
         String login=names.get(member.getUserId());
-        return new MemberDTO.View(member.getId(),member.getUserId(),member.getScopeId(),login,
+        return new MemberView(member.getId(),member.getUserId(),member.getScopeId(),login,
                 member.getDisplayName()==null?login:member.getDisplayName(),member.getOrgId(),member.getStatus(),member.getVersion(),member.getCreatedAt());
     }
 }

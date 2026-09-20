@@ -1,9 +1,11 @@
 package com.cyys.application;
 
-import com.cyys.admin.department.dto.DepartmentDTO;
+
 import com.cyys.admin.department.service.DepartmentService;
 import com.cyys.admin.user.service.UserDisplayService;
 import com.cyys.common.satoken.ScopeContext;
+import com.cyys.common.mybatis.DataPermissionContext;
+import com.cyys.common.mybatis.DataPolicyRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,12 +31,22 @@ class MultiScopeIsolationTest extends IsolationTestSupport {
     @Test
     void customPaginationCountCannotBypassRegisteredMapperPolicy() {
         as("u-alice","scope-a");
+        DataPermissionContext.set("department:read", DataPolicyRegistry.View.CURRENT_SCOPE);
         try {
             var page = new com.baomidou.mybatisplus.extension.plugins.pagination.Page<com.cyys.admin.department.model.SysOrg>(1,2);
             page.setCountId("com.cyys.application.IsolationProbeMapper.unregisteredPolicy");
             assertThatThrownBy(() -> orgMapper.selectPage(page, new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>()))
                     .hasMessageContaining("自定义 COUNT");
-        } finally { ScopeContext.clear(); }
+        } finally { DataPermissionContext.clear(); ScopeContext.clear(); }
+    }
+
+    @Test
+    void missingPermissionContextRejectsDirectMapperAccess() {
+        as("u-alice", "scope-a");
+        try {
+            assertThatThrownBy(() -> orgMapper.selectById("g1-a-self"))
+                    .hasMessageContaining("缺少功能权限上下文");
+        } finally { DataPermissionContext.clear(); ScopeContext.clear(); }
     }
 
     @Test
@@ -202,16 +214,18 @@ class MultiScopeIsolationTest extends IsolationTestSupport {
     @Test
     void transactionCannotSwitchIdentityEvenAfterContextIsCleared() {
         as("u-alice","scope-a");
+        DataPermissionContext.set("department:read", DataPolicyRegistry.View.CURRENT_SCOPE);
         try {
             assertThatThrownBy(() -> new TransactionTemplate(transactions).executeWithoutResult(status -> {
                 departments.detail("g1-a-self");
                 ScopeContext.clear(); as("u-bob","scope-b");
                 departments.detail("g1-b-root");
             })).hasMessageContaining("同一事务不得切换");
-        } finally { ScopeContext.clear(); }
+        } finally { DataPermissionContext.clear(); ScopeContext.clear(); }
         as("u-bob","scope-b");
+        DataPermissionContext.set("department:read", DataPolicyRegistry.View.CURRENT_SCOPE);
         try { assertThat(departments.detail("g1-b-root").scopeId()).isEqualTo("scope-b"); }
-        finally { ScopeContext.clear(); }
+        finally { DataPermissionContext.clear(); ScopeContext.clear(); }
     }
 
     @Test
@@ -219,15 +233,22 @@ class MultiScopeIsolationTest extends IsolationTestSupport {
         try (var worker=Executors.newSingleThreadExecutor()) {
             worker.submit(() -> {
                 as("u-alice","scope-a");
+                DataPermissionContext.set("department:read", DataPolicyRegistry.View.CURRENT_SCOPE);
                 try { assertThatThrownBy(() -> departments.detail("g1-b-root")).hasMessageContaining("不可访问"); }
-                finally { ScopeContext.clear(); }
+                finally { DataPermissionContext.clear(); ScopeContext.clear(); }
             }).get();
-            worker.submit(() -> assertThatThrownBy(() -> departments.detail("g1-a-self"))
-                    .hasRootCauseInstanceOf(IllegalStateException.class).hasMessageContaining("上下文尚未建立")).get();
+            worker.submit(() -> {
+                DataPermissionContext.set("department:read", DataPolicyRegistry.View.CURRENT_SCOPE);
+                try {
+                    assertThatThrownBy(() -> departments.detail("g1-a-self"))
+                            .hasRootCauseInstanceOf(IllegalStateException.class).hasMessageContaining("上下文尚未建立");
+                } finally { DataPermissionContext.clear(); }
+            }).get();
             worker.submit(() -> {
                 as("u-bob","scope-b");
+                DataPermissionContext.set("department:read", DataPolicyRegistry.View.CURRENT_SCOPE);
                 try { assertThat(departments.detail("g1-b-root").scopeId()).isEqualTo("scope-b"); }
-                finally { ScopeContext.clear(); }
+                finally { DataPermissionContext.clear(); ScopeContext.clear(); }
             }).get();
         }
     }

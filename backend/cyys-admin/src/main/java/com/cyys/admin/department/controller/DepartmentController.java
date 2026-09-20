@@ -1,7 +1,10 @@
 package com.cyys.admin.department.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
-import com.cyys.admin.department.dto.DepartmentDTO;
+import com.cyys.admin.department.dto.CreateDepartmentCommand;
+import com.cyys.admin.department.dto.UpdateDepartmentCommand;
+import com.cyys.admin.department.dto.DepartmentVersionedId;
+import com.cyys.admin.department.dto.DepartmentQuery;
 import com.cyys.admin.department.service.DepartmentService;
 import com.cyys.common.web.R;
 import jakarta.validation.Valid;
@@ -20,7 +23,7 @@ public class DepartmentController {
     public Object page(@RequestParam(defaultValue = "1") long page,
                        @RequestParam(defaultValue = "20") long size,
                        @RequestParam(required = false) String search) {
-        return R.ok(service.page(new DepartmentDTO.Query(page, size, search)));
+        return R.ok(service.page(new DepartmentQuery(page, size, search)));
     }
 
     @GetMapping("/parents")
@@ -35,6 +38,18 @@ public class DepartmentController {
         return R.ok(service.treeOptionsForRead());
     }
 
+    @GetMapping("/leader-options/create")
+    @SaCheckPermission("department:create")
+    public Object createLeaderOptions(@RequestParam(required = false) String search) {
+        return R.ok(service.leaderOptionsForCreate(search));
+    }
+
+    @GetMapping("/{id}/leader-options")
+    @SaCheckPermission("department:update")
+    public Object updateLeaderOptions(@PathVariable String id, @RequestParam(required = false) String search) {
+        return R.ok(service.leaderOptionsForUpdate(id, search));
+    }
+
     @GetMapping("/{id}")
     @SaCheckPermission("department:read")
     public Object detail(@PathVariable String id) {
@@ -43,19 +58,19 @@ public class DepartmentController {
 
     @PostMapping
     @SaCheckPermission("department:create")
-    public Object create(@Valid @RequestBody DepartmentDTO.Create command) {
+    public Object create(@Valid @RequestBody CreateDepartmentCommand command) {
         return R.ok(service.create(command));
     }
 
     @PutMapping
     @SaCheckPermission("department:update")
-    public Object edit(@Valid @RequestBody DepartmentDTO.Edit command) {
+    public Object edit(@Valid @RequestBody UpdateDepartmentCommand command) {
         return R.ok(service.edit(command));
     }
 
     @DeleteMapping
     @SaCheckPermission("department:delete")
-    public Object delete(@RequestBody List<DepartmentDTO.VersionedId> commands) {
+    public Object delete(@RequestBody List<DepartmentVersionedId> commands) {
         service.deleteBatch(commands);
         return R.ok();
     }

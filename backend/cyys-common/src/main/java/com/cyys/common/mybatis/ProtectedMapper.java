@@ -5,9 +5,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** 为明确支持的 BaseMapper 方法关联已登记资源；未知方法仍拒绝。 */
+/** 声明该 Mapper 的所有 SQL 都使用同一个自动行级数据资源。 */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ProtectedMapper {
-    String value();
+    Class<?> value();
 }

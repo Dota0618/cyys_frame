@@ -1,4 +1,5 @@
-import { test, expect, type Page, type Locator } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import { login, members, chooseScope, direct } from './browser-support';
 
 const browserErrors = new WeakMap<Page, string[]>();
 test.beforeEach(async ({ page, context }) => {
@@ -18,28 +19,6 @@ test.afterEach(async ({ page }) => {
   expect(browserErrors.get(page)).toEqual([]);
 });
 
-async function login(page: Page, name = 'alice') {
-  await page.goto('/login');
-  await page.getByLabel('登录账号', { exact: true }).fill(name);
-  await page.getByLabel('密码', { exact: true }).fill('correct-password');
-  await page.getByRole('button', { name: '登 录' }).click();
-  await expect(page).toHaveURL(/workspace/);
-}
-async function members(page: Page) {
-  await page.getByRole('menuitem').filter({ hasText: '用户管理' }).click();
-  await expect(page.getByText('成员列表', { exact: true })).toBeVisible();
-}
-async function chooseScope(page: Page, name: string, container: Page | Locator = page) {
-  await container.getByRole('combobox', { name: '工作单位' }).press('ArrowDown');
-  await page.locator('.ant-select-dropdown:visible').getByText(name, { exact: true }).click();
-}
-async function direct(page: Page, method: string, path: string, body?: unknown) {
-  return page.evaluate(async ({ method, path, body }) => {
-    const state = JSON.parse(sessionStorage.getItem('cyys.session') || '{}');
-    const response = await fetch(path, { method, headers: { Authorization: `Bearer ${state.token}`, 'X-Cyys-Scope-Id': state.scopeId || '', 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
-    return { status: response.status, body: await response.json() };
-  }, { method, path, body });
-}
 test('真实登录、空查询、新增、详情、修改与角色授予；撤权清除页面', async ({ page, context }) => {
   await page.goto('/login');
   await expect(page.getByLabel('登录账号', { exact: true })).toBeVisible();
@@ -195,13 +174,20 @@ test('部门管理使用真实组织树候选并完成新增、修改、删除',
   await create.getByLabel('部门编码', { exact: true }).fill('browser-department');
   await create.getByLabel('上级部门', { exact: true }).click();
   await page.locator('.ant-select-tree-list-holder:visible').getByText('g1-a-root', { exact: true }).click();
+  await create.getByLabel('负责人', { exact: true }).click();
+  await page.locator('.ant-select-dropdown:visible').getByText('单位 A 姓名', { exact: true }).click();
   await create.getByRole('button', { name: '确 定' }).click();
   await expect(create).not.toBeVisible();
 
   let row = page.locator('tr[data-row-key]').filter({ hasText: '浏览器部门' });
   await expect(row).toContainText('g1-a-root');
+  await expect(row).toContainText('单位 A 姓名');
+  expect((await direct(page, 'POST', '/api/admin/departments', {
+    name: '越界负责人', code: 'browser-bad-leader', leaderId: 'u-bob',
+  })).status).toBe(403);
   await row.getByText('修改', { exact: true }).click();
   const edit = page.getByRole('dialog', { name: '修改部门' });
+  await expect(edit.getByText('单位 A 姓名', { exact: true })).toBeVisible();
   await edit.getByLabel('部门名称', { exact: true }).fill('浏览器部门已修改');
   await edit.getByRole('button', { name: '确 定' }).click();
   await expect(edit).not.toBeVisible();
@@ -243,4 +229,51 @@ test('角色管理按授予上限配置菜单权限和自定义部门范围', as
   await row.getByText('删除', { exact: true }).click();
   await page.getByRole('button', { name: '删 除' }).click();
   await expect(row).toHaveCount(0);
+});
+
+test('平台菜单、GLOBAL 角色和账号授权使用真实接口', async ({ page }) => {
+  await login(page, 'platform');
+  await page.getByRole('menuitem').filter({ hasText: '平台菜单' }).click();
+  await expect(page.getByText('菜单定义', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '新增菜单' }).click();
+  const menuDialog = page.getByRole('dialog', { name: '新增菜单' });
+  await menuDialog.getByLabel('菜单编码', { exact: true }).fill('g4-browser-menu');
+  await menuDialog.getByLabel('菜单名称', { exact: true }).fill('浏览器平台菜单');
+  await menuDialog.getByRole('button', { name: '确 定' }).click();
+  await expect(menuDialog).not.toBeVisible();
+  const menuRow = page.locator('tr[data-row-key]').filter({ hasText: 'g4-browser-menu' });
+  await expect(menuRow).toContainText('浏览器平台菜单');
+  await menuRow.getByText('删除', { exact: true }).click();
+  await page.getByRole('button', { name: '删 除' }).click();
+  await expect(menuRow).toHaveCount(0);
+
+  await page.getByRole('menuitem').filter({ hasText: '平台角色' }).click();
+  await expect(page.getByText('平台角色', { exact: true }).first()).toBeVisible();
+  await page.getByRole('button', { name: '新增平台角色' }).click();
+  const roleDialog = page.getByRole('dialog', { name: '新增平台角色' });
+  await roleDialog.getByLabel('角色编码', { exact: true }).fill('G4_BROWSER_PLATFORM_ROLE');
+  await roleDialog.getByLabel('角色名称', { exact: true }).fill('浏览器平台角色');
+  await roleDialog.getByRole('button', { name: '确 定' }).click();
+  await expect(roleDialog).not.toBeVisible();
+  const roleRow = page.locator('tr[data-row-key]').filter({ hasText: 'G4_BROWSER_PLATFORM_ROLE' });
+  await expect(roleRow).toBeVisible();
+
+  const roleId = (await direct(page, 'GET', '/api/admin/platform/roles?size=200')).body.data.records
+    .find((role: { code: string }) => role.code === 'G4_BROWSER_PLATFORM_ROLE').id;
+  await page.getByRole('tab', { name: '账号授权' }).click();
+  const accountRow = page.locator('tr[data-row-key="u-bob"]');
+  await accountRow.getByText('授权', { exact: true }).click();
+  const grant = page.getByRole('dialog', { name: /平台角色授权/ });
+  await grant.getByLabel('平台角色', { exact: true }).click();
+  await page.locator('.ant-select-dropdown:visible').getByText(/浏览器平台角色/).click();
+  await grant.getByLabel('平台角色', { exact: true }).press('Escape');
+  await grant.getByRole('button', { name: '确 定' }).click();
+  await expect(grant).not.toBeVisible();
+  expect((await direct(page, 'PUT', '/api/admin/platform/roles/accounts/u-bob/roles', { roleIds: [] })).status).toBe(200);
+
+  await page.getByRole('tab', { name: '角色定义' }).click();
+  await roleRow.getByText('删除', { exact: true }).click();
+  await page.getByRole('button', { name: '删 除' }).click();
+  await expect(roleRow).toHaveCount(0);
+  expect(roleId).toBeTruthy();
 });

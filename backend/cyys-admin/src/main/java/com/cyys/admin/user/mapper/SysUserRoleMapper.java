@@ -1,5 +1,7 @@
 package com.cyys.admin.user.mapper;
 
+import com.cyys.common.mybatis.ManualDataScope;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.cyys.admin.user.model.SysUserRole;
 import org.apache.ibatis.annotations.Mapper;
@@ -8,6 +10,7 @@ import org.apache.ibatis.annotations.Select;
 import java.util.List;
 
 @Mapper
+@ManualDataScope
 public interface SysUserRoleMapper extends BaseMapper<SysUserRole> {
     String VALID_GRANT = """
             from sys_user_role ur

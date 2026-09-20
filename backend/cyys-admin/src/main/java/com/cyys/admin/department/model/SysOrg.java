@@ -1,6 +1,7 @@
 package com.cyys.admin.department.model;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.cyys.common.mybatis.DataResourceDefinition;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -8,6 +9,9 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("sys_org")
+@DataResourceDefinition(name = "department", scopeColumn = "scope_id",
+        departmentColumn = "id", ancestorsColumn = "ancestors", actorColumn = "created_by",
+        versionColumn = "version", immutableColumns = {"parent_id", "ancestors"})
 /**
  * Organization tree inside one scope.
  * 单个业务单位内的组织树。
@@ -37,6 +41,7 @@ public class SysOrg implements Serializable {
 
     private String code;
 
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String leaderId;
 
     private String phone;

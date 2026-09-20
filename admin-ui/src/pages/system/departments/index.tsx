@@ -2,6 +2,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import {
   ModalForm,
   PageContainer,
+  ProFormSelect,
   ProFormText,
   ProFormTreeSelect,
   ProTable,
@@ -13,11 +14,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ScopeSwitch from '@/components/ScopeSwitch';
 import {
   createDepartment,
+  createDepartmentLeaderOptions,
   deleteDepartment,
   departmentParentOptions,
   departmentTreeOptions,
   editDepartment,
   listDepartments,
+  updateDepartmentLeaderOptions,
 } from '@/services/system/departments';
 import type {
   CreateDepartment,
@@ -78,6 +81,12 @@ export default function DepartmentsPage() {
       dataIndex: 'parentId',
       search: false,
       renderText: (value) => (value ? names.get(value) || '历史部门' : '—'),
+    },
+    {
+      title: '负责人',
+      dataIndex: 'leaderName',
+      search: false,
+      renderText: (value, row) => value || (row.leaderId ? `已失效成员（${row.leaderId}）` : '—'),
     },
     {
       title: '操作',
@@ -211,6 +220,15 @@ export default function DepartmentsPage() {
                       treeNodeFilterProp: 'title',
                     }}
                   />
+                  <ProFormSelect
+                    name="leaderId"
+                    label="负责人"
+                    placeholder="可搜索当前单位的有效成员"
+                    showSearch
+                    debounceTime={300}
+                    request={({ keyWords }) => createDepartmentLeaderOptions(keyWords)}
+                    fieldProps={{ allowClear: true, filterOption: false }}
+                  />
                 </ModalForm>,
               ]
             : []
@@ -239,6 +257,7 @@ export default function DepartmentsPage() {
               id: editing.id,
               version: editing.version,
               name: values.name,
+              leaderId: values.leaderId,
             });
             void message.success('部门已更新');
             await reload();
@@ -256,6 +275,18 @@ export default function DepartmentsPage() {
           label="部门名称"
           fieldProps={{ maxLength: 100 }}
           rules={[{ required: true, whitespace: true }]}
+        />
+        <ProFormSelect
+          name="leaderId"
+          label="负责人"
+          placeholder="可清空或搜索新的有效成员"
+          showSearch
+          debounceTime={300}
+          params={{ departmentId: editing?.id }}
+          request={({ keyWords }) =>
+            editing ? updateDepartmentLeaderOptions(editing.id, keyWords) : Promise.resolve([])
+          }
+          fieldProps={{ allowClear: true, filterOption: false }}
         />
       </ModalForm>
     </PageContainer>

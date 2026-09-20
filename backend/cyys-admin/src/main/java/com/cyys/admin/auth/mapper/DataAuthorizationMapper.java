@@ -1,11 +1,14 @@
 package com.cyys.admin.auth.mapper;
 
+import com.cyys.common.mybatis.ManualDataScope;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 /** 仅返回指定账号、单位及操作的存在性，避免行策略计算递归调用自己。 */
 @Mapper
+@ManualDataScope
 public interface DataAuthorizationMapper {
     @Select("""
             select exists (

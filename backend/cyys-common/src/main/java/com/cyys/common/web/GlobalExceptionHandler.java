@@ -38,11 +38,17 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({BindException.class, HttpMessageNotReadableException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+            org.springframework.web.bind.MissingServletRequestParameterException.class,
+            org.springframework.web.multipart.support.MissingServletRequestPartException.class,
             jakarta.validation.ConstraintViolationException.class,
             org.springframework.web.method.annotation.HandlerMethodValidationException.class})
     public ResponseEntity<R<Void>> handleBadInput(Exception error) {
         return failure(400, "请求参数格式不正确");
     }
+
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<R<Void>> handleUploadTooLarge(Exception error) { return failure(413, "文件超过允许大小"); }
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<R<Void>> handleNotFound(NoResourceFoundException error) {

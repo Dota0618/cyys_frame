@@ -38,6 +38,9 @@ public class SysMenu implements Serializable {
 
     private Integer sort;
 
+    @Version
+    private Integer version = 0;
+
     private Integer visible;
 
     private Integer status;

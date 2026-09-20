@@ -1,7 +1,9 @@
 package com.cyys.admin.role.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
-import com.cyys.admin.role.dto.RoleDTO;
+import com.cyys.admin.role.dto.RoleQuery;
+import com.cyys.admin.role.dto.CreateRoleCommand;
+import com.cyys.admin.role.dto.UpdateRoleCommand;
 import com.cyys.admin.role.service.RoleService;
 import com.cyys.common.web.R;
 import jakarta.validation.Valid;
@@ -24,7 +26,7 @@ public class RoleController {
     public Object page(@RequestParam(defaultValue = "1") long page,
                        @RequestParam(defaultValue = "20") long size,
                        @RequestParam(required = false) String search) {
-        return R.ok(service.page(new RoleDTO.Query(page, size, search)));
+        return R.ok(service.page(new RoleQuery(page, size, search)));
     }
 
     @GetMapping("/create-options")
@@ -43,13 +45,13 @@ public class RoleController {
 
     @PostMapping
     @SaCheckPermission("role:create")
-    public Object create(@Valid @RequestBody RoleDTO.Create command) {
+    public Object create(@Valid @RequestBody CreateRoleCommand command) {
         return R.ok(service.create(command));
     }
 
     @PutMapping
     @SaCheckPermission("role:update")
-    public Object edit(@Valid @RequestBody RoleDTO.Edit command) {
+    public Object edit(@Valid @RequestBody UpdateRoleCommand command) {
         return R.ok(service.edit(command));
     }
 

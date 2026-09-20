@@ -1,89 +1,92 @@
 package com.cyys.common.mybatis;
 
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.cyys.common.web.ApiException;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.SqlCommandType;
-import java.lang.reflect.Method;
-import java.util.List;
+import org.springframework.stereotype.Component;
+
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.concurrent.ConcurrentHashMap;
 
-/** 没有登记的表、方法或命令类型均失败；控制路径例外精确到语句。 */
+/** 从 Mapper 类和当前接口上下文生成行级策略；不维护方法名或 SQL 类型清单。 */
+@Component
 public final class DataPolicyRegistry {
-    private final Map<String, DataResource> resources;
-    private final Map<String, SqlCommandType> controlStatements;
+    private final Map<Class<?>, DataResource> resources = new ConcurrentHashMap<>();
+    private final Map<String, Class<?>> names = new ConcurrentHashMap<>();
+    private final Map<String, Class<?>> tables = new ConcurrentHashMap<>();
 
-    public DataPolicyRegistry(List<DataResource> resources, Map<String, SqlCommandType> controlStatements) {
-        this.resources = resources.stream().collect(Collectors.toUnmodifiableMap(DataResource::name, Function.identity()));
-        this.controlStatements = Map.copyOf(controlStatements);
-    }
-
-    public boolean controlledStatement(MappedStatement statement) {
-        SqlCommandType allowed = controlStatements.get(statement.getId());
-        if (allowed != null && allowed != statement.getSqlCommandType()) throw denied("控制路径命令类型不匹配");
-        return allowed != null;
-    }
-
+    /** 返回 null 表示该 Mapper 已声明由业务 SQL 自行限定数据范围。 */
     public Policy policy(MappedStatement statement) {
-        String id = statement.getId();
-        // MP 自动 COUNT 来自原查询；显式自定义 COUNT 必须自行标注。
-        if (id.endsWith("_mpCount")) id = id.substring(0, id.length() - "_mpCount".length());
-        int split = id.lastIndexOf('.');
-        try {
-            Class<?> mapper = Class.forName(id.substring(0, split));
-            String methodName = id.substring(split + 1);
-            for (Method method : mapper.getDeclaredMethods()) {
-                if (!method.getName().equals(methodName)) continue;
-                DataAccess access = method.getAnnotation(DataAccess.class);
-                if (access != null) return checked(access.resource(), access.permission(), access.operation(), access.view(), statement);
-            }
-            ProtectedMapper annotation = mapper.getAnnotation(ProtectedMapper.class);
-            if (annotation != null) {
-                DataAccess.Operation operation;
-                if (Set.of("selectById", "selectBatchIds", "selectList", "selectCount", "selectMaps", "selectObjs").contains(methodName)) {
-                    operation = DataAccess.Operation.READ;
-                } else if (methodName.equals("insert")) {
-                    operation = DataAccess.Operation.CREATE;
-                } else if (methodName.equals("updateById")) {
-                    operation = DataAccess.Operation.UPDATE;
-                } else {
-                    throw denied("未登记的 Mapper 操作");
-                }
-                return checked(annotation.value(), annotation.value() + ":" + operation.name().toLowerCase(java.util.Locale.ROOT),
-                        operation, DataAccess.View.CURRENT_SCOPE, statement);
-            }
-        } catch (ClassNotFoundException | IndexOutOfBoundsException exception) {
-            throw denied("无法识别 Mapper 策略");
+        Class<?> mapper = mapperType(statement);
+        ProtectedMapper automatic = mapper.getAnnotation(ProtectedMapper.class);
+        boolean manual = mapper.isAnnotationPresent(ManualDataScope.class);
+        if ((automatic == null && !manual) || (automatic != null && manual)) {
+            throw denied("Mapper 必须且只能声明一种数据范围边界");
         }
-        throw denied("Mapper 缺少资源策略");
+        if (manual) return null;
+
+        DataPermissionContext.Current current = DataPermissionContext.get();
+        Access access = current.access();
+        SqlCommandType command = statement.getSqlCommandType();
+        if (access == Access.READ && command != SqlCommandType.SELECT) {
+            throw denied("只读功能权限不能执行写入 SQL");
+        }
+        if (current.view() == View.AUTHORIZED_SCOPES && access != Access.READ) {
+            throw denied("跨单位视图只允许读取");
+        }
+        return new Policy(resource(automatic.value()), current.permission(), access, current.view());
     }
 
-    public DataResource resource(String name) {
-        DataResource resource = resources.get(name);
-        if (resource == null) throw denied("未登记的资源");
+    public DataResource resource(Class<?> type) {
+        return resources.computeIfAbsent(type, this::createResource);
+    }
+
+    private DataResource createResource(Class<?> type) {
+        DataResourceDefinition definition = type.getAnnotation(DataResourceDefinition.class);
+        TableName tableName = type.getAnnotation(TableName.class);
+        if (definition == null || tableName == null) {
+            throw denied("数据资源模型缺少定义或表名");
+        }
+        DataResource resource;
+        try {
+            resource = new DataResource(definition.name(), tableName.value(), definition.scopeColumn(),
+                    definition.departmentColumn(), blankToNull(definition.ancestorsColumn()), definition.actorColumn(),
+                    blankToNull(definition.versionColumn()), Set.of(definition.immutableColumns()));
+        } catch (IllegalArgumentException exception) {
+            throw denied("数据资源字段定义无效");
+        }
+        unique(names, resource.name(), type, "资源名称重复");
+        unique(tables, resource.table(), type, "资源表重复");
         return resource;
     }
 
-    private Policy checked(String resourceName, String permission, DataAccess.Operation operation,
-                           DataAccess.View view, MappedStatement statement) {
-        DataResource resource = resources.get(resourceName);
-        if (resource == null || permission == null || !permission.matches("[a-z][a-z0-9:_-]+")) throw denied("未登记的资源或权限");
-        SqlCommandType command = statement.getSqlCommandType();
-        boolean matches = switch (operation) {
-            case READ -> command == SqlCommandType.SELECT;
-            case CREATE -> command == SqlCommandType.INSERT || command == SqlCommandType.SELECT;
-            case UPDATE -> command == SqlCommandType.UPDATE || command == SqlCommandType.SELECT;
-            case DELETE -> command == SqlCommandType.DELETE || command == SqlCommandType.UPDATE || command == SqlCommandType.SELECT;
-        };
-        if (!matches || (view == DataAccess.View.AUTHORIZED_SCOPES && operation != DataAccess.Operation.READ)) {
-            throw denied("SQL 命令与授权策略不一致");
+    private static Class<?> mapperType(MappedStatement statement) {
+        String id = statement.getId();
+        if (id.endsWith("_mpCount")) id = id.substring(0, id.length() - "_mpCount".length());
+        int split = id.lastIndexOf('.');
+        try {
+            return Class.forName(id.substring(0, split));
+        } catch (ClassNotFoundException | IndexOutOfBoundsException exception) {
+            throw denied("无法识别 Mapper 数据范围边界");
         }
-        return new Policy(resource, permission, operation, view);
     }
 
-    public static ApiException denied(String message) { return new ApiException(403, message); }
+    private static void unique(Map<String, Class<?>> owners, String key, Class<?> type, String message) {
+        Class<?> existing = owners.putIfAbsent(key, type);
+        if (existing != null && existing != type) throw denied(message);
+    }
 
-    public record Policy(DataResource resource, String permission, DataAccess.Operation operation, DataAccess.View view) {}
+    private static String blankToNull(String value) {
+        return value.isBlank() ? null : value;
+    }
+
+    public static ApiException denied(String message) {
+        return new ApiException(403, message);
+    }
+
+    public enum Access { READ, WRITE }
+    public enum View { CURRENT_SCOPE, AUTHORIZED_SCOPES }
+    public record Policy(DataResource resource, String permission, Access access, View view) {}
 }

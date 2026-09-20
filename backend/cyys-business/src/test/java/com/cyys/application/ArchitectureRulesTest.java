@@ -1,5 +1,8 @@
 package com.cyys.application;
 
+import com.cyys.common.mybatis.DataPolicyRegistry;
+import com.cyys.common.mybatis.ManualDataScope;
+import com.cyys.common.mybatis.ProtectedMapper;
 import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,6 +28,9 @@ class ArchitectureRulesTest {
                     if (module.equals("cyys-admin")) {
                         assertThat(packageName).as(source.toString())
                                 .matches("com\\.cyys\\.admin\\.[a-z]+\\.(controller|model|dto|service|mapper)");
+                        assertThat(code).as("业务代码不得绕过统一缓存能力: " + source)
+                                .doesNotContain("org.springframework.data.redis", "StringRedisTemplate",
+                                        "RedisTemplate", "DefaultRedisScript", "redis.call(");
                     }
                     if (packageName.endsWith(".controller")) {
                         assertThat(code).as(source.toString()).doesNotContain(".mapper.", ".model.");
@@ -36,6 +42,29 @@ class ArchitectureRulesTest {
                             .doesNotContain("JdbcTemplate", "DriverManager", "getConnection(", "prepareStatement(",
                                     "@InterceptorIgnore", "@CacheNamespace", "StatementType.CALLABLE");
                 }
+            }
+        }
+    }
+
+    @Test
+    void everyMapperDeclaresOneClassLevelDataScopeBoundary() throws Exception {
+        Path sourceRoot = Path.of("..", "cyys-admin", "src", "main", "java").toAbsolutePath().normalize();
+        DataPolicyRegistry registry = new DataPolicyRegistry();
+        try (var paths = Files.walk(sourceRoot)) {
+            for (Path source : paths.filter(path -> path.toString().endsWith("Mapper.java")).toList()) {
+                String code = Files.readString(source);
+                if (!code.contains("@Mapper")) continue;
+                var packageMatcher = Pattern.compile("package ([^;]+);").matcher(code);
+                assertThat(packageMatcher.find()).as(source.toString()).isTrue();
+                String className = packageMatcher.group(1) + "."
+                        + source.getFileName().toString().replaceFirst("\\.java$", "");
+                Class<?> mapper = Class.forName(className);
+                ProtectedMapper protectedMapper = mapper.getAnnotation(ProtectedMapper.class);
+                ManualDataScope manual = mapper.getAnnotation(ManualDataScope.class);
+                assertThat((protectedMapper == null) ^ (manual == null))
+                        .as("Mapper 必须且只能声明一种类级数据范围边界: %s", className)
+                        .isTrue();
+                if (protectedMapper != null) registry.resource(protectedMapper.value());
             }
         }
     }

@@ -1,6 +1,7 @@
 import type {
   CreateDepartment,
   Department,
+  DepartmentLeaderOption,
   DepartmentOption,
   EditDepartment,
   Page,
@@ -20,6 +21,16 @@ export const departmentParentOptions = () =>
   api<DepartmentOption[]>(`${root}/parents`);
 export const departmentTreeOptions = () =>
   api<DepartmentOption[]>(`${root}/tree`);
+const leaderOptionsPath = (path: string, search?: string) => {
+  const query = new URLSearchParams();
+  if (search) query.set('search', search);
+  const suffix = query.size ? `?${query}` : '';
+  return api<DepartmentLeaderOption[]>(`${root}/${path}${suffix}`);
+};
+export const createDepartmentLeaderOptions = (search?: string) =>
+  leaderOptionsPath('leader-options/create', search);
+export const updateDepartmentLeaderOptions = (id: string, search?: string) =>
+  leaderOptionsPath(`${encodeURIComponent(id)}/leader-options`, search);
 export const createDepartment = (body: CreateDepartment) =>
   api<Department>(root, { method: 'POST', body });
 export const editDepartment = (body: EditDepartment) =>

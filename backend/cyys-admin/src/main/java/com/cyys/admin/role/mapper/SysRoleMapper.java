@@ -1,14 +1,18 @@
 package com.cyys.admin.role.mapper;
 
+import com.cyys.common.mybatis.ManualDataScope;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.cyys.admin.role.dto.RoleDTO;
+import com.cyys.admin.role.dto.RoleMenuOption;
+import com.cyys.admin.role.dto.RoleDepartmentOption;
 import com.cyys.admin.role.model.SysRole;
 import org.apache.ibatis.annotations.*;
 import java.util.List;
 
 @Mapper
+@ManualDataScope
 public interface SysRoleMapper extends BaseMapper<SysRole> {
     @Select("<script>select * from sys_role where scope_id=#{scope} and deleted=0 "
             + "<if test='search != null and search != &quot;&quot;'>and (name like concat('%',#{search},'%') or code like concat('%',#{search},'%')) </if>"
@@ -23,11 +27,11 @@ public interface SysRoleMapper extends BaseMapper<SysRole> {
 
     @Select("select m.id,m.parent_id as parentId,m.name,m.code,m.type from sys_menu m "
             + "where m.status=1 and m.deleted=0 and m.platform_only=0 order by m.sort,m.id")
-    List<RoleDTO.MenuOption> menus();
+    List<RoleMenuOption> menus();
 
     @Select("select o.id,o.parent_id as parentId,o.name from sys_org o "
             + "where o.scope_id=#{scope} and o.status=1 and o.deleted=0 order by o.sort,o.id")
-    List<RoleDTO.DepartmentOption> departments(@Param("scope") String scope);
+    List<RoleDepartmentOption> departments(@Param("scope") String scope);
 
     @Select("select menu_id from sys_role_menu where role_id=#{role} and deleted=0 order by menu_id")
     List<String> menuIds(@Param("role") String role);
@@ -38,7 +42,7 @@ public interface SysRoleMapper extends BaseMapper<SysRole> {
     @Select("<script>select m.id,m.parent_id as parentId,m.name,m.code,m.type from sys_menu m "
             + "where m.status=1 and m.deleted=0 and m.platform_only=0 and m.id in "
             + "<foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach> for update</script>")
-    List<RoleDTO.MenuOption> lockMenus(@Param("ids") List<String> ids);
+    List<RoleMenuOption> lockMenus(@Param("ids") List<String> ids);
 
     @Select("<script>select id from sys_org where scope_id=#{scope} and status=1 and deleted=0 and id in "
             + "<foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach> for update</script>")

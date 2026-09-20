@@ -26,6 +26,20 @@ public class MySqlInspection {
                         System.out.println("EXACT_ROWS=" + table + ":" + rows.getLong(1));
                     }
                 }
+                for (String table : java.util.List.of("sys_configure", "param_basic", "param_basic_type", "sys_login_audit", "sys_file_entry", "sys_file_part", "sys_file_dir")) {
+                    try (var exists = connection.prepareStatement(
+                            "select count(*) from information_schema.tables where table_schema=database() and table_name=?")) {
+                        exists.setString(1, table);
+                        try (var found = exists.executeQuery()) {
+                            found.next();
+                            if (found.getInt(1) == 0) continue;
+                        }
+                    }
+                    try (var rows = statement.executeQuery("select count(*) from " + table)) {
+                        rows.next();
+                        System.out.println("EXACT_ROWS=" + table + ":" + rows.getLong(1));
+                    }
+                }
                 try (var rows = statement.executeQuery("select version,script,success from flyway_schema_history order by installed_rank")) {
                     while (rows.next()) System.out.println("MIGRATION=" + rows.getString(1) + ":" + rows.getString(2) + ":" + rows.getInt(3));
                 }

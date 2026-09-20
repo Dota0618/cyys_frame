@@ -1,6 +1,10 @@
 package com.cyys.application;
 
-import com.cyys.admin.department.dto.DepartmentDTO;
+import cn.dev33.satoken.annotation.SaCheckPermission;
+import com.cyys.admin.department.dto.CreateDepartmentCommand;
+import com.cyys.admin.department.dto.UpdateDepartmentCommand;
+import com.cyys.admin.department.dto.DepartmentVersionedId;
+import com.cyys.admin.department.dto.DepartmentQuery;
 import com.cyys.admin.department.service.DepartmentService;
 import com.cyys.admin.role.service.RoleGrantService;
 import com.cyys.admin.user.service.UserDisplayService;
@@ -18,40 +22,51 @@ import java.util.List;
 public class IsolationProbe {
     private final DepartmentService departments;
     private final IsolationProbeMapper sql;
+    private final UnregisteredPolicyProbeMapper unregistered;
+    private final UnknownResourceProbeMapper unknownResource;
     private final RoleGrantService grants;
     private final UserDisplayService users;
 
     @GetMapping("/departments")
+    @SaCheckPermission("department:read")
     Object page(@RequestParam(defaultValue="1") long page, @RequestParam(defaultValue="20") long size,
                 @RequestParam(required=false) String search) {
-        return R.ok(departments.page(new DepartmentDTO.Query(page,size,search)));
+        return R.ok(departments.page(new DepartmentQuery(page,size,search)));
     }
     @GetMapping("/departments/{id}")
+    @SaCheckPermission("department:read")
     Object detail(@PathVariable String id) { return R.ok(departments.detail(id)); }
     @PostMapping("/departments")
-    Object create(@Valid @RequestBody DepartmentDTO.Create command) { return R.ok(departments.create(command)); }
+    @SaCheckPermission("department:create")
+    Object create(@Valid @RequestBody CreateDepartmentCommand command) { return R.ok(departments.create(command)); }
     @PostMapping("/batch-create")
-    Object createBatch(@RequestBody List<DepartmentDTO.Create> commands) { return R.ok(departments.createBatch(commands)); }
+    @SaCheckPermission("department:create")
+    Object createBatch(@RequestBody List<CreateDepartmentCommand> commands) { return R.ok(departments.createBatch(commands)); }
     @PutMapping("/departments")
-    Object edit(@Valid @RequestBody DepartmentDTO.Edit command) { return R.ok(departments.edit(command)); }
+    @SaCheckPermission("department:update")
+    Object edit(@Valid @RequestBody UpdateDepartmentCommand command) { return R.ok(departments.edit(command)); }
     @PostMapping("/batch-delete")
-    Object delete(@RequestBody List<DepartmentDTO.VersionedId> commands) { departments.deleteBatch(commands); return R.ok(); }
+    @SaCheckPermission("department:delete")
+    Object delete(@RequestBody List<DepartmentVersionedId> commands) { departments.deleteBatch(commands); return R.ok(); }
     @GetMapping("/global")
     @AuthorizedScopesRead
+    @SaCheckPermission("department:read")
     Object global() { return R.ok(departments.acrossAuthorizedScopes()); }
     @GetMapping("/sql/{shape}")
+    @SaCheckPermission("department:read")
     Object sql(@PathVariable String shape) {
         return R.ok(switch(shape) {
             case "alias" -> sql.aliases(); case "left" -> sql.leftJoin(); case "subquery" -> sql.subquery();
             case "union" -> sql.union(); case "group" -> sql.groups(); case "count" -> sql.customCount();
             case "scalar" -> sql.scalarSubquery(); case "uncovered" -> sql.uncoveredSubquery();
             case "malformed" -> sql.malformed(); case "table" -> sql.unregisteredTable();
-            case "policy" -> sql.unregisteredPolicy(); case "ignored" -> sql.ignoredPolicy();
-            case "resource" -> sql.unknownResource(); case "raw" -> sql.rawStatement();
+            case "policy" -> unregistered.rows(); case "ignored" -> sql.ignoredPolicy();
+            case "resource" -> unknownResource.rows(); case "raw" -> sql.rawStatement();
             default -> throw new IllegalArgumentException("Unknown test shape");
         });
     }
     @PostMapping("/unsafe/{shape}")
+    @SaCheckPermission("department:update")
     Object unsafe(@PathVariable String shape) {
         return R.ok(switch(shape) {
             case "unit" -> sql.unitWideUpdate("scope-a");

@@ -1,5 +1,7 @@
 package com.cyys.admin.user.mapper;
 
+import com.cyys.common.mybatis.ManualDataScope;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.cyys.admin.auth.dto.LoginVO.ScopeInfo;
 import com.cyys.admin.user.model.SysUserScope;
@@ -9,6 +11,7 @@ import org.apache.ibatis.annotations.Select;
 import java.util.List;
 
 @Mapper
+@ManualDataScope
 public interface SysUserScopeMapper extends BaseMapper<SysUserScope> {
     @Select("""
             select s.id, s.code, s.name, us.default_flag, us.member_role

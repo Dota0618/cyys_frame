@@ -5,7 +5,7 @@ import com.cyys.admin.audit.service.DataAuditService;
 import com.cyys.admin.auth.mapper.DataAuthorizationMapper;
 import com.cyys.admin.role.mapper.RoleGrantMapper;
 import com.cyys.admin.user.mapper.SysUserRoleMapper;
-import com.cyys.common.mybatis.DataAccess;
+import com.cyys.common.mybatis.DataPolicyRegistry;
 import com.cyys.common.mybatis.DataTransactionGuard;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.web.ApiException;
@@ -32,7 +32,7 @@ public class RoleGrantService {
     public List<RoleGrantMapper.RoleOption> grantableRoleOptions() {
         var identity = ScopeContext.get();
         String scope = identity.requireScopeId();
-        DataTransactionGuard.bind(identity, DataAccess.View.CURRENT_SCOPE);
+        DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);
         if (!authorization.hasPermission(identity.loginId(), scope, "role:grant")) {
             throw new ApiException(403, "没有本单位角色授予权限");
         }
@@ -51,7 +51,7 @@ public class RoleGrantService {
                                  @NotNull @Size(max=100) List<@NotBlank String> roleIds) {
         var identity = ScopeContext.get();
         String scope = identity.requireScopeId();
-        DataTransactionGuard.bind(identity, DataAccess.View.CURRENT_SCOPE);
+        DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);
         if (!authorization.hasPermission(identity.loginId(), scope, "role:grant")) {
             throw new ApiException(403, "没有本单位角色授予权限");
         }

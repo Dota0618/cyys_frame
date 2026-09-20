@@ -40,20 +40,27 @@ class DepartmentIntegrationTest extends IsolationTestSupport {
     @Test
     void createEditAndDeleteKeepServerOwnedScopeAndVersionBoundary() throws Exception {
         String token = token("alice");
+        var leaders = departments("GET", "/leader-options/create?search=ali", token, "scope-a", null);
+        assertThat(leaders.status()).as(leaders.raw()).isEqualTo(200);
+        assertThat(leaders.raw()).contains("u-alice", "alice").doesNotContain("u-bob");
+        assertThat(departments("POST", "", token, "scope-a",
+                Map.of("name", "越界负责人", "code", "bad-leader", "leaderId", "u-bob")).status()).isEqualTo(403);
         assertThat(departments("POST", "", token, "scope-a",
                 Map.of("name", "越界", "code", "cross", "parentId", "g1-b-root")).status()).isEqualTo(403);
         assertThat(departments("POST", "", token, "scope-a",
                 Map.of("name", "非法归属", "code", "owned", "scopeId", "scope-b")).status()).isEqualTo(400);
 
         var created = departments("POST", "", token, "scope-a",
-                Map.of("name", "新部门", "code", "new-department", "parentId", "g1-a-root"));
+                Map.of("name", "新部门", "code", "new-department", "parentId", "g1-a-root", "leaderId", "u-alice"));
         assertThat(created.status()).as(created.raw()).isEqualTo(200);
         String id = created.body().at("/data/id").asText();
         assertThat(created.body().at("/data/scopeId").asText()).isEqualTo("scope-a");
         assertThat(created.body().at("/data/parentId").asText()).isEqualTo("g1-a-root");
+        assertThat(created.body().at("/data/leaderName").asText()).isEqualTo("alice");
+        assertThat(created.body().at("/data/leaderActive").asBoolean()).isTrue();
 
         var edited = departments("PUT", "", token, "scope-a",
-                Map.of("id", id, "version", 0, "name", "新部门已修改"));
+                Map.of("id", id, "version", 0, "name", "新部门已修改", "leaderId", "u-alice"));
         assertThat(edited.status()).as(edited.raw()).isEqualTo(200);
         assertThat(edited.body().at("/data/name").asText()).isEqualTo("新部门已修改");
         assertThat(departments("PUT", "", token, "scope-a",
@@ -63,6 +70,39 @@ class DepartmentIntegrationTest extends IsolationTestSupport {
                 List.of(Map.of("id", id, "version", 1)));
         assertThat(deleted.status()).as(deleted.raw()).isEqualTo(200);
         assertThat(departments("GET", "/" + id, token, "scope-a", null).status()).isEqualTo(404);
+    }
+
+    @Test
+    void updateOptionsKeepHistoricalLeaderButRejectSelectingAnInactiveMember() throws Exception {
+        String token = token("alice");
+        membership("u-bob", "scope-a", false);
+        jdbc.update("update sys_user_scope set display_name='历史负责人' where user_id='u-bob' and scope_id='scope-a'");
+        var created = departments("POST", "", token, "scope-a",
+                Map.of("name", "历史负责人部门", "code", "historical-leader", "leaderId", "u-bob"));
+        assertThat(created.status()).as(created.raw()).isEqualTo(200);
+        String id = created.body().at("/data/id").asText();
+
+        jdbc.update("update sys_user_scope set status=0 where user_id='u-bob' and scope_id='scope-a'");
+        var options = departments("GET", "/" + id + "/leader-options", token, "scope-a", null);
+        assertThat(options.status()).as(options.raw()).isEqualTo(200);
+        assertThat(options.body().at("/data/0/value").asText()).isEqualTo("u-bob");
+        assertThat(options.body().at("/data/0/label").asText()).isEqualTo("历史负责人");
+        assertThat(options.body().at("/data/0/disabled").asBoolean()).isTrue();
+
+        var kept = departments("PUT", "", token, "scope-a",
+                Map.of("id", id, "version", 0, "name", "仍保留历史负责人", "leaderId", "u-bob"));
+        assertThat(kept.status()).as(kept.raw()).isEqualTo(200);
+        assertThat(kept.body().at("/data/leaderActive").asBoolean()).isFalse();
+
+        var cleared = departments("PUT", "", token, "scope-a",
+                Map.of("id", id, "version", 1, "name", "清空负责人"));
+        assertThat(cleared.status()).as(cleared.raw()).isEqualTo(200);
+        assertThat(cleared.body().at("/data/leaderId").isMissingNode()
+                || cleared.body().at("/data/leaderId").isNull()).isTrue();
+        assertThat(departments("PUT", "", token, "scope-a",
+                Map.of("id", id, "version", 2, "name", "重新选择失效负责人", "leaderId", "u-bob")).status()).isEqualTo(403);
+        assertThat(departments("DELETE", "", token, "scope-a",
+                List.of(Map.of("id", id, "version", 2))).status()).isEqualTo(200);
     }
 
     @Test

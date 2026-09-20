@@ -1,10 +1,13 @@
 package com.cyys.admin.role.mapper;
 
+import com.cyys.common.mybatis.ManualDataScope;
+
 import org.apache.ibatis.annotations.*;
 import java.util.List;
 
 /** 角色授予专用控制路径：不对外提供任意表操作，每次替换固定账号和单位。 */
 @Mapper
+@ManualDataScope
 public interface RoleGrantMapper {
     @Select("select id from sys_user_scope where user_id=#{user} and scope_id=#{scope} and status=1 and deleted=0 "
             + "and (expire_at is null or expire_at>CURRENT_TIMESTAMP) for update")

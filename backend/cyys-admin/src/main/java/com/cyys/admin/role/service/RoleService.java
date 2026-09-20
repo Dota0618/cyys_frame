@@ -5,12 +5,18 @@ import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
 import com.cyys.admin.auth.mapper.DataAuthorizationMapper;
-import com.cyys.admin.role.dto.RoleDTO;
+import com.cyys.admin.role.dto.RoleQuery;
+import com.cyys.admin.role.dto.CreateRoleCommand;
+import com.cyys.admin.role.dto.UpdateRoleCommand;
+import com.cyys.admin.role.dto.RoleView;
+import com.cyys.admin.role.dto.RoleMenuOption;
+import com.cyys.admin.role.dto.RoleOptions;
+import com.cyys.admin.role.dto.RoleDetail;
 import com.cyys.admin.role.mapper.RoleGrantMapper;
 import com.cyys.admin.role.mapper.SysRoleMapper;
 import com.cyys.admin.role.model.SysRole;
 import com.cyys.admin.user.mapper.SysUserRoleMapper;
-import com.cyys.common.mybatis.DataAccess;
+import com.cyys.common.mybatis.DataPolicyRegistry;
 import com.cyys.common.mybatis.DataTransactionGuard;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.web.ApiException;
@@ -33,36 +39,36 @@ public class RoleService {
     private final DataAuditService audit;
 
     @Transactional(readOnly = true)
-    public IPage<RoleDTO.View> page(@Valid RoleDTO.Query query) {
+    public IPage<RoleView> page(@Valid RoleQuery query) {
         authorize("role:read", false);
         Page<SysRole> page = new Page<>(query.page(), query.size());
         page.setOptimizeCountSql(false);
-        return mapper.page(page, scope(), query.search()).convert(RoleDTO.View::from);
+        return mapper.page(page, scope(), query.search()).convert(RoleView::from);
     }
 
     @Transactional(readOnly = true)
-    public RoleDTO.Detail detail(String id) {
+    public RoleDetail detail(String id) {
         Set<String> ceiling = authorize("role:read", false);
         SysRole role = requireRole(mapper.detail(id, scope()));
         List<String> menuIds = mapper.menuIds(role.getId());
         boolean editable = withinCeiling(List.of(role.getId()), ceiling);
-        return new RoleDTO.Detail(RoleDTO.View.from(role), menuIds, mapper.orgIds(role.getId(), scope()), editable);
+        return new RoleDetail(RoleView.from(role), menuIds, mapper.orgIds(role.getId(), scope()), editable);
     }
 
     @Transactional(readOnly = true)
-    public RoleDTO.Options optionsForCreate() {
+    public RoleOptions optionsForCreate() {
         Set<String> ceiling = authorize("role:create", true);
         return options(ceiling);
     }
 
     @Transactional(readOnly = true)
-    public RoleDTO.Options optionsForUpdate() {
+    public RoleOptions optionsForUpdate() {
         Set<String> ceiling = authorize("role:update", true);
         return options(ceiling);
     }
 
     @Transactional
-    public RoleDTO.View create(@Valid RoleDTO.Create command) {
+    public RoleView create(@Valid CreateRoleCommand command) {
         Set<String> ceiling = authorize("role:create", true);
         validateSelections(command.dataRange(), command.menuIds(), command.orgIds(), ceiling);
         var role = new SysRole();
@@ -77,11 +83,11 @@ public class RoleService {
             throw new ApiException(409, "角色编码或关联关系冲突");
         }
         audit.success("role", role.getId(), "CREATE");
-        return RoleDTO.View.from(role);
+        return RoleView.from(role);
     }
 
     @Transactional
-    public RoleDTO.View edit(@Valid RoleDTO.Edit command) {
+    public RoleView edit(@Valid UpdateRoleCommand command) {
         Set<String> ceiling = authorize("role:update", true);
         SysRole role = requireRole(mapper.lock(command.id(), scope()));
         if (!Objects.equals(role.getVersion(), command.version())) throw new ApiException(409, "角色版本已变更");
@@ -96,7 +102,7 @@ public class RoleService {
         }
         role.setVersion(role.getVersion() + 1);
         audit.success("role", role.getId(), "UPDATE");
-        return RoleDTO.View.from(role);
+        return RoleView.from(role);
     }
 
     @Transactional
@@ -112,18 +118,18 @@ public class RoleService {
         audit.success("role", role.getId(), "DELETE");
     }
 
-    private RoleDTO.Options options(Set<String> ceiling) {
-        List<RoleDTO.MenuOption> menus = mapper.menus().stream()
+    private RoleOptions options(Set<String> ceiling) {
+        List<RoleMenuOption> menus = mapper.menus().stream()
                 .filter(menu -> menu.type() != 3 || ceiling.contains(menu.code()))
                 .toList();
-        return new RoleDTO.Options(menus, mapper.departments(scope()));
+        return new RoleOptions(menus, mapper.departments(scope()));
     }
 
     private void validateSelections(int dataRange, List<String> menuIds, List<String> orgIds, Set<String> ceiling) {
         requireDistinct(menuIds, "菜单权限不能重复");
         requireDistinct(orgIds, "数据范围部门不能重复");
         if (!menuIds.isEmpty()) {
-            List<RoleDTO.MenuOption> selected = mapper.lockMenus(menuIds);
+            List<RoleMenuOption> selected = mapper.lockMenus(menuIds);
             if (selected.size() != menuIds.size()
                     || selected.stream().anyMatch(menu -> menu.type() == 3 && !ceiling.contains(menu.code()))) {
                 throw new ApiException(403, "菜单权限超出当前操作者的授予上限");
@@ -149,7 +155,7 @@ public class RoleService {
     private Set<String> authorize(String permission, boolean grantOperation) {
         var identity = ScopeContext.get();
         String scope = identity.requireScopeId();
-        DataTransactionGuard.bind(identity, DataAccess.View.CURRENT_SCOPE);
+        DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);
         if (!authorization.hasPermission(identity.loginId(), scope, permission)) {
             throw new ApiException(403, "没有当前单位的角色管理权限");
         }

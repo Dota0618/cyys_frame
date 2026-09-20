@@ -1,10 +1,13 @@
 package com.cyys.admin.user.mapper;
 
+import com.cyys.common.mybatis.ManualDataScope;
+
 import com.cyys.admin.user.dto.UserLabel;
 import org.apache.ibatis.annotations.*;
 import java.util.List;
 
 @Mapper
+@ManualDataScope
 public interface UserDisplayMapper {
     @Select("<script>select us.user_id from sys_user_scope us "
             + "join sys_user u on u.id=us.user_id and u.status=1 and u.deleted=0 "

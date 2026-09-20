@@ -12,10 +12,9 @@ import {
 } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
-import { Alert, App, Button, Popconfirm, Tag, Tree } from 'antd';
-import type { TreeDataNode } from 'antd';
+import { Alert, App, Button, Popconfirm, Tag } from 'antd';
 import { useMemo, useRef, useState } from 'react';
-import type { Key } from 'react';
+import CheckedTree from '@/components/CheckedTree';
 import ScopeSwitch from '@/components/ScopeSwitch';
 import {
   createRole,
@@ -46,33 +45,6 @@ const dataRanges = [
   { value: 5, label: '本人' },
 ];
 const dataRangeNames = new Map(dataRanges.map((item) => [item.value, item.label]));
-const checkedIds = (keys: Key[] | { checked: Key[] }) =>
-  (Array.isArray(keys) ? keys : keys.checked).map(String);
-
-function CheckedTree({
-  value = [],
-  onChange,
-  treeData,
-  label,
-}: {
-  value?: string[];
-  onChange?: (ids: string[]) => void;
-  treeData: TreeDataNode[];
-  label: string;
-}) {
-  return (
-    <Tree
-      checkable
-      selectable={false}
-      defaultExpandAll
-      checkedKeys={value}
-      onCheck={(keys) => onChange?.(checkedIds(keys))}
-      treeData={treeData}
-      aria-label={label}
-    />
-  );
-}
-
 function RoleFields({ options, editing }: { options: RoleOptions; editing?: boolean }) {
   const menuTree = useMemo(
     () =>

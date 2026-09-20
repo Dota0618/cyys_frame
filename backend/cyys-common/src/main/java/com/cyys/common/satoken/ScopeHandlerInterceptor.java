@@ -1,6 +1,9 @@
 package com.cyys.common.satoken;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.stp.StpUtil;
+import com.cyys.common.mybatis.DataPermissionContext;
+import com.cyys.common.mybatis.DataPolicyRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -23,10 +26,19 @@ public class ScopeHandlerInterceptor implements HandlerInterceptor {
         boolean globalRead = handler instanceof org.springframework.web.method.HandlerMethod method
                 && method.hasMethodAnnotation(com.cyys.common.web.AuthorizedScopesRead.class)
                 && "GET".equals(request.getMethod());
-        if (!"/api/auth/me".equals(request.getServletPath()) && !globalRead) {
+        boolean platformControl = handler instanceof org.springframework.web.method.HandlerMethod method
+                && method.getBeanType().isAnnotationPresent(com.cyys.common.web.PlatformControl.class);
+        if (!"/api/auth/me".equals(request.getServletPath()) && !globalRead && !platformControl) {
             identity.requireScopeId();
         }
         ScopeContext.set(identity);
+        if (handler instanceof org.springframework.web.method.HandlerMethod method) {
+            SaCheckPermission required = method.getMethodAnnotation(SaCheckPermission.class);
+            if (required != null && required.value().length == 1) {
+                DataPermissionContext.set(required.value()[0], globalRead
+                        ? DataPolicyRegistry.View.AUTHORIZED_SCOPES : DataPolicyRegistry.View.CURRENT_SCOPE);
+            }
+        }
         return true;
     }
 }

@@ -1,5 +1,7 @@
 package com.cyys.admin.user.mapper;
 
+import com.cyys.common.mybatis.ManualDataScope;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.cyys.admin.user.model.SysUser;
 import org.apache.ibatis.annotations.Mapper;
@@ -9,7 +11,11 @@ import org.apache.ibatis.annotations.Update;
 import java.time.LocalDateTime;
 
 @Mapper
+@ManualDataScope
 public interface SysUserMapper extends BaseMapper<SysUser> {
+    @Select("select * from sys_user where id=#{id} and deleted=0")
+    SysUser selectAccountById(@Param("id") String id);
+
     /** 锁定账号行，使同一账号的并发密码尝试按事务串行计数。 */
     @Select("""
             select * from sys_user

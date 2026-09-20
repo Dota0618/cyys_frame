@@ -4,20 +4,36 @@ export class StaleRequest extends Error {}
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
-interface Options { method?: string; body?: unknown; quiet?: boolean; anonymous?: boolean }
+export interface Options { method?: string; body?: unknown; quiet?: boolean; anonymous?: boolean; signal?: AbortSignal; revision?: number }
 
 /** 唯一请求入口：R 在此解包，调用者只取得 data。上下文变化后不交付旧响应。 */
 export async function api<T>(path: string, options: Options = {}): Promise<T> {
+  return request<T>(path, options, false);
+}
+
+export async function apiBlob(path: string, options: Options = {}): Promise<Blob> {
+  return request<Blob>(path, options, true);
+}
+
+async function request<T>(path: string, options: Options, binary: boolean): Promise<T> {
   const captured = session();
+  if (options.revision !== undefined && options.revision !== captured.revision) throw new StaleRequest();
+  const multipart = options.body instanceof FormData;
   const headers: Record<string, string> = {};
   if (!options.anonymous && captured.token) headers.Authorization = `Bearer ${captured.token}`;
   if (!options.anonymous && captured.scopeId && !captured.allUnits) headers['X-Cyys-Scope-Id'] = captured.scopeId;
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  if (options.body !== undefined && !multipart) headers['Content-Type'] = 'application/json';
   try {
     const response = await fetch(path, {
       method: options.method || 'GET', headers, credentials: 'omit', cache: 'no-store',
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: options.signal,
+      body: multipart ? options.body as FormData : options.body === undefined ? undefined : JSON.stringify(options.body),
     });
+    if (binary && response.ok) {
+      const blob = await response.blob();
+      if (captured.revision !== session().revision) throw new StaleRequest();
+      return blob as T;
+    }
     const envelope = await response.json();
     if (captured.revision !== session().revision) throw new StaleRequest();
     if (!response.ok || envelope.code !== 200) {
@@ -29,6 +45,7 @@ export async function api<T>(path: string, options: Options = {}): Promise<T> {
   } catch (error) {
     if (error instanceof StaleRequest) throw error;
     if (!(error instanceof ApiError) && captured.revision !== session().revision) throw new StaleRequest();
+    if (options.signal?.aborted) throw error;
     if (!options.quiet) window.dispatchEvent(new CustomEvent('cyys:error', {
       detail: error instanceof ApiError ? error.message : '暂时无法连接服务，请稍后重试',
     }));

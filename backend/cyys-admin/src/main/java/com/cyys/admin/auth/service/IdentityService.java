@@ -35,7 +35,7 @@ public class IdentityService implements IdentityResolver {
 
     @Override
     public RequestIdentity resolve(String loginId, String requestedScopeId, String stamp) {
-        SysUser user = userMapper.selectById(loginId);
+        SysUser user = userMapper.selectAccountById(loginId);
         if (user == null || !Integer.valueOf(1).equals(user.getStatus())
                 || stamp == null || !MessageDigest.isEqual(
                         credentialStamp(user).getBytes(StandardCharsets.US_ASCII),
@@ -50,7 +50,7 @@ public class IdentityService implements IdentityResolver {
     }
 
     public LoginVO.UserInfo currentUser(String loginId, String scopeId) {
-        SysUser user = userMapper.selectById(loginId);
+        SysUser user = userMapper.selectAccountById(loginId);
         if (user == null || !Integer.valueOf(1).equals(user.getStatus())) {
             throw new ApiException(401, "账号已失效");
         }

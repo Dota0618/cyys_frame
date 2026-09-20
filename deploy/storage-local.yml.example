@@ -1,0 +1,22 @@
+# 作为外部 Spring 配置导入；先创建并限制 CYYS_FILE_ROOT 的访问权限。
+# 不要放到 frontend/dist 或 Nginx 公开静态目录。
+cyys:
+  storage:
+    active: ${CYYS_STORAGE_ACTIVE:local-main}
+    max-bytes: 20971520
+    max-resumable-bytes: 1073741824
+    part-bytes: 5242880
+    profiles:
+      local-main:
+        driver: local
+        root: ${CYYS_FILE_ROOT}
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB
+
+# 新写入可切换 active；有历史文件的 profile 必须保留原位置。
+# s3 / oss 目前明确返回未接入，配置契约见 docs/development/backend/storage.md。
+# 当前文件下载由后端授权并传输；未启用 Nginx 内部跳转。

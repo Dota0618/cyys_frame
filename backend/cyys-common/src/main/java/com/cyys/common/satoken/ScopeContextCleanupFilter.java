@@ -1,5 +1,6 @@
 package com.cyys.common.satoken;
 
+import com.cyys.common.mybatis.DataPermissionContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,9 +19,11 @@ public class ScopeContextCleanupFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
         ScopeContext.clear();
+        DataPermissionContext.clear();
         try {
             chain.doFilter(request, response);
         } finally {
+            DataPermissionContext.clear();
             ScopeContext.clear();
         }
     }

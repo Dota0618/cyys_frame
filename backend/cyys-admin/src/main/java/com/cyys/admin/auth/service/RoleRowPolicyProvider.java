@@ -1,7 +1,6 @@
 package com.cyys.admin.auth.service;
 
 import com.cyys.admin.auth.mapper.DataAuthorizationMapper;
-import com.cyys.common.mybatis.DataAccess;
 import com.cyys.common.mybatis.DataPolicyRegistry;
 import com.cyys.common.mybatis.RowPolicyProvider;
 import com.cyys.common.satoken.DataIsolationProperties;
@@ -24,7 +23,7 @@ public class RoleRowPolicyProvider implements RowPolicyProvider {
     public void authorize(DataPolicyRegistry.Policy policy, RequestIdentity identity) {
         var lookup = lookups.getObject();
         String actor = identity.loginId();
-        boolean all = policy.view() == DataAccess.View.AUTHORIZED_SCOPES;
+        boolean all = policy.view() == DataPolicyRegistry.View.AUTHORIZED_SCOPES;
         if (all) {
             if (!lookup.hasPermission(actor, "GLOBAL", "platform:data:read-all")
                     || !lookup.hasPermission(actor, "GLOBAL", policy.permission())) throw denied("没有此资源的跨单位读取权限");
@@ -37,7 +36,7 @@ public class RoleRowPolicyProvider implements RowPolicyProvider {
             boolean platformGrant = lookup.hasPermission(actor, "GLOBAL", policy.permission())
                     && lookup.hasPermission(actor, "GLOBAL", "platform:scope:access")
                     && (lookup.hasPermission(actor, "GLOBAL", "platform:data:operate")
-                        || (policy.operation() == DataAccess.Operation.READ
+                        || (policy.access() == DataPolicyRegistry.Access.READ
                             && lookup.hasPermission(actor, "GLOBAL", "platform:data:read-all")));
             if (!unitGrant && !platformGrant) throw denied("没有当前单位和操作的有效授权");
         }
@@ -52,7 +51,7 @@ public class RoleRowPolicyProvider implements RowPolicyProvider {
         String activeScope = "exists(select 1 from sys_scope pol_scope where pol_scope.id=" + owner
                 + " and pol_scope.status=1 and pol_scope.deleted=0)";
         String platformResource = globalPermission(actor, permission);
-        if (policy.view() == DataAccess.View.AUTHORIZED_SCOPES) {
+        if (policy.view() == DataPolicyRegistry.View.AUTHORIZED_SCOPES) {
             String ceiling = isolation.mode() == DataIsolationProperties.Mode.SINGLE
                     ? owner + "=" + literal(isolation.singleScopeId()) + " and " : "";
             return "(" + ceiling + activeScope + " and " + platformResource + " and "
@@ -83,7 +82,7 @@ public class RoleRowPolicyProvider implements RowPolicyProvider {
                 + "or (pol_r.data_range=3 and pol_us.org_id=" + department + ") "
                 + "or (pol_r.data_range=4 and " + descendants + ") or (pol_r.data_range=5 and " + creator + "=" + actor + ")))";
         String platformAction = globalPermission(actor, literal("platform:data:operate"));
-        if (policy.operation() == DataAccess.Operation.READ) {
+        if (policy.access() == DataPolicyRegistry.Access.READ) {
             platformAction = "(" + platformAction + " or " + globalPermission(actor, literal("platform:data:read-all")) + ")";
         }
         return "(" + owner + "=" + scope + " and " + activeScope + " and (" + unit + " or ("

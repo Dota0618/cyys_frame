@@ -7,7 +7,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 public final class DataTransactionGuard {
     private DataTransactionGuard() {}
 
-    public static void bind(RequestIdentity identity, DataAccess.View view) {
+    public static void bind(RequestIdentity identity, DataPolicyRegistry.View view) {
         if (!TransactionSynchronizationManager.isActualTransactionActive()) return;
         var current = new TransactionIdentity(identity.loginId(), identity.scopeId(), view);
         Object existing = TransactionSynchronizationManager.getResource(DataTransactionGuard.class);
@@ -24,5 +24,5 @@ public final class DataTransactionGuard {
         }
     }
 
-    private record TransactionIdentity(String actor, String scope, DataAccess.View view) {}
+    private record TransactionIdentity(String actor, String scope, DataPolicyRegistry.View view) {}
 }

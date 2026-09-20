@@ -50,9 +50,9 @@ public final class GuardedDataPermissionInterceptor extends DataPermissionInterc
 
     private void rewrite(MappedStatement mapped, BoundSql bound) {
         if (InterceptorIgnoreHelper.willIgnoreDataPermission(mapped.getId())) throw denied("禁止忽略数据隔离策略");
-        if (registry.controlledStatement(mapped)) return;
         if (mapped.getStatementType() != org.apache.ibatis.mapping.StatementType.PREPARED) throw denied("业务不支持原生或存储过程语句");
         var policy = registry.policy(mapped);
+        if (policy == null) return;
         var identity = ScopeContext.get();
         DataTransactionGuard.bind(identity, policy.view());
         provider.authorize(policy, identity);
@@ -99,8 +99,8 @@ public final class GuardedDataPermissionInterceptor extends DataPermissionInterc
             }
             PluginUtils.mpBoundSql(bound).sql(rewritten);
         } catch (ApiException exception) {
-            LOG.warn("Data access rejected: actor={}, scope={}, resource={}, view={}, operation={}, statement={}",
-                    identity.loginId(), identity.scopeId(), policy.resource().name(), policy.view(), policy.operation(), mapped.getId());
+            LOG.warn("Data access rejected: actor={}, scope={}, resource={}, view={}, access={}, statement={}",
+                    identity.loginId(), identity.scopeId(), policy.resource().name(), policy.view(), policy.access(), mapped.getId());
             throw exception;
         } catch (Exception exception) {
             throw denied("受保护 SQL 无法安全解析");

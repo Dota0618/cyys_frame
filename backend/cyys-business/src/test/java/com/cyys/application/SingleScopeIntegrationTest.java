@@ -31,7 +31,8 @@ class SingleScopeIntegrationTest extends HttpTestSupport {
                 .filter(type -> type != PermissionProbe.class && type != IsolationProbe.class)
                 .map(Class::getSimpleName).distinct().toList())
                 .containsExactlyInAnyOrder("AuthController", "HealthController", "MemberController",
-                        "DepartmentController", "RoleController");
+                        "DepartmentController", "RoleController", "MenuController", "PlatformRoleController",
+                        "ConfigurationController", "DictionaryController", "AuditController", "LoginAuditController", "CacheController", "FileController", "FileDirectoryController");
     }
 
     @Test

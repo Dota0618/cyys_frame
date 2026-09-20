@@ -24,6 +24,7 @@ public class AuthService {
     private final SysUserMapper userMapper;
     private final IdentityService identityService;
     private final LoginProperties loginProperties;
+    private final LoginAuditService loginAuditService;
     private final TransactionTemplate transactions;
 
     public LoginVO login(LoginCmd command, String clientIp) {
@@ -58,16 +59,20 @@ public class AuthService {
     }
 
     private LoginAttempt authenticate(LoginCmd command, String clientIp) {
-        SysUser user = userMapper.selectForLogin(command.loginName().trim());
+        String loginName = command.loginName().trim();
+        SysUser user = userMapper.selectForLogin(loginName);
         if (user == null) {
+            loginAuditService.record(loginName, null, null, clientIp, "FAILURE", "INVALID_CREDENTIALS");
             return rejected(401, "账号或密码错误");
         }
         if (!Integer.valueOf(1).equals(user.getStatus())) {
+            recordRejected(command, user, clientIp, "DISABLED", "ACCOUNT_DISABLED");
             return rejected(403, "账号已被禁用");
         }
 
         LocalDateTime now = LocalDateTime.now();
         if (user.getPwdLockTime() != null && user.getPwdLockTime().isAfter(now)) {
+            recordRejected(command, user, clientIp, "LOCKED", "PASSWORD_LOCKED");
             return rejected(423, "密码错误次数过多，请在锁定结束后重试");
         }
         boolean passwordMatches;
@@ -76,6 +81,7 @@ public class AuthService {
         } catch (IllegalArgumentException error) {
             // 旧散列不自动降级验证；迁移时先重置为 BCrypt，再允许新系统登录。
             log.warn("账号密码格式不受支持，需要迁移重置，userId={}", user.getId());
+            recordRejected(command, user, clientIp, "FAILURE", "INVALID_CREDENTIALS");
             return rejected(401, "账号或密码错误");
         }
         if (!passwordMatches) {
@@ -83,17 +89,36 @@ public class AuthService {
             boolean locked = nextCount >= loginProperties.getLoginMaxErrorCount();
             LocalDateTime lockedUntil = locked ? now.plusMinutes(loginProperties.getLockMinutes()) : null;
             requireUpdated(userMapper.recordPasswordFailure(user.getId(), nextCount, lockedUntil));
+            recordRejected(command, user, clientIp,
+                    locked ? "LOCKED" : "FAILURE", locked ? "PASSWORD_LOCKED" : "INVALID_CREDENTIALS");
             return rejected(locked ? 423 : 401, locked ? "密码错误次数过多，账号已暂时锁定" : "账号或密码错误");
         }
 
-        IdentityService.Snapshot snapshot = identityService.forLogin(user, command.scopeId());
+        IdentityService.Snapshot snapshot;
+        try {
+            snapshot = identityService.forLogin(user, command.scopeId());
+        } catch (ApiException denied) {
+            loginAuditService.record(loginName, user.getId(), null, clientIp, "FAILURE", "SCOPE_DENIED");
+            return new LoginAttempt(null, denied);
+        }
         requireUpdated(userMapper.recordLoginSuccess(user.getId(), now, clientIp));
+        loginAuditService.record(loginName, user.getId(), snapshot.identity().scopeId(), clientIp, "SUCCESS", null);
         user.setLastLoginTime(now);
         return new LoginAttempt(snapshot, null);
     }
 
     public void logout() {
         StpUtil.logout();
+    }
+
+    private void recordRejected(LoginCmd command, SysUser user, String clientIp, String outcome, String reason) {
+        String verifiedScope = null;
+        try {
+            verifiedScope = identityService.forLogin(user, command.scopeId()).identity().scopeId();
+        } catch (ApiException denied) {
+            // 无法确认归属时保留无单位的安全记录，不信任登录请求中的单位。
+        }
+        loginAuditService.record(user.getLoginName(), user.getId(), verifiedScope, clientIp, outcome, reason);
     }
 
     public LoginVO.UserInfo me() {

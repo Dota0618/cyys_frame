@@ -31,6 +31,8 @@ Spring Boot backend migration workspace under `F:\git\frame\cyys-framework\`.
 
 ## Constraints
 
+- Save development checkpoints with local Git commits; do not create additional source archive snapshots. Review the diff and record completed checks and remaining work before committing. Do not push unless requested. Existing ignored documentation, local configuration, logs and build outputs remain excluded. This workflow was approved by the user on 2026-09-20.
+
 - Use `-s F:\git\frame\cyys-framework\backend\.m2\settings.xml` for Maven commands in this project.
 - Maven `target\` directories are normal build output. Do not reorganize them unless the user asks.
 - Do not create new top-level directories under `cyys-framework\` without user approval.

@@ -50,6 +50,8 @@ abstract class HttpTestSupport {
 
     @AfterEach
     void cleanupFixtures() {
+        jdbc.update("delete from sys_login_audit where user_id in ('u-alice','u-bob','u-platform','1') "
+                + "or login_name in ('unknown','g4-audit-unknown') or login_name like 'g4-%'");
         for (String id : jdbc.queryForList("select id from sys_user where login_name like 'g4-%'",String.class)) {
             StpUtil.logout(id);
             jdbc.update("delete from sys_user_role where user_id=?",id);
