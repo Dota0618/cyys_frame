@@ -98,7 +98,8 @@ public class PasswordService {
 
     private void replace(SysUser target,String password,String actor,String operation) {
         requireOne(users.replacePassword(target.getId(),PasswordPolicy.hash(password),actor));
-        audit.platformSuccess("account",target.getId(),operation);
+        if ("CHANGE_PASSWORD".equals(operation)) audit.ownPasswordChanged();
+        else audit.platformSuccess("account",target.getId(),operation);
         // 每次使用新盐；现有 IdentityService 逐请求比较散列/改密时间指纹，旧会话立即失效。
         // 不在提交后按账号批量登出，以免误踢提交后刚建立的新密码会话。
     }

@@ -1,0 +1,16 @@
+# 示例不默认加载。业务入口必须已登记、校验真实 order:create 权限，
+# 再由 Service 使用固定业务代码 serialNumberService.next("order")。
+# 不向客户端提供任意选单位/业务代码/周期/模板的取号接口。
+cyys:
+  serial-numbers:
+    definitions:
+      order:
+        permission: order:create
+        prefix: ORD-
+        period: DAY
+        width: 6
+        zone: Asia/Shanghai
+# 示例结果 ORD-20260920-000001。不同单位各自计数。
+# 前缀仅大写字母/数字/下划线，以字母开头并以单个 - 结尾；中间不能含 -。
+# 允许因业务回滚或调用重试出现断号；取号不是业务请求幂等机制。
+# 首次使用后前缀、周期、宽度、时区、操作权限固定；变更用新业务代码和新前缀。

@@ -14,6 +14,13 @@ public class DataAuditService {
     private final DataAuditMapper mapper;
 
     @Transactional(propagation = Propagation.MANDATORY)
+    public void ownPasswordChanged() {
+        if (mapper.insertOwnPasswordChange(IdWorker.getIdStr(), ScopeContext.get().loginId()) != 1) {
+            throw new IllegalStateException("个人改密审计写入失败");
+        }
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
     public void success(String resource, String record, String operation) {
         var identity = ScopeContext.get();
         if (mapper.insertSuccess(IdWorker.getIdStr(), identity.loginId(), identity.requireScopeId(), resource, record, operation) != 1) {

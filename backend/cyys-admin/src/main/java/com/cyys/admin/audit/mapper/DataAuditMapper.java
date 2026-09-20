@@ -13,6 +13,10 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 @ManualDataScope
 public interface DataAuditMapper {
+    @Insert("insert into sys_data_audit(id,actor_id,scope_id,resource,record_id,operation,authorized_view,outcome) "
+            + "values(#{id},#{actor},'GLOBAL','account',#{actor},'CHANGE_PASSWORD','ACCOUNT_SELF','SUCCESS')")
+    int insertOwnPasswordChange(@Param("id") String id, @Param("actor") String actor);
+
     @Select("<script>select id,actor_id as actorId,scope_id as scopeId,resource,record_id as recordId,"
             + "operation,authorized_view as authorizedView,outcome,occurred_at as occurredAt "
             + "from sys_data_audit where scope_id=#{scope} "

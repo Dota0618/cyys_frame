@@ -27,19 +27,23 @@ public class RoleRowPolicyProvider implements RowPolicyProvider {
         if (all) {
             if (!lookup.hasPermission(actor, "GLOBAL", "platform:data:read-all")
                     || !lookup.hasPermission(actor, "GLOBAL", policy.permission())) throw denied("没有此资源的跨单位读取权限");
-        } else {
-            String scope = identity.requireScopeId();
-            if (isolation.mode() == DataIsolationProperties.Mode.SINGLE && !scope.equals(isolation.singleScopeId())) {
-                throw denied("不能超出单单位部署范围");
-            }
-            boolean unitGrant = lookup.hasPermission(actor, scope, policy.permission());
-            boolean platformGrant = lookup.hasPermission(actor, "GLOBAL", policy.permission())
-                    && lookup.hasPermission(actor, "GLOBAL", "platform:scope:access")
-                    && (lookup.hasPermission(actor, "GLOBAL", "platform:data:operate")
-                        || (policy.access() == DataPolicyRegistry.Access.READ
-                            && lookup.hasPermission(actor, "GLOBAL", "platform:data:read-all")));
-            if (!unitGrant && !platformGrant) throw denied("没有当前单位和操作的有效授权");
+        } else authorizeCurrentScope(policy.permission(), policy.access(), identity);
+    }
+
+    /** 行策略与单位流水号共同使用的实时操作授权；不代替业务记录的行范围过滤。 */
+    public void authorizeCurrentScope(String permission, DataPolicyRegistry.Access access, RequestIdentity identity) {
+        var lookup = lookups.getObject();
+        String actor = identity.loginId();
+        String scope = identity.requireScopeId();
+        if (isolation.mode() == DataIsolationProperties.Mode.SINGLE && !scope.equals(isolation.singleScopeId())) {
+            throw denied("不能超出单单位部署范围");
         }
+        boolean unitGrant = lookup.hasPermission(actor, scope, permission);
+        boolean platformGrant = lookup.hasPermission(actor, "GLOBAL", permission)
+                && lookup.hasPermission(actor, "GLOBAL", "platform:scope:access")
+                && (lookup.hasPermission(actor, "GLOBAL", "platform:data:operate")
+                    || (access == DataPolicyRegistry.Access.READ && lookup.hasPermission(actor, "GLOBAL", "platform:data:read-all")));
+        if (!unitGrant && !platformGrant) throw denied("没有当前单位和操作的有效授权");
     }
 
     @Override
