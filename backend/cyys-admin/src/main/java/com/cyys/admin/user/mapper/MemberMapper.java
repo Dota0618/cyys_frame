@@ -8,6 +8,12 @@ import org.apache.ibatis.annotations.*;
 @Mapper
 @ProtectedMapper(SysUserScope.class)
 public interface MemberMapper extends BaseMapper<SysUserScope> {
+    @Select("<script>select * from sys_user_scope where deleted=0 "
+            + "<if test='name != null'>and display_name like concat('%',#{name},'%')</if> "
+            + "order by created_at desc,id limit #{limit}</script>")
+    @Options(timeout = 15)
+    java.util.List<SysUserScope> export(@Param("name") String name, @Param("limit") int limit);
+
     @Select("select * from sys_user_scope where id=#{id} and deleted=0 for update")
     SysUserScope lockForEdit(String id);
 

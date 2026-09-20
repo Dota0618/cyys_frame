@@ -1,8 +1,9 @@
 import type { CreateMember, DepartmentOption, EditMember, Member, MemberDetail, Option, Page } from '@/types/api';
-import { api } from '@/utils/request';
+import { api, apiBlob } from '@/utils/request';
 import { session } from '@/utils/session';
 
 const root = '/api/admin/users';
+export const exportMembers = (name: string) => apiBlob(`${root}/export`, { method: 'POST', body: { name } });
 export const listMembers = (page: number, size: number, name?: string) => {
   const all = session().allUnits;
   const query = new URLSearchParams({ page: String(page), size: String(size) });

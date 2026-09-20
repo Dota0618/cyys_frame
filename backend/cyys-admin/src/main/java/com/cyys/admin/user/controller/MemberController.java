@@ -2,11 +2,16 @@ package com.cyys.admin.user.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.cyys.admin.user.dto.MemberQuery;
+import com.cyys.admin.user.dto.ExportMembersCommand;
 import com.cyys.admin.user.dto.CreateMemberCommand;
 import com.cyys.admin.user.dto.UpdateMemberCommand;
 import com.cyys.admin.user.service.MemberService;
 import com.cyys.common.web.AuthorizedScopesRead;
 import com.cyys.common.web.R;
+import com.cyys.common.web.DownloadResponse;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +22,13 @@ import java.util.List;
 @RequestMapping("/api/admin/users")
 public class MemberController {
     private final MemberService service;
+    @PostMapping("/export") @SaCheckPermission("user:export")
+    public void export(@Valid @RequestBody ExportMembersCommand command, HttpServletResponse response) throws IOException {
+        byte[] content = service.export(command);
+        try (var input = new ByteArrayInputStream(content)) {
+            DownloadResponse.send(response, "单位成员.xlsx", content.length, input);
+        }
+    }
     @GetMapping @SaCheckPermission("user:read")
     public Object page(@RequestParam(defaultValue="1") long page,@RequestParam(defaultValue="20") long size,@RequestParam(required=false) String name) {
         return R.ok(service.page(new MemberQuery(page,size,name)));

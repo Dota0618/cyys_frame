@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
 import com.cyys.admin.role.service.RoleGrantService;
 import com.cyys.admin.user.dto.MemberQuery;
+import com.cyys.admin.user.dto.ExportMembersCommand;
 import com.cyys.admin.user.dto.CreateMemberCommand;
 import com.cyys.admin.user.dto.UpdateMemberCommand;
 import com.cyys.admin.user.dto.MemberView;
@@ -20,15 +21,21 @@ import com.cyys.admin.user.mapper.MemberDepartmentMapper;
 import com.cyys.admin.user.model.SysUserScope;
 import com.cyys.common.mybatis.*;
 import com.cyys.common.satoken.ScopeContext;
+import com.cyys.common.export.BoundedXlsx;
 import com.cyys.common.web.ApiException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.validation.annotation.Validated;
 import java.util.List;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.Map;
+import java.io.IOException;
+import java.time.format.DateTimeFormatter;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,6 +50,39 @@ public class MemberService {
     private final RoleGrantService grants;
     private final DataAuditService audit;
     private final UserDisplayService cache;
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public byte[] export(@Valid ExportMembersCommand command) {
+        authorize("user:export", DataPolicyRegistry.Access.WRITE);
+        String name = command.name() == null || command.name().isBlank() ? null : command.name();
+        var members = mapper.export(name, BoundedXlsx.MAX_ROWS + 1);
+        if (members.size() > BoundedXlsx.MAX_ROWS) throw new ApiException(422, "最多导出 5000 条，请缩小姓名筛选范围");
+        var logins = names(members);
+        var departmentIds = members.stream().map(SysUserScope::getOrgId).filter(Objects::nonNull).distinct().toList();
+        var visibleDepartments = departmentIds.isEmpty() ? List.<MemberDepartmentOption>of() : departments.exportOptions(departmentIds);
+        var departmentNames = visibleDepartments.stream().collect(Collectors.toMap(MemberDepartmentOption::value, MemberDepartmentOption::label));
+        byte[] result;
+        try {
+            result = BoundedXlsx.write("单位成员", List.of("成员姓名", "登录账号", "部门", "成员状态", "创建时间"),
+                    members.stream().map(member -> {
+                        String login = logins.get(member.getUserId());
+                        return Arrays.asList(member.getDisplayName() == null ? login : member.getDisplayName(), login,
+                                member.getOrgId() == null ? "未设置" : departmentNames.getOrDefault(member.getOrgId(), "不可见或已失效"),
+                                member.getStatus() == 1 ? "启用" : "停用",
+                                member.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    }).toList());
+        } catch (IOException failure) { throw new ApiException(503, "导出文件生成失败，请稍后重试"); }
+        // 权限仍存在不代表范围仍相同；重新通过受保护查询检查每个实际导出的成员和部门。
+        authorize("user:export", DataPolicyRegistry.Access.WRITE);
+        if (!members.isEmpty() && mapper.selectCount(new QueryWrapper<SysUserScope>().in("id", members.stream().map(SysUserScope::getId).toList())) != members.size()) {
+            throw new ApiException(409, "成员或导出范围已变化，请重新导出");
+        }
+        if (!visibleDepartments.isEmpty() && departments.exportOptions(visibleDepartments.stream().map(MemberDepartmentOption::value).toList()).size() != visibleDepartments.size()) {
+            throw new ApiException(409, "部门可见范围已变化，请重新导出");
+        }
+        audit.success("user", IdWorker.getIdStr(), "EXPORT_GENERATED");
+        return result;
+    }
 
     @Transactional(readOnly=true)
     public IPage<MemberView> page(@Valid MemberQuery query) {

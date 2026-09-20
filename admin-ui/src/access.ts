@@ -33,6 +33,7 @@ export default (initialState?: { user?: UserInfo }) => {
           (platformHas('user:read') &&
             platform.includes('platform:data:operate'))),
     canCreateUsers: canWrite('user:create'),
+    canExportUsers: canWrite('user:export'),
     canEditUsers: canWrite('user:update'),
     canResetAccountPasswords: platformHas('platform:account:reset-password'),
     canGrantRoles: !all && selected && unitHas('role:grant'),

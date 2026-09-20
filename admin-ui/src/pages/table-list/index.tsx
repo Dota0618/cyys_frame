@@ -7,11 +7,12 @@ import {
   ProFormSelect,
 } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
-import { Alert, App, Drawer, Tag } from 'antd';
+import { Alert, App, Button, Drawer, Tag } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import type { DepartmentOption, Member, MemberDetail, Option } from '@/types/api';
 import {
   departmentOptions,
+  exportMembers,
   grantRoles,
   listMembers,
   memberDetail,
@@ -19,6 +20,7 @@ import {
 } from '@/services/system/users';
 import { ApiError, StaleRequest } from '@/utils/request';
 import { session, setDirty, updateSession } from '@/utils/session';
+import { saveDownload } from '@/utils/download';
 import ScopeSwitch from '@/components/ScopeSwitch';
 import CreateForm from './components/CreateForm';
 import UpdateForm from './components/UpdateForm';
@@ -29,6 +31,7 @@ export default function TableList() {
   const { initialState } = useModel('@@initialState');
   const { message } = App.useApp();
   const action = useRef<ActionType | null>(null);
+  const querySequence = useRef(0);
   const all = !!session().allUnits;
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [roles, setRoles] = useState<Option[]>([]);
@@ -37,6 +40,8 @@ export default function TableList() {
   const [detail, setDetail] = useState<MemberDetail>();
   const [granting, setGranting] = useState<MemberDetail>();
   const [loadError, setLoadError] = useState('');
+  const [exportName, setExportName] = useState<string>();
+  const [exporting, setExporting] = useState(false);
   const scopes = initialState?.user?.scopes || [];
   const departmentName = (id?: string) =>
     departments.find((item) => item.value === id)?.label || '未设置';
@@ -155,7 +160,7 @@ export default function TableList() {
       subTitle={
         all
           ? '跨单位查看成员；进入具体单位后进行管理。'
-          : '管理当前单位成员，账号资料由独立入口维护。'
+          : '管理当前单位成员；导出按独立授权范围和已查询姓名筛选，最多 5000 条。'
       }
     >
       {all && (
@@ -193,6 +198,8 @@ export default function TableList() {
           pageSizeOptions: [10, 20, 50, 100, 200],
         }}
         request={async (params) => {
+          const query = ++querySequence.current;
+          setExportName(undefined);
           setLoadError('');
           try {
             const result = await listMembers(
@@ -200,9 +207,11 @@ export default function TableList() {
               params.pageSize || 20,
               params.displayName,
             );
+            if (query !== querySequence.current) throw new StaleRequest();
+            setExportName(params.displayName || '');
             return { data: result.records, total: result.total, success: true };
           } catch (error) {
-            if (!(error instanceof StaleRequest))
+            if (query === querySequence.current && !(error instanceof StaleRequest))
               setLoadError(
                 error instanceof ApiError
                   ? error.message
@@ -211,19 +220,24 @@ export default function TableList() {
             return { data: [], total: 0, success: false };
           }
         }}
-        toolBarRender={() =>
-          access.canCreateUsers
-            ? [
-                <CreateForm
+        toolBarRender={() => [
+          access.canExportUsers && <Button key="export" loading={exporting} disabled={exportName === undefined}
+            onClick={async () => {
+              if (exportName === undefined) return;
+              setExporting(true); setLoadError('');
+              try { await saveDownload(() => exportMembers(exportName), '单位成员.xlsx'); }
+              catch (error) {
+                if (!(error instanceof StaleRequest)) setLoadError(error instanceof ApiError ? error.message : '导出失败，请重试');
+              } finally { setExporting(false); }
+            }}>导出当前筛选</Button>,
+          access.canCreateUsers && <CreateForm
                   key="create"
                   departments={departments}
                   reload={async () => {
                     await action.current?.reload();
                   }}
                 />,
-              ]
-            : []
-        }
+        ].filter(Boolean)}
       />
 
       <UpdateForm

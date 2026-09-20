@@ -20,6 +20,7 @@ public interface RegionMapper {
     IPage<Region> page(Page<Region> page,@Param("parent") String parent,@Param("name") String name);
 
     @Select("<script>select " + COLUMNS + " " + FILTER + "order by r.sort,r.id limit #{limit}</script>")
+    @Options(timeout = 15)
     java.util.List<Region> export(@Param("parent") String parent, @Param("name") String name, @Param("limit") int limit);
 
     @Select("select " + COLUMNS + ",exists(select 1 from param_region c where c.parent_id=r.id and c.deleted=0) as has_children "
