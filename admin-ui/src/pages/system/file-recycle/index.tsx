@@ -3,16 +3,12 @@ import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Popconfirm } from 'antd';
 import { useRef, useState } from 'react';
-import ScopeSwitch from '@/components/ScopeSwitch';
 import { listRecycledFiles, purgeFile, restoreFiles, type ManagedFile } from '@/services/system/files';
 import { ApiError, StaleRequest } from '@/utils/request';
 
 export default function FileRecyclePage() {
   const access = useAccess();
-  if (!access.canReadFileRecycle) return <PageContainer title="文件回收站">
-    <ScopeSwitch />
-    <Alert type="info" showIcon title="请选择一个具体工作单位后查看文件回收站。" style={{ marginTop: 16 }} />
-  </PageContainer>;
+  if (!access.canReadFileRecycle) return <PageContainer title="文件回收站" />;
   return <FileRecycleContent />;
 }
 
@@ -42,7 +38,6 @@ function FileRecycleContent() {
     ].filter(Boolean) },
   ];
   return <PageContainer title="文件回收站" subTitle="恢复到默认目录；永久删除后无法找回文件。">
-    <ScopeSwitch />
     {error && <Alert type="error" title={error} showIcon />}
     <ProTable<ManagedFile> actionRef={action} rowKey="id" columns={columns} form={{ name: 'file-recycle-search' }}
       rowSelection={access.canRestoreFiles ? { selectedRowKeys: selected.map((file) => file.id), onChange: (_, rows) => setSelected(rows), getCheckboxProps: (row) => ({ disabled: row.state !== 'READY' }) } : false}

@@ -1,12 +1,12 @@
 import { ModalForm, PageContainer, ProFormDigit, ProFormSwitch, ProFormText, ProFormTextArea, ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
-import { history, useAccess } from '@umijs/max';
+import { useAccess } from '@umijs/max';
 import { Alert, App, Button, Tag } from 'antd';
 import { useEffect, useState } from 'react';
 import { createScope, listScopes, updateScope } from '@/services/system/scopes';
 import type { CreateScope, ScopeRow, UpdateScope } from '@/services/system/scopes';
 import { ApiError, StaleRequest } from '@/utils/request';
-import { refreshIdentity, session, setDirty, updateSession } from '@/utils/session';
+import { refreshIdentity, setDirty } from '@/utils/session';
 
 export default function ScopesPage() {
   const access = useAccess();
@@ -22,11 +22,10 @@ export default function ScopesPage() {
     { title: '联系电话', dataIndex: 'contactPhone', search: false },
     { title: '状态', dataIndex: 'enabled', search: false, render: (_, row) => <Tag color={row.enabled ? 'success' : 'default'}>{row.enabled ? '启用' : '停用'}</Tag> },
     { title: '操作', valueType: 'option', render: (_, row) => [
-      row.enabled && <Button key="enter" type="link" onClick={() => { updateSession({ token: session().token, scopeId: row.id }); history.push('/system/users'); }}>进入单位</Button>,
       access.canEditScopes && <Button key="edit" type="link" onClick={() => setEditor({ row })}>修改</Button>,
     ].filter(Boolean) },
   ];
-  return <PageContainer title="单位管理" subTitle="维护业务单位；进入单位后管理该单位的用户、部门和业务数据。">
+  return <PageContainer title="单位管理" subTitle="维护业务单位的基本信息及启用状态。">
     {error && <Alert type="error" title={error} showIcon />}
     <ProTable<ScopeRow> rowKey="id" headerTitle="单位列表" columns={columns} form={{ name: 'scope-search' }}
       pagination={{ defaultPageSize: 20, showSizeChanger: true }}
@@ -43,7 +42,7 @@ export default function ScopesPage() {
         try {
           if (editor.row) await updateScope(editor.row.id, { ...fields, version: editor.row.version, enabled: values.enabled, sort: values.sort });
           else await createScope({ ...fields, code: values.code });
-          void message.success(editor.row ? '单位已更新' : '单位已新增，可从列表进入');
+          void message.success(editor.row ? '单位已更新' : '单位已新增');
           setEditor(undefined); setDirty(false); refreshIdentity(); return true;
         } catch { return false; }
       }}>

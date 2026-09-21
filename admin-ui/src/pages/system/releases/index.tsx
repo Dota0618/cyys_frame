@@ -7,7 +7,6 @@ import AttachmentField from '@/components/AttachmentField';
 import DictionarySelect from '@/components/DictionarySelect';
 import type { DictionaryChoice } from '@/components/DictionarySelect';
 import type { FileChoice } from '@/components/FilePicker';
-import ScopeSwitch from '@/components/ScopeSwitch';
 import { createRelease, deleteRelease, listReleases, releaseAttachment, releaseDetail, releaseFiles, releaseOptions, updateRelease } from '@/services/system/releases';
 import type { Release, ReleaseDetail } from '@/services/system/releases';
 import { ApiError, StaleRequest } from '@/utils/request';
@@ -88,8 +87,7 @@ export default function ReleasesPage() {
       </ProForm.Item>
       <ProFormTextArea name="content" label="更新说明" fieldProps={{ maxLength: 1000, showCount: true, rows: 6 }}
         rules={[{ required: true, whitespace: true, max: 1000, message: '请输入 1–1000 个字符的更新说明' }]} />
-      <ScopeSwitch />
-      <p>新增附件前请选择来源单位，并确认附件可随版本共享给各单位。已有附件可以保留或移除。</p>
+      <p>附件来自当前工作单位，发布后随版本共享给各单位。</p>
       <ProForm.Item name="attachments" label="版本附件">
         <AttachmentField canSelect={access.canSelectReleaseFiles} canUpload={access.canSelectReleaseFiles && access.canUploadFiles}
           load={(page, size, search) => releaseFiles(row?.id, page, size, search)} />

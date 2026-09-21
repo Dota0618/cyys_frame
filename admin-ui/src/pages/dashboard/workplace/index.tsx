@@ -36,7 +36,7 @@ export default function Workplace() {
           </div>
           <div className={styles.content}>
             <div className={styles.contentTitle}>你好，{user.displayName}</div>
-            <div>{scope || '请选择工作单位'}</div>
+            <div>{scope || '未选择'}</div>
           </div>
         </div>
       }

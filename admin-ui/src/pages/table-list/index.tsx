@@ -1,4 +1,4 @@
-import { Link, useAccess, useModel } from '@umijs/max';
+import { useAccess, useModel } from '@umijs/max';
 import {
   PageContainer,
   ProTable,
@@ -20,9 +20,8 @@ import {
   roleOptions,
 } from '@/services/system/users';
 import { ApiError, StaleRequest } from '@/utils/request';
-import { session, setDirty, updateSession } from '@/utils/session';
+import { session, setDirty } from '@/utils/session';
 import { saveDownload } from '@/utils/download';
-import ScopeSwitch from '@/components/ScopeSwitch';
 import CreateForm from './components/CreateForm';
 import UpdateForm from './components/UpdateForm';
 import ResetPasswordForm from './components/ResetPasswordForm';
@@ -30,19 +29,10 @@ import DataPermissionForm from './components/DataPermissionForm';
 import { dataRanges } from './components/DataPermissionFields';
 
 export default function TableList() {
-  const access = useAccess();
   const { initialState } = useModel('@@initialState');
   const state = session();
   if (initialState?.user?.mode !== 'single' && !state.scopeId && !state.allUnits) {
-    const canReadAll = initialState?.user?.platformPermissions.includes('platform:data:read-all');
-    return <PageContainer title="用户管理">
-      <Alert type="info" showIcon title="选择工作单位后管理用户" description={initialState?.user?.scopes.length ? '请在下方选择需要管理的单位。' : '还没有单位，请先在单位管理中新增单位。'} />
-      <div style={{ marginTop: 20 }}><ScopeSwitch /></div>
-      <div style={{ marginTop: 20 }}>
-        {access.canReadScopes && <Link to="/system/scopes"><Button type="primary">前往单位管理</Button></Link>}
-        {canReadAll && <Button onClick={() => updateSession({ token: state.token, allUnits: true })}>查看全部单位用户</Button>}
-      </div>
-    </PageContainer>;
+    return <PageContainer title="用户管理" />;
   }
   return <MemberTable />;
 }
@@ -155,22 +145,11 @@ function MemberTable() {
     {
       title: '操作',
       valueType: 'option',
-      width: all ? 130 : 330,
+      hideInTable: all,
+      width: 330,
       render: (_, row) =>
         all
-          ? [
-              <a
-                key="scope"
-                onClick={() =>
-                  updateSession({
-                    token: session().token,
-                    scopeId: row.scopeId,
-                  })
-                }
-              >
-                进入该单位
-              </a>,
-            ]
+          ? []
           : [
               <a key="detail" onClick={() => open(row, 'detail')}>
                 详情
@@ -197,7 +176,7 @@ function MemberTable() {
       title="用户管理"
       subTitle={
         all
-          ? '跨单位查看成员；进入具体单位后进行管理。'
+          ? '跨单位只读查看成员。'
           : '管理当前单位成员；导出按独立授权范围和已查询姓名筛选，最多 5000 条。'
       }
     >
@@ -316,9 +295,6 @@ function MemberTable() {
           }
         }}
       >
-        <div style={{ marginBottom: 24 }}>
-          <ScopeSwitch />
-        </div>
         <p>
           {granting?.member.displayName} · {granting?.member.loginName}
         </p>

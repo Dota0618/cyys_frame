@@ -2,7 +2,6 @@ import { PageContainer, ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { Alert } from 'antd';
 import { useState } from 'react';
-import ScopeSwitch from '@/components/ScopeSwitch';
 import { listAudits } from '@/services/system/audits';
 import type { AuditRecord } from '@/types/api';
 import { ApiError, StaleRequest } from '@/utils/request';
@@ -29,7 +28,6 @@ export default function AuditsPage() {
   ];
 
   return <PageContainer title="操作审计" subTitle="当前单位内已成功完成的管理操作。">
-    <div style={{ marginBottom: 24 }}><ScopeSwitch /></div>
     {loadError && <Alert type="error" showIcon title={loadError} />}
     <ProTable<AuditRecord> rowKey="id" columns={columns} options={{ fullScreen: false, setting: false }}
       pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: [20, 50, 100, 200] }}

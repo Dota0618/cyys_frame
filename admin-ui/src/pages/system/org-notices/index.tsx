@@ -5,7 +5,6 @@ import { Alert, Button, Modal, Popconfirm } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import AttachmentField from '@/components/AttachmentField';
 import DictionarySelect from '@/components/DictionarySelect';
-import ScopeSwitch from '@/components/ScopeSwitch';
 import { departmentTreeData } from '@/utils/departments';
 import { ApiError, StaleRequest } from '@/utils/request';
 import { session, setDirty } from '@/utils/session';
@@ -60,7 +59,6 @@ export default function OrgNoticesPage() {
   ];
   const detail = editor?.detail;
   return <PageContainer title="单位通知" subTitle="当前单位内按授权范围查看；保存后即可阅读，记录首次阅读时间。">
-    <ScopeSwitch />
     {error && <Alert type="error" title={error} showIcon />}
     <ProTable<OrgNotice> actionRef={action} rowKey="id" columns={columns} form={{ name: 'org-notice-search' }}
       toolBarRender={() => access.canCreateOrgNotices ? [<Button key="create" type="primary" onClick={() => { void edit(); }}>新增通知</Button>] : []}
@@ -80,7 +78,6 @@ export default function OrgNoticesPage() {
           setEditor(undefined); setDirty(false); void action.current?.reload(); return true;
         } catch { return false; }
       }}>
-      <ScopeSwitch />
       {detail ? <p>所属部门：{detail.notice.departmentName}</p> : <ProFormTreeSelect name="departmentId" label="所属部门"
         rules={[{ required: true, message: '请选择所属部门' }]} fieldProps={{ treeData: departmentTreeData(editor.options.departments), treeDefaultExpandAll: true }} />}
       <ProFormText name="title" label="通知标题" rules={[{ required: true, whitespace: true, message: '请输入通知标题' }, { max: 100 }]} />

@@ -2,7 +2,6 @@ import { PageContainer, ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { Alert } from 'antd';
 import { useState } from 'react';
-import ScopeSwitch from '@/components/ScopeSwitch';
 import { listLoginAudits } from '@/services/system/loginAudits';
 import type { LoginAuditRecord } from '@/types/api';
 import { ApiError, StaleRequest } from '@/utils/request';
@@ -26,7 +25,6 @@ export default function LoginAuditsPage() {
   ];
 
   return <PageContainer title="登录记录" subTitle="当前单位内的登录结果记录。">
-    <div style={{ marginBottom: 24 }}><ScopeSwitch /></div>
     {loadError && <Alert type="error" showIcon title={loadError} />}
     <ProTable<LoginAuditRecord> rowKey="id" columns={columns} options={{ fullScreen: false, setting: false }}
       pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: [20, 50, 100, 200] }}

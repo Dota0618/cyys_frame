@@ -4,7 +4,6 @@ import { useAccess } from '@umijs/max';
 import { Alert, App, Button, Card, Popconfirm, Space, Tree, Typography } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import FileUpload from '@/components/FileUpload';
-import ScopeSwitch from '@/components/ScopeSwitch';
 import { compactModalProps, ManagementSplit } from '@/components/ManagementLayout';
 import { cancelUpload, cleanupUpload, downloadFile, listFiles, renameFile, trashFile, type ManagedFile } from '@/services/system/files';
 import { createDirectory, deleteDirectory, listDirectories, moveDirectoryOptions, moveFiles, renameDirectory, trashFiles, type FileDirectory } from '@/services/system/files';
@@ -14,10 +13,7 @@ import { saveDownload } from '@/utils/download';
 
 export default function FilesPage() {
   const access = useAccess();
-  if (!access.canReadFiles) return <PageContainer title="文件管理">
-    <ScopeSwitch />
-    <Alert type="info" showIcon title="请选择一个具体工作单位后管理文件。" style={{ marginTop: 16 }} />
-  </PageContainer>;
+  if (!access.canReadFiles) return <PageContainer title="文件管理" />;
   return <FilesContent />;
 }
 
@@ -77,7 +73,6 @@ function FilesContent() {
     ].filter(Boolean) },
   ];
   return <PageContainer title="文件管理" subTitle="大文件支持暂停和续传；恢复时请选择同一个原文件。">
-    <div style={{ marginBottom: 16 }}><ScopeSwitch /></div>
     {error && <Alert type="error" title={error} showIcon />}
     <ManagementSplit navigation={<Card title="我的目录" size="small" extra={access.canCreateFileDirectories && <Button size="small" type="link" onClick={() => setDirectoryForm({})}>新增目录</Button>}>
       <div style={{ maxHeight: 'calc(100dvh - 360px)', minHeight: 220, overflow: 'auto' }}>

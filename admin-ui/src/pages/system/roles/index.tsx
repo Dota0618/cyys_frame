@@ -14,7 +14,6 @@ import { useAccess } from '@umijs/max';
 import { Alert, App, Button, Popconfirm, Tag } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import CheckedTree from '@/components/CheckedTree';
-import ScopeSwitch from '@/components/ScopeSwitch';
 import { compactModalProps } from '@/components/ManagementLayout';
 import {
   createRole,
@@ -50,7 +49,6 @@ function RoleFields({ options, editing }: { options: RoleOptions; editing?: bool
   );
   return (
     <>
-      <div style={{ marginBottom: 24 }}><ScopeSwitch /></div>
       {!editing && (
         <ProFormText
           name="code"

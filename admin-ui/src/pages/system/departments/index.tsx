@@ -11,7 +11,6 @@ import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, App, Button, Popconfirm } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import ScopeSwitch from '@/components/ScopeSwitch';
 import {
   createDepartment,
   createDepartmentLeaderOptions,
@@ -194,9 +193,6 @@ export default function DepartmentsPage() {
                     }
                   }}
                 >
-                  <div style={{ marginBottom: 24 }}>
-                    <ScopeSwitch />
-                  </div>
                   <ProFormText
                     name="name"
                     label="部门名称"
@@ -267,9 +263,6 @@ export default function DepartmentsPage() {
           }
         }}
       >
-        <div style={{ marginBottom: 24 }}>
-          <ScopeSwitch />
-        </div>
         <ProFormText
           name="name"
           label="部门名称"

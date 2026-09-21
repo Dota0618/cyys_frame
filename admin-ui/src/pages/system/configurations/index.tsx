@@ -6,7 +6,6 @@ import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Popconfirm } from 'antd';
 import { useEffect, useRef, useState } from 'react';
-import ScopeSwitch from '@/components/ScopeSwitch';
 import {
   configurationDetail, createConfiguration, deleteConfiguration, listConfigurations, updateConfiguration,
 } from '@/services/system/configurations';
@@ -21,7 +20,6 @@ const types = [
 
 function ConfigurationFields() {
   return <>
-    <div style={{ marginBottom: 24 }}><ScopeSwitch /></div>
     <ProFormText name="value" label="配置值" fieldProps={{ maxLength: 100 }}
       rules={[{ max: 100, message: '配置值最多 100 个字符' }]} extra="允许清空；0 和 false 按原值保存。" />
     <ProFormSelect name="type" label="类别" options={types}

@@ -2,7 +2,6 @@ import { PageContainer, ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { Alert, Button } from 'antd';
 import { useState } from 'react';
-import ScopeSwitch from '@/components/ScopeSwitch';
 import { listCacheActions, refreshCache } from '@/services/system/caches';
 import type { CacheAction } from '@/services/system/caches';
 import { ApiError, StaleRequest } from '@/utils/request';
@@ -31,7 +30,6 @@ export default function CachesPage() {
     ] },
   ];
   return <PageContainer title="缓存管理" subTitle="管理当前单位已接入的业务缓存。">
-    <div style={{ marginBottom: 24 }}><ScopeSwitch /></div>
     {feedback && <Alert {...feedback} showIcon />}
     <ProTable<CacheAction> rowKey="id" columns={columns} search={false} pagination={false}
       options={{ fullScreen: false, setting: false, density: false }}

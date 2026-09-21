@@ -10,7 +10,6 @@ import { App, Button } from 'antd';
 import { useAccess } from '@umijs/max';
 import { CompactFields, compactModalProps } from '@/components/ManagementLayout';
 import DataPermissionFields from './DataPermissionFields';
-import ScopeSwitch from '@/components/ScopeSwitch';
 import NewPasswordFields from '@/components/NewPasswordFields';
 import { createMember } from '@/services/system/users';
 import type { CreateMember, DepartmentOption, MemberDataPermissionInput } from '@/types/api';
@@ -64,9 +63,6 @@ export default function CreateForm({
         }
       }}
     >
-      <div style={{ marginBottom: 14 }}>
-        <ScopeSwitch />
-      </div>
       <CompactFields><div>
       <ProFormText
         name="loginName"

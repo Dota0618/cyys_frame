@@ -8,7 +8,6 @@ import {
 import { App, Descriptions } from 'antd';
 import { CompactFields, compactModalProps } from '@/components/ManagementLayout';
 import DataPermissionFields from './DataPermissionFields';
-import ScopeSwitch from '@/components/ScopeSwitch';
 import { editMember } from '@/services/system/users';
 import type { DepartmentOption, EditMember, Member, MemberDataPermission, MemberDataPermissionInput } from '@/types/api';
 import { departmentTreeData } from '@/utils/departments';
@@ -64,9 +63,6 @@ export default function UpdateForm({
         }
       }}
     >
-      <div style={{ marginBottom: 14 }}>
-        <ScopeSwitch />
-      </div>
       <CompactFields><div>
       <Descriptions
         size="small"
