@@ -1,5 +1,6 @@
 import type { MenuDataItem } from '@ant-design/pro-components';
 import type { NavigationMenu, PlatformMenu } from '@/types/api';
+import { menuIcon } from '@/utils/menuIcons';
 
 export type MenuRow = PlatformMenu & { children?: MenuRow[] };
 
@@ -36,9 +37,9 @@ export function navigationTree(nodes: NavigationMenu[], routes: MenuDataItem[], 
   const build = (parent: string, seen: Set<string>): MenuDataItem[] => (byParent.get(parent) || []).flatMap(node => {
     if (seen.has(node.id)) return [];
     const children = build(node.id, new Set([...seen, node.id]));
-    if (node.type === 1) return children.length ? [{ key: node.id, name: node.name, children }] : [];
+    if (node.type === 1) return children.length ? [{ key: node.id, name: node.name, icon: menuIcon(node.icon), children }] : [];
     const route = node.path && known.get(node.path);
-    return route ? [{ ...route, key: node.id, name: node.name, children: children.length ? children : undefined }] : [];
+    return route ? [{ ...route, key: node.id, name: node.name, icon: menuIcon(node.icon) || route.icon, children: children.length ? children : undefined }] : [];
   });
   const workspace = known.get('/workspace');
   return [...(workspace ? [workspace] : []), ...build('0', new Set())];

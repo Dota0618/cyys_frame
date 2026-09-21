@@ -1,5 +1,5 @@
 export interface ScopeInfo { id: string; code: string; name: string; defaultFlag: boolean; memberRole?: string }
-export interface NavigationMenu { id: string; parentId: string; name: string; path?: string; type: number; sort: number }
+export interface NavigationMenu { id: string; parentId: string; name: string; path?: string; type: number; sort: number; icon?: string }
 export interface UserInfo {
   id: string; loginName: string; displayName: string; mode: 'single' | 'multi';
   scopes: ScopeInfo[]; currentScopeId?: string; defaultScope?: ScopeInfo;

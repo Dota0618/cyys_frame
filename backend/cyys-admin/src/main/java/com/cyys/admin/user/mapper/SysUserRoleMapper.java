@@ -47,7 +47,7 @@ public interface SysUserRoleMapper extends BaseMapper<SysUserRole> {
             """)
     List<String> selectPermissionCodes(@Param("userId") String userId, @Param("scopeIds") List<String> scopeIds);
 
-    @Select("<script>select distinct m.id,m.parent_id,m.name,m.path,m.type,m.sort " + VALID_GRANT
+    @Select("<script>select distinct m.id,m.parent_id,m.name,m.path,m.type,m.sort,m.icon " + VALID_GRANT
             + "join sys_role_menu rm on rm.role_id=r.id and rm.deleted=0 "
             + "join sys_menu m on m.id=rm.menu_id and m.deleted=0 and m.status=1 and m.visible=1 and m.type in (1,2) "
             + GRANT_SCOPE + " and (r.scope_id='GLOBAL' or m.platform_only=0) order by m.sort,m.id</script>")

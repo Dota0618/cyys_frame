@@ -4,7 +4,7 @@ import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Popconfirm } from 'antd';
 import { useEffect, useRef, useState } from 'react';
-import ScopeSwitch from '@/components/ScopeSwitch';
+import { CompactFields, compactModalProps } from '@/components/ManagementLayout';
 import {
   createDictionaryItem, deleteDictionaryItem, dictionaryItemDetail, listDictionaryItems, updateDictionaryItem,
 } from '@/services/system/dictionaries';
@@ -14,7 +14,6 @@ import { setDirty } from '@/utils/session';
 
 function ItemFields() {
   return <>
-    <div style={{ marginBottom: 24 }}><ScopeSwitch /></div>
     <ProFormText name="paramValue" label="字典值" fieldProps={{ maxLength: 20 }}
       rules={[{ required: true, whitespace: true, max: 20, message: '请输入 1–20 个字符的字典值' }]} />
     <ProFormText name="desp" label="说明" fieldProps={{ maxLength: 200 }}
@@ -54,6 +53,7 @@ export default function DictionaryItems({ dictionary }: { dictionary: Dictionary
   return <>
     {loadError && <Alert type="error" title={loadError} showIcon />}
     <ProTable<DictionaryItem> actionRef={action} rowKey="id" columns={columns}
+      size="small" scroll={{ x: 600 }}
       form={{ name: 'dictionary-item-search' }}
       headerTitle={`${dictionary.name}（${dictionary.id}）· 字典项`}
       options={{ fullScreen: false, setting: false }}
@@ -70,9 +70,9 @@ export default function DictionaryItems({ dictionary }: { dictionary: Dictionary
         }
       }}
       toolBarRender={() => access.canCreateDictionaries ? [
-        <ModalForm<CreateDictionaryItem> key="create" name="dictionary-item-create" title="新增字典项"
+        <ModalForm<CreateDictionaryItem> key="create" name="dictionary-item-create" title="新增字典项" width={720}
           trigger={<Button type="primary" icon={<PlusOutlined />}>新增字典项</Button>}
-          initialValues={{ sort: 0 }} modalProps={{ destroyOnHidden: true }}
+          initialValues={{ sort: 0 }} modalProps={compactModalProps}
           onValuesChange={() => setDirty(true)}
           onOpenChange={(open) => { if (!open) setDirty(false); }}
           onFinish={async ({ paramKey, paramValue, desp, sort }) => {
@@ -82,19 +82,19 @@ export default function DictionaryItems({ dictionary }: { dictionary: Dictionary
               return true;
             } catch { return false; }
           }}>
-          <ProFormText name="paramKey" label="编码" extra="同一字典内唯一；创建后保持不变。"
+          <CompactFields><ProFormText name="paramKey" label="编码" extra="同一字典内唯一；创建后保持不变。"
             fieldProps={{ maxLength: 20 }}
             rules={[{ required: true, whitespace: true, max: 20, message: '请输入 1–20 个字符的编码' }]} />
-          <ItemFields />
+          <ItemFields /></CompactFields>
         </ModalForm>,
       ] : []}
     />
     <ModalForm<Omit<UpdateDictionaryItem, 'version'>> key={editing?.id || 'edit'}
-      name="dictionary-item-edit" title={editing ? `修改字典项：${editing.paramKey}` : '修改字典项'}
+      name="dictionary-item-edit" title={editing ? `修改字典项：${editing.paramKey}` : '修改字典项'} width={720}
       open={!!editing} initialValues={editing && {
         paramValue: editing.paramValue, desp: editing.desp, sort: editing.sort,
       }}
-      modalProps={{ destroyOnHidden: true }}
+      modalProps={compactModalProps}
       onValuesChange={() => setDirty(true)}
       onOpenChange={(open) => { if (!open) { setEditing(undefined); setDirty(false); } }}
       onFinish={async ({ paramValue, desp, sort }) => {
@@ -107,7 +107,7 @@ export default function DictionaryItems({ dictionary }: { dictionary: Dictionary
           return true;
         } catch { return false; }
       }}>
-      <ItemFields />
+      <CompactFields><ItemFields /></CompactFields>
     </ModalForm>
   </>;
 }

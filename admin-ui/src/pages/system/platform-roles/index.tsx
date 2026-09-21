@@ -15,6 +15,7 @@ import { useAccess } from '@umijs/max';
 import { Alert, App, Button, Popconfirm, Tabs, Tag } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import CheckedTree from '@/components/CheckedTree';
+import { compactModalProps, ManagementSplit } from '@/components/ManagementLayout';
 import {
   assignPlatformRoles,
   createPlatformRole,
@@ -45,19 +46,20 @@ function RoleFields({ options, editing }: { options: PlatformRoleOptions; editin
     ...menu, name: menu.name,
   }))), [options.menus]);
   return (
-    <>
+    <ManagementSplit navigation={<div>
       {!editing && <ProFormText name="code" label="角色编码" fieldProps={{ maxLength: 64 }}
         rules={[{ required: true, whitespace: true }]} />}
       <ProFormText name="name" label="角色名称" fieldProps={{ maxLength: 50 }}
         rules={[{ required: true, whitespace: true }]} />
-      <ProForm.Item name="menuIds" label="平台菜单与操作权限">
-        <CheckedTree treeData={tree} label="平台菜单与操作权限" menuSelection />
-      </ProForm.Item>
       <ProFormRadio.Group name="status" label="状态"
         options={[{ value: 1, label: '启用' }, { value: 0, label: '停用' }]} rules={[{ required: true }]} />
       <ProFormDigit name="sort" label="排序" fieldProps={{ precision: 0 }} rules={[{ required: true }]} />
       <ProFormTextArea name="remark" label="备注" fieldProps={{ maxLength: 500, showCount: true }} />
-    </>
+    </div>}>
+      <ProForm.Item name="menuIds" label="平台菜单与操作权限">
+        <CheckedTree treeData={tree} label="平台菜单与操作权限" menuSelection />
+      </ProForm.Item>
+    </ManagementSplit>
   );
 }
 
@@ -114,9 +116,9 @@ function RoleTable() {
         }
       }}
       toolBarRender={() => access.canCreatePlatformRoles ? [
-        <ModalForm<CreatePlatformRole> key="create" name="platform-role-create" title="新增平台角色" width={680}
+        <ModalForm<CreatePlatformRole> key="create" name="platform-role-create" title="新增平台角色" width={920}
           trigger={<Button type="primary" icon={<PlusOutlined />}>新增平台角色</Button>}
-          initialValues={{ status: 1, sort: 0, menuIds: [] }} modalProps={{ destroyOnHidden: true }}
+          initialValues={{ status: 1, sort: 0, menuIds: [] }} modalProps={compactModalProps}
           onValuesChange={() => setDirty(true)}
           onOpenChange={(open) => {
             if (open) void platformRoleCreateOptions().then(setCreateOptions).catch(() => {});
@@ -133,9 +135,9 @@ function RoleTable() {
       ] : []}
     />
     <ModalForm<EditPlatformRole> key={editing?.role.id || 'edit'} name="platform-role-edit"
-      title="修改平台角色" width={680} open={!!editing}
+      title="修改平台角色" width={920} open={!!editing}
       initialValues={editing ? { ...editing.role, menuIds: editing.menuIds } : undefined}
-      modalProps={{ destroyOnHidden: true }} onValuesChange={() => setDirty(true)}
+      modalProps={compactModalProps} onValuesChange={() => setDirty(true)}
       onOpenChange={(open) => { if (!open) { setEditing(undefined); setUpdateOptions(emptyOptions); setDirty(false); } }}
       onFinish={async (values) => {
         if (!editing) return false;
@@ -188,7 +190,7 @@ function AccountTable() {
     />
     <ModalForm<{ roleIds: string[] }> key={editing?.id || 'grant'} name="platform-account-grant"
       title={`平台角色授权${editing ? `：${editing.loginName}` : ''}`} open={!!editing}
-      initialValues={{ roleIds: editing?.roleIds || [] }} modalProps={{ destroyOnHidden: true }}
+      initialValues={{ roleIds: editing?.roleIds || [] }} modalProps={compactModalProps}
       onValuesChange={() => setDirty(true)}
       onOpenChange={(open) => { if (!open) { setEditing(undefined); setRoles([]); setDirty(false); } }}
       onFinish={async (values) => {

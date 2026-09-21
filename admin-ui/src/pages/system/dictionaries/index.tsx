@@ -1,116 +1,90 @@
 import { PlusOutlined } from '@ant-design/icons';
-import { ModalForm, PageContainer, ProFormDigit, ProFormText, ProTable } from '@ant-design/pro-components';
-import type { ActionType, ProColumns } from '@ant-design/pro-components';
+import { ModalForm, PageContainer, ProFormDigit, ProFormText } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
-import { Alert, Button, Popconfirm } from 'antd';
-import { useEffect, useRef, useState } from 'react';
-import ScopeSwitch from '@/components/ScopeSwitch';
-import {
-  createDictionary, deleteDictionary, dictionaryDetail, listDictionaries, updateDictionary,
-} from '@/services/system/dictionaries';
-import type { CreateDictionary, Dictionary, UpdateDictionary } from '@/types/api';
+import { Alert, Button, Card, Empty, Input, Pagination, Popconfirm, Space, Spin, Tree, Typography } from 'antd';
+import { useEffect, useState } from 'react';
+import { CompactFields, compactModalProps, ManagementSplit } from '@/components/ManagementLayout';
+import { createDictionary, deleteDictionary, dictionaryDetail, listDictionaries, updateDictionary } from '@/services/system/dictionaries';
+import type { CreateDictionary, Dictionary } from '@/types/api';
 import { ApiError, StaleRequest } from '@/utils/request';
 import { setDirty } from '@/utils/session';
 import DictionaryItems from './DictionaryItems';
 
-function DictionaryFields() {
-  return <>
-    <div style={{ marginBottom: 24 }}><ScopeSwitch /></div>
-    <ProFormText name="name" label="字典名称" fieldProps={{ maxLength: 20 }}
-      rules={[{ required: true, whitespace: true, max: 20, message: '请输入 1–20 个字符的字典名称' }]} />
-    <ProFormDigit name="sort" label="排序" min={-2147483648} max={2147483647}
-      fieldProps={{ precision: 0 }} rules={[{ type: 'integer', message: '排序请输入整数' }]} />
-  </>;
-}
-
 export default function DictionariesPage() {
   const access = useAccess();
-  const action = useRef<ActionType | null>(null);
+  const [categories, setCategories] = useState<Dictionary[]>([]);
   const [selected, setSelected] = useState<Dictionary>();
-  const [editing, setEditing] = useState<Dictionary>();
+  const [editor, setEditor] = useState<{ dictionary?: Dictionary }>();
   const [loadError, setLoadError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [revision, setRevision] = useState(0);
+  const reload = () => setRevision(value => value + 1);
   useEffect(() => () => setDirty(false), []);
+  useEffect(() => {
+    let active = true;
+    setLoading(true); setLoadError('');
+    void listDictionaries(page, 20, query).then(result => {
+      if (!active) return;
+      if (page > 1 && !result.records.length && result.total > 0) { setPage(page - 1); return; }
+      setCategories(result.records); setTotal(result.total);
+      setSelected(current => result.records.find(row => row.id === current?.id) || result.records[0]);
+    }).catch(error => {
+      if (active && !(error instanceof StaleRequest)) setLoadError(error instanceof ApiError ? error.message : '字典加载失败，请重试');
+    }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [page, query, revision]);
 
-  const columns: ProColumns<Dictionary>[] = [
-    { title: '编号', dataIndex: 'id', search: false },
-    { title: '字典名称', dataIndex: 'name', fieldProps: { maxLength: 20 } },
-    { title: '内部名称', dataIndex: 'systemName', search: false, ellipsis: true },
-    { title: '排序', dataIndex: 'sort', search: false, width: 80 },
-    { title: '操作', valueType: 'option', width: 220, render: (_, row) => [
-      <a key="items" onClick={() => setSelected(row)}>字典项</a>,
-      access.canEditDictionaries && <a key="edit" onClick={() => {
-        void dictionaryDetail(row.id).then(setEditing).catch(() => {});
-      }}>修改</a>,
-      access.canDeleteDictionaries && <Popconfirm key="delete" title="删除该字典？"
-        description="存在字典项时不能删除。" okText="删除" cancelText="取消"
-        onConfirm={async () => {
-          try {
-            await deleteDictionary(row.id, row.version);
-            setSelected((current) => current?.id === row.id ? undefined : current);
-            void action.current?.reload();
-          } catch { /* 统一请求层已提示；保留分类和字典项。 */ }
-        }}><a>删除</a></Popconfirm>,
-    ].filter(Boolean) },
-  ];
-
-  return <PageContainer title="数据字典" subTitle="维护全局字典分类及分类下的编码、字典值。">
-    {loadError && <Alert type="error" title={loadError} showIcon />}
-    <ProTable<Dictionary> actionRef={action} rowKey="id" columns={columns} headerTitle="字典分类"
-      form={{ name: 'dictionary-search' }}
-      options={{ fullScreen: false, setting: false }}
-      pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: [20, 50, 100, 200] }}
-      request={async ({ current = 1, pageSize = 20, name }) => {
-        setLoadError('');
+  return <PageContainer title="数据字典" subTitle="左侧选择字典分类，右侧维护对应的编码、字典值和说明。">
+    {loadError && <Alert type="error" title={loadError} showIcon style={{ marginBottom: 16 }} action={<Button onClick={reload}>重试</Button>} />}
+    <ManagementSplit navigation={<Card title="字典分类" size="small" extra={access.canCreateDictionaries && <Button type="link" size="small" icon={<PlusOutlined />} onClick={() => setEditor({})}>新增字典</Button>}>
+      <Input.Search aria-label="搜索字典分类" placeholder="搜索字典名称" value={searchText} allowClear maxLength={20}
+        onChange={event => setSearchText(event.target.value)} onSearch={value => { setQuery(value); setPage(1); reload(); }} style={{ marginBottom: 12 }} />
+      <Spin spinning={loading}>
+        <div style={{ maxHeight: 'calc(100dvh - 340px)', minHeight: 220, overflow: 'auto' }}>
+          {categories.length ? <Tree aria-label="字典分类" blockNode selectedKeys={selected ? [selected.id] : []}
+            treeData={categories.map(row => ({ key: row.id, title: row.name, isLeaf: true }))}
+            onSelect={keys => { const row = categories.find(item => item.id === keys[0]); if (row) setSelected(row); }} />
+            : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={loadError ? '分类加载失败' : '暂无匹配字典'} />}
+        </div>
+      </Spin>
+      <Pagination size="small" simple current={page} pageSize={20} total={total} showSizeChanger={false} onChange={setPage} style={{ marginTop: 12 }} />
+      <Typography.Text type="secondary">共 {total} 个分类</Typography.Text>
+    </Card>}>
+      {selected ? <>
+        <Card size="small" title={selected.name} style={{ marginBottom: 16 }} extra={<Space>
+          {access.canEditDictionaries && <Button size="small" onClick={() => { void dictionaryDetail(selected.id).then(dictionary => setEditor({ dictionary })).catch(() => {}); }}>修改分类</Button>}
+          {access.canDeleteDictionaries && <Popconfirm title="删除该字典？" description="存在字典项时不能删除。" okText="删除" cancelText="取消"
+            onConfirm={async () => { try { await deleteDictionary(selected.id, selected.version); setSelected(undefined); reload(); } catch { /* 保留当前分类。 */ } }}>
+            <Button size="small" danger>删除分类</Button>
+          </Popconfirm>}
+        </Space>}>
+          <Typography.Text type="secondary">编号：{selected.id}　内部名称：{selected.systemName}</Typography.Text>
+        </Card>
+        <DictionaryItems key={selected.id} dictionary={selected} />
+      </> : <Card><Empty description="请在左侧选择或新增字典分类" /></Card>}
+    </ManagementSplit>
+    {editor && <ModalForm<CreateDictionary> name="dictionary-editor" title={editor.dictionary ? '修改字典' : '新增字典'} width={720} open modalProps={compactModalProps}
+      initialValues={editor.dictionary || { sort: 0 }} onValuesChange={() => setDirty(true)}
+      onOpenChange={open => { if (!open) { setEditor(undefined); setDirty(false); } }}
+      onFinish={async ({ id, name, systemName, sort }) => {
         try {
-          const result = await listDictionaries(current, pageSize, name);
-          return { data: result.records, total: result.total, success: true };
-        } catch (error) {
-          if (!(error instanceof StaleRequest))
-            setLoadError(error instanceof ApiError ? error.message : '字典加载失败，请重试');
-          return { data: [], total: 0, success: false };
-        }
-      }}
-      toolBarRender={() => access.canCreateDictionaries ? [
-        <ModalForm<CreateDictionary> key="create" name="dictionary-create" title="新增字典"
-          trigger={<Button type="primary" icon={<PlusOutlined />}>新增字典</Button>}
-          initialValues={{ sort: 0 }} modalProps={{ destroyOnHidden: true }}
-          onValuesChange={() => setDirty(true)}
-          onOpenChange={(open) => { if (!open) setDirty(false); }}
-          onFinish={async ({ id, name, systemName, sort }) => {
-            try {
-              await createDictionary({ id, name, systemName, sort });
-              void action.current?.reload();
-              return true;
-            } catch { return false; }
-          }}>
-          <ProFormText name="id" label="字典编号" extra="保留原工程的分类编号；创建后保持不变。"
-            fieldProps={{ maxLength: 32 }}
-            rules={[{ required: true, pattern: /^[0-9]{1,32}$/, message: '字典编号应为 1–32 位数字' }]} />
-          <ProFormText name="systemName" label="内部名称" extra="全局唯一，供业务识别该字典；创建后保持不变。"
-            fieldProps={{ maxLength: 255 }}
-            rules={[{ required: true, whitespace: true, max: 255, message: '请输入 1–255 个字符的内部名称' }]} />
-          <DictionaryFields />
-        </ModalForm>,
-      ] : []}
-    />
-    {selected ? <DictionaryItems key={`items-${selected.id}`} dictionary={selected} /> :
-      <Alert type="info" title="点击分类行的“字典项”，管理该分类下的内容。" showIcon />}
-    <ModalForm<Omit<UpdateDictionary, 'version'>> key={`edit-${editing?.id || 'closed'}`}
-      name="dictionary-edit" title={editing ? `修改字典：${editing.systemName}` : '修改字典'}
-      open={!!editing} initialValues={editing && { name: editing.name, sort: editing.sort }}
-      modalProps={{ destroyOnHidden: true }}
-      onValuesChange={() => setDirty(true)}
-      onOpenChange={(open) => { if (!open) { setEditing(undefined); setDirty(false); } }}
-      onFinish={async ({ name, sort }) => {
-        if (!editing) return false;
-        try {
-          const updated = await updateDictionary(editing.id, { version: editing.version, name, sort });
-          setSelected((current) => current?.id === updated.id ? updated : current);
-          void action.current?.reload();
-          return true;
+          if (editor.dictionary) {
+            const updated = await updateDictionary(editor.dictionary.id, { version: editor.dictionary.version, name, sort });
+            setSelected(current => current?.id === updated.id ? updated : current);
+          } else { await createDictionary({ id, name, systemName, sort }); setSearchText(name); setQuery(name); setPage(1); }
+          setDirty(false); setEditor(undefined); reload(); return true;
         } catch { return false; }
       }}>
-      <DictionaryFields />
-    </ModalForm>
+      <CompactFields>
+        <ProFormText name="id" label="字典编号" disabled={!!editor.dictionary} fieldProps={{ maxLength: 32 }} rules={[{ required: true, pattern: /^[0-9]{1,32}$/, message: '字典编号应为 1–32 位数字' }]} />
+        <ProFormText name="systemName" label="内部名称" disabled={!!editor.dictionary} fieldProps={{ maxLength: 255 }} rules={[{ required: true, whitespace: true, max: 255 }]} />
+        <ProFormText name="name" label="字典名称" fieldProps={{ maxLength: 20 }} rules={[{ required: true, whitespace: true, max: 20 }]} />
+        <ProFormDigit name="sort" label="排序" min={-2147483648} max={2147483647} fieldProps={{ precision: 0 }} rules={[{ type: 'integer', message: '排序请输入整数' }]} />
+      </CompactFields>
+    </ModalForm>}
   </PageContainer>;
 }
