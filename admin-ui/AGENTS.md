@@ -7,8 +7,11 @@ The skill teaches agents when and how to call `@ant-design/cli` commands such as
 
 <!-- antd-cli setup end -->
 
-## CYYS Frontend
+## 前端入口
 
-- Read [template reuse](../docs/development/frontend/template-reuse.md) for page and component work, and [request/context](../docs/development/frontend/request-context.md) for API or identity work.
-- Use the fixed workspace toolchain and the project CLI: `npm run antd -- <command> --format json`. Keep the locked CLI version; the skill's global install and automatic upgrade suggestions do not apply here.
-- Query only the components needed for the task. Pro Components and page templates use the [template inventory](../docs/migration/ant-design-pro-baseline.md).
+- 页面和组件遵循[模板规则](../docs/development/frontend/template-reuse.md)。
+- API 和身份切换遵循[请求规则](../docs/development/frontend/request-context.md)。
+- 表单遵循[表单规则](../docs/development/frontend/form-validation.md)。
+- 使用工作区固定工具链和锁定版本的 `npm run antd -- <command> --format json`。
+- 不采用技能中的全局安装或自动升级建议。
+- 只查询本次涉及的组件；Pro 组件查[模板清单](../docs/migration/ant-design-pro-baseline.md)。

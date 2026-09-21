@@ -1,59 +1,59 @@
-# cyys-framework Rules
+# cyys-framework 项目规则
 
-Spring Boot backend migration workspace under `F:\git\frame\cyys-framework\`.
+## 工作区
 
-## Scope
+- 项目目录：`F:\git\frame\cyys-framework`。
+- `F:\git\frame\cyys_monomer` 和 `F:\git\frame\docs` 只读。
+- 工具链遵循[工作区规则](../AGENTS.md)。
+- 未经确认不新增项目顶层目录。
+- 不向项目根、`backend` 根或 `backend/.m2` 写临时文件。
 
-- Writable root: `F:\git\frame\cyys-framework\`
-- Read-only inputs:
-  - `F:\git\frame\cyys_monomer\`
-  - `F:\git\frame\docs\`
+## 目录与构建
 
-## Maven Commands
+- `backend` 根只放 `pom.xml`；`.m2` 只放 `settings.xml` 和 `repo`。
+- 后端模块使用 `cyys-common`、`cyys-admin`、`cyys-business`。
+- SQL 迁移放 `migrations`，脚本放 `scripts`，部署文件放 `deploy`，前端放 `admin-ui`。
+- 构建和运行日志只放 `backend/logs`。
+- Maven 使用 `-s F:\git\frame\cyys-framework\backend\.m2\settings.xml`。
+- 保留 Maven `target` 的正常构建布局。
 
-- Build all backend modules:
-  - `mvn -s F:\git\frame\cyys-framework\backend\.m2\settings.xml clean install`
-- Run the executable backend module:
-  - `mvn -s F:\git\frame\cyys-framework\backend\.m2\settings.xml -pl cyys-business spring-boot:run`
-- Run the packaged jar:
-  - `java -jar F:\git\frame\cyys-framework\backend\cyys-business\target\cyys-business.jar`
+```powershell
+mvn -s F:\git\frame\cyys-framework\backend\.m2\settings.xml clean install
+mvn -s F:\git\frame\cyys-framework\backend\.m2\settings.xml -pl cyys-business spring-boot:run
+```
 
-## Layout Rules
+## 开发边界
 
-- `backend\` root: only [pom.xml](file:///F:/git/frame/cyys-framework/backend/pom.xml)
-- `backend\.m2\`: only `settings.xml` and `repo\**`
-- `backend\logs\`: the only place for redirected build/run log files
-- `backend\cyys-common\`, `backend\cyys-admin\`, `backend\cyys-business\`: source code and module `pom.xml`
-- `migrations\`: versioned SQL migrations
-- `scripts\`: scripts
-- `deploy\`: deployment files
-- `admin-ui\`: frontend files
+- admin 包使用 `com.cyys.admin.<功能>.<职责>`。
+- 业务包使用 `com.cyys.modules.<功能>.<职责>`。
+- 按需使用 controller、model、dto、service、mapper，不增加空层。
+- common 只提供技术能力，不查询 admin 业务表。
+- Controller、Service、DTO 和事务遵循[API 规则](docs/development/backend/api-command-validation.md)。
+- 功能权限和数据范围遵循[权限规则](docs/development/backend/data-permission.md)。
+- 身份、机构和账号操作遵循[身份规则](docs/development/backend/identity-context.md)。
+- 缓存接入遵循[缓存规则与清单](docs/development/backend/cache-usage.md)。
+- 前端开发先读[前端入口](admin-ui/AGENTS.md)。
+- 其他任务按需查[规则索引](docs/development/README.md)，不预加载全部规则。
+- 新增规则或改变已批准范围前先确认。
 
-## Constraints
+## 当前范围
 
-- Current cache task (2026-09-21 latest user instruction): finish implementation, cache rules/inventory, focused verification and local Git commits. Do not deploy or update running Docker services unless the user explicitly authorizes deployment again.
-- Latest user scope (2026-09-21): restructure as subordinate institutions within ONE management system, not independent tenants. Institutions form a hierarchy with exactly one real top-level unit (2026-09-21 user confirmation); all other institutions are descendants. The super administrator belongs to that top-level unit; do not display a virtual platform/all-institutions layer. Preserve the existing root name and ID. consolidate roles and user authorization, with organization-based data ranges. The top-right organization control is a data filter, not a switch between independent permission systems. Preserve existing business data. Code-generator work is paused; hide/disable its entry while the organization model changes. Unit notices remain enabled; system notices are centrally maintained shared content without read receipts. Holidays remain omitted and guide pages paused.
-- Keep verification proportional: compile/typecheck during development; defer page-operation/browser tests and full regression to final acceptance, as requested on 2026-09-20. Do not repeatedly run tests after small edits.
-- Password reset: administrators do not re-enter their own password; require the independent platform reset permission and only ask for the target account's new password and confirmation. Personal password changes still verify the current password.
-- Unit selection (2026-09-21 approved): use only the top-right work-unit selector. Do not repeat selectors, switch-unit shortcuts or selection prompts in pages or forms. Keep unit-bound requests gated until a valid unit is selected; switching still clears old page state and protects unsaved work.
-- Form layout (2026-09-21 approved): ordinary edit fields use horizontal labels and controls via shared compactFormProps. Use verticalFormItemProps for wide content such as rich text/multiline bodies, multiple selection, checkbox trees and attachments. Apply the same convention in code-generator output.
-- Data permissions (latest 2026-09-21 objective supersedes the earlier per-unit membership design): roles grant menus/actions system-wide. A user has a home institution/department and one data-range configuration across business resources. Consolidate platform/unit role management; support authorized institution descendants without requiring duplicate membership or roles. Keep independent user:data-permission authorization and atomic profile/range saves. Existing tenant-oriented paths are transitional work to remove, not the target architecture.
+- 保留一个管理体系及真实总单位，不恢复独立租户模式。
+- 保留现有机构和业务数据。
+- 代码生成器、引导页暂停；隐藏代码生成器入口。
+- 保留单位通知；系统通知统一维护，不增加阅读回执。
+- 暂不接入节假日。
+- 机构选择和页面状态遵循[请求规则](docs/development/frontend/request-context.md)。
+- 表单布局遵循[模板规则](docs/development/frontend/template-reuse.md)。
 
-- Save development checkpoints with local Git commits; do not create additional source archive snapshots. Review the diff and record completed checks and remaining work before committing. Do not push unless requested. Existing ignored documentation, local configuration, logs and build outputs remain excluded. This workflow was approved by the user on 2026-09-20.
+## 验证与保存
 
-- Use `-s F:\git\frame\cyys-framework\backend\.m2\settings.xml` for Maven commands in this project.
-- Maven `target\` directories are normal build output. Do not reorganize them unless the user asks.
-- Do not create new top-level directories under `cyys-framework\` without user approval.
-- Do not write temporary files to the framework root, `backend\` root, or `backend\.m2\`.
-
-## Development Entry
-
-- The local framework migration is recorded in [final acceptance](docs/migration/final-acceptance.md). The selected basic data now remains in the existing MySQL test database; do not erase it to satisfy empty-database test guards. Stop the local Docker API before any future same-database test work.
-- Preserve the user's approved scheme A: admin packages are `com.cyys.admin.<feature>.<responsibility>`; project business packages are `com.cyys.modules.<feature>.<responsibility>`. Use controller/model/dto/service/mapper only when actual code needs them. Common contains technical capabilities and does not query admin business tables.
-- Controller、Service、DTO 和事务边界遵循 [API 规则](docs/development/backend/api-command-validation.md)。
-- 功能权限和数据范围遵循 [权限规则](docs/development/backend/data-permission.md)。
-- Consult the [development guide index](docs/development/README.md) only for the relevant task. Do not preload or invent a full guide library. New resources must pass their actual operation and isolation checks before being exposed; successful compilation alone is insufficient.
-- Before frontend work, read [admin-ui/AGENTS.md](admin-ui/AGENTS.md) for the official template and project Ant Design CLI skill entry.
-- Ask the user before establishing each new development rule or changing an approved rule's scope. The current approval covers the proposed scheme A correction and migration constraints; it does not preapprove future component guides.
-
-- Cache usage (2026-09-21 user-approved): follow [cache rules and inventory](docs/development/backend/cache-usage.md) for display fields, cache sources and invalidation. Reuse registered caches and update that inventory when changing their fields, consumers or invalidation.
+- 开发期按改动编译、类型检查和定向验证，不反复运行全量测试。
+- 页面操作和全量回归留到集中验收。
+- 新资源通过实际操作和隔离验证后再开放。
+- 保留现有 MySQL 测试库数据，不为通过空库检查清库。
+- 使用同一数据库测试前停止本地 Docker API。
+- 未经再次明确授权，不部署或更新运行中的 Docker 服务。
+- 提交前检查差异，将验证结果和剩余工作写入[项目记录](docs/migration/final-acceptance.md)。
+- 使用本地 Git 提交保存，不另建源码快照。
+- 未经要求不推送，已忽略文档、配置、日志和构建产物继续排除。
