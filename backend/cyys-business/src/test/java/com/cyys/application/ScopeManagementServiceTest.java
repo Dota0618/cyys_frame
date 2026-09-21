@@ -15,7 +15,7 @@ import static org.mockito.Mockito.*;
 class ScopeManagementServiceTest {
     private final ScopeManagementMapper mapper=mock(ScopeManagementMapper.class);
     private final DataAuditService audit=mock(DataAuditService.class);
-    private final ScopeManagementService service=new ScopeManagementService(mapper,audit);
+    private final ScopeManagementService service=new ScopeManagementService(mapper,audit,mock(com.cyys.common.cache.CacheGroupService.class));
     @BeforeEach void identity() { ScopeContext.set(new RequestIdentity("actor",null,List.of(),List.of())); when(mapper.lockStructure()).thenReturn("scope-update"); }
     @AfterEach void clear() { ScopeContext.clear(); }
     private CreateScopeCommand command(String code) { return new CreateScopeCommand(code,"测试单位",null,null,null,null,"0"); }

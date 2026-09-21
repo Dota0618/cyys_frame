@@ -22,6 +22,8 @@ public class CacheManagementService {
             "系统共享", List.of("用户展示记录（ID、姓名、状态，含停用用户）"), "用户变更后仅使该用户记录失效；手动刷新整个用户缓存组。");
     private static final CacheActionView DEPARTMENT = new CacheActionView(BusinessCacheGroups.DEPARTMENTS.id(), "部门缓存",
             "当前单位", List.of("部门展示记录（ID、名称）"), "部门新增、修改、删除后自动失效；下次读取时加载。");
+    private static final CacheActionView SCOPE = new CacheActionView(BusinessCacheGroups.SCOPES.id(), "单位缓存",
+            "系统共享", List.of("单位展示记录（ID、名称、简称，含停用单位）"), "单位变更后仅使该单位记录失效；手动刷新整个单位缓存组。");
     private static final CacheActionView DICTIONARY = new CacheActionView(BusinessCacheGroups.DICTIONARIES.id(), "字典缓存",
             "系统共享", List.of("字典选项", "字典项名称与失效状态"), "字典分类、字典项增删改后自动失效；刷新影响全系统共享字典。");
     private final CacheGroupService groups;
@@ -35,6 +37,7 @@ public class CacheManagementService {
         result.add(USER_DISPLAY);
         if (canManageDictionary()) result.add(DICTIONARY);
         if (authorization.hasPermission(ScopeContext.get().loginId(), "department:update")) result.add(DEPARTMENT);
+        if (authorization.hasPermission(ScopeContext.get().loginId(), "platform:scope:update")) result.add(SCOPE);
         return List.copyOf(result);
     }
 
@@ -42,6 +45,11 @@ public class CacheManagementService {
     public void refresh(String action) {
         requirePermission();
         var group = switch (action) {
+            case "scope" -> {
+                if (!authorization.hasPermission(ScopeContext.get().loginId(), "platform:scope:update"))
+                    throw new ApiException(403, "没有单位缓存管理权限");
+                yield BusinessCacheGroups.SCOPES;
+            }
             case "user-display" -> BusinessCacheGroups.USERS;
             case "dictionary" -> {
                 if (!canManageDictionary()) throw new ApiException(403, "没有系统共享字典的管理权限");

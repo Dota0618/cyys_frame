@@ -1,6 +1,7 @@
 package com.cyys.admin.auth.service;
 
 import com.cyys.admin.auth.dto.LoginVO;
+import com.cyys.admin.auth.dto.ScopeInfo;
 import com.cyys.admin.user.mapper.SysUserMapper;
 import com.cyys.admin.user.mapper.SysUserRoleMapper;
 import com.cyys.admin.user.mapper.SysUserScopeMapper;
@@ -53,14 +54,14 @@ public class IdentityService implements IdentityResolver {
     private Snapshot snapshot(SysUser user, String requestedScopeId, boolean chooseDefault) {
         var profile = membershipMapper.profile(user.getId());
         if (profile == null) throw new ApiException(403, "用户资料不存在或已停用");
-        List<LoginVO.ScopeInfo> availableScopes = membershipMapper.selectAvailableScopes(user.getId());
+        List<ScopeInfo> availableScopes = membershipMapper.selectAvailableScopes(user.getId());
         if (requestedScopeId != null && (requestedScopeId.isBlank()
                 || availableScopes.stream().noneMatch(scope -> scope.id().equals(requestedScopeId)))) {
             throw new ApiException(403, "所选机构不在当前用户的数据范围内");
         }
         String selectedScopeId = requestedScopeId;
         if (chooseDefault && selectedScopeId == null && !availableScopes.isEmpty()) {
-            selectedScopeId = availableScopes.stream().filter(LoginVO.ScopeInfo::defaultFlag)
+            selectedScopeId = availableScopes.stream().filter(ScopeInfo::defaultFlag)
                     .findFirst().orElse(availableScopes.getFirst()).id();
         }
         List<String> permissions = roleMapper.selectPermissionCodes(user.getId());
@@ -71,8 +72,8 @@ public class IdentityService implements IdentityResolver {
     public LoginVO.UserInfo userInfo(Snapshot snapshot) {
         SysUser user = snapshot.user();
         RequestIdentity identity = snapshot.identity();
-        LoginVO.ScopeInfo defaultScope = snapshot.scopes().stream()
-                .filter(LoginVO.ScopeInfo::defaultFlag).findFirst().orElse(null);
+        ScopeInfo defaultScope = snapshot.scopes().stream()
+                .filter(ScopeInfo::defaultFlag).findFirst().orElse(null);
         String displayName = snapshot.profile().getDisplayName();
         if (displayName == null || displayName.isBlank()) displayName = user.getNickname();
         if (displayName == null || displayName.isBlank()) {
@@ -99,6 +100,6 @@ public class IdentityService implements IdentityResolver {
         }
     }
 
-    public record Snapshot(SysUser user, RequestIdentity identity, List<LoginVO.ScopeInfo> scopes, com.cyys.admin.user.model.SysUserScope profile) {
+    public record Snapshot(SysUser user, RequestIdentity identity, List<ScopeInfo> scopes, com.cyys.admin.user.model.SysUserScope profile) {
     }
 }

@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
+import com.cyys.admin.cache.service.BusinessCacheGroups;
+import com.cyys.common.cache.CacheGroupService;
 import com.cyys.admin.scope.dto.*;
 import com.cyys.admin.scope.mapper.ScopeManagementMapper;
 import com.cyys.admin.scope.model.SysScope;
@@ -22,6 +24,7 @@ import java.util.Arrays;
 public class ScopeManagementService {
     private final ScopeManagementMapper mapper;
     private final DataAuditService audit;
+    private final CacheGroupService caches;
 
     @Transactional(readOnly=true)
     public List<ScopeView> tree() {
@@ -47,6 +50,7 @@ public class ScopeManagementService {
         catch(DuplicateKeyException failure) { throw new ApiException(409,"机构编码已存在"); }
         if("0".equals(row.getParentId())) mapper.attachSystemAccounts(row.getId(),ScopeContext.get().loginId());
         audit.platformSuccess("scope",row.getId(),"CREATE");
+        caches.invalidateEntriesAfterCommit(BusinessCacheGroups.SCOPES,List.of(row.getId()));
         return ScopeView.from(row);
     }
 
@@ -81,7 +85,9 @@ public class ScopeManagementService {
         row.setName(command.name());row.setShortName(command.shortName());row.setContactPerson(command.contactPerson());
         row.setContactPhone(command.contactPhone());row.setRemark(command.remark());row.setStatus(command.enabled()?1:0);row.setSort(command.sort());
         requireOne(mapper.update(row,ScopeContext.get().loginId()));row.setVersion(row.getVersion()+1);
-        audit.platformSuccess("scope",id,"UPDATE");return ScopeView.from(row);
+        audit.platformSuccess("scope",id,"UPDATE");
+        caches.invalidateEntriesAfterCommit(BusinessCacheGroups.SCOPES,List.of(id));
+        return ScopeView.from(row);
     }
     private List<SysScope> lockTree() {
         if(mapper.lockStructure()==null) throw new ApiException(409,"机构管理入口配置缺失");

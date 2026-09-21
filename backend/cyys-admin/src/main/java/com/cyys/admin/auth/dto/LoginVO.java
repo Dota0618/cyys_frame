@@ -19,7 +19,4 @@ public record LoginVO(String tokenName, String tokenType, String token, long exp
         }
     }
 
-    /** defaultFlag 表示用户所属机构；候选来自数据范围，parentId 用于机构树。 */
-    public record ScopeInfo(String id, String code, String name, boolean defaultFlag, String parentId) {
-    }
 }
