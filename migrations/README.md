@@ -24,6 +24,7 @@
 - V17（2026-09-20 已在现有测试 schema 执行）：全局地区参数 `param_region`，保留父级、编码、名称、简称、邮编、经纬度、层级与排序。唯一编码包含软删除历史；下级是否存在由索引查询计算，不维护易失真的 has_child 冗余字段。
 - V18（2026-09-20 已在现有测试 schema 执行）：`sys_serial_rule` 和 `sys_serial_counter`，保存单位/业务固定规则及分周期计数；数据库唯一键与事务锁支持并发预留，不导入旧全局计数、不创建默认业务规则。首次开发执行发现保留字冲突，在尚未成功的 V18 中改为 `sequence_value`；只清理已核对为空的本次部分建表及失败历史后重跑，既有成功版本未改写。
 - V19（2026-09-21 已在现有测试 schema 执行）：单位增加 `version` 乐观锁字段，供单位维护和启停并发校验。
+- V20（2026-09-21 已在现有测试 schema 执行）：字典增加 `system_builtin`，按明确清单保护既有固定编码分类；不改字典项内容。系统分类及字典项只读，超级管理员同样受限；后台新建仅产生业务字典。
 - 后续正式迁移从 V20 递增，system/business 共用版本序列。
 - 测试单位由测试配置在正式迁移之后准备、测试类结束时清理，不占用版本号、不留下测试迁移历史。
 
@@ -31,7 +32,7 @@
 
 ## 首次本地运行
 
-先核对现有 MySQL 中明确选择的数据库及其迁移历史，再注入连接配置。空 schema 执行正式 V1、V3–V19（V2 仅为可选本地初始化）；含旧表或业务数据的 schema 需要先制定对应升级脚本，不能删表重建或自动 baseline。使用 MySQL 8、InnoDB、utf8mb4，排序规则按部署约定统一。没有内置默认账号或密码。现有测试 schema 的执行不代表生产库已升级。
+先核对现有 MySQL 中明确选择的数据库及其迁移历史，再注入连接配置。空 schema 执行正式 V1、V3–V20（V2 仅为可选本地初始化）；含旧表或业务数据的 schema 需要先制定对应升级脚本，不能删表重建或自动 baseline。使用 MySQL 8、InnoDB、utf8mb4，排序规则按部署约定统一。没有内置默认账号或密码。现有测试 schema 的执行不代表生产库已升级。
 
 `dev-data/menu-tree.sql` 是显式的数据初始化/升级文件，不属于 Flyway 自动迁移。先备份，审核后在同一数据库事务中执行，任何错误都回滚。它保留已有权限主键和授权，整理中文目录、菜单及其下属按钮，为现有 GLOBAL `SUPER_ADMIN` 角色补充单位管理权限，并把已有按钮授权对应的菜单和目录补齐。它不创建账号或单位，也不修改旧基础数据；角色名称不构成运行时权限绕过。完成目录自定义以后不要反复执行这个初始化文件，后续通过菜单和角色页面维护。新业务生成包同样输出菜单及其子按钮，须审核后显式授予角色。
 
@@ -91,6 +92,9 @@ V2 在本地首次初始化时按 V1 → V2 → V3 顺序执行。已经到 V3 �
 
 ## 全局配置与字典（V7）
 
+- V20 系统分类清单：YES_NO、IS_SHOW、IS_PUBLISH、IS_TOP、DISABLE、EXAMINE_STATUS、USER_TYPE、MENU_TYPE、CONFIGURE_TYPE、SEX、MENU_MODE、QUERY_INPUT_TYPE、CACHE_TYPE。ORG_TYPE、VERSION_TYPE、SYSTEM_NOTICE_TYPE、NOTICE_TYPE 继续作为业务分类维护；不是所有旧框架字典都设为系统字典。
+- 系统属性只由版本迁移写入；创建/更新 DTO 不接受该字段。所有分类和项写入在父记录锁内核验，针对系统字典的写请求返回 HTTP 403；读取和业务下拉选项不变。空库不自动灌入字典内容，后续引入系统字典时迁移必须显式写入 system_builtin=1。
+- 历史 ImportLegacyBasicData 仅适用于原 V18 导入流程，遇到 V20 结构明确拒绝，防止把固定编码按默认业务字典导入；未来导入需评审系统属性映射。回滚不得直接启动不识别只读属性的旧 API。
 - 三张表均无单位字段。配置和字典管理要求 GLOBAL 的 `platform:scope:access` 及对应 `configuration:read/create/update/delete` 或 `dictionary:read/create/update/delete` 权限，选择业务单位不改变这些数据的归属。
 - 保留旧工程的 name/value/type/desp/sort、name/system_name/sort、basic_id/param_key/param_value/desp/sort；配置类别在 API 中使用 SYSTEM/THIRD_PARTY 枚举。配置及字典项 ID 由服务端生成，分类编号仍由用户输入，按字符串传输以避免大数字精度损失。
 - 配置名称、分类编号/内部名称、项编码在创建后不可修改，避免业务保存的引用失效。修改命令只包含可编辑字段及 version；归属、审计和新记录版本由服务端填写。

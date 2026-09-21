@@ -35,11 +35,11 @@ export default function DictionaryItems({ dictionary }: { dictionary: Dictionary
     { title: '字典值', dataIndex: 'paramValue', fieldProps: { maxLength: 20 } },
     { title: '说明', dataIndex: 'desp', search: false, ellipsis: true },
     { title: '排序', dataIndex: 'sort', search: false, width: 80 },
-    { title: '操作', valueType: 'option', width: 150, render: (_, row) => [
-      access.canEditDictionaries && <a key="edit" onClick={() => {
+    { title: '操作', valueType: 'option', width: 150, hideInTable: dictionary.systemBuiltin, render: (_, row) => [
+      !dictionary.systemBuiltin && access.canEditDictionaries && <a key="edit" onClick={() => {
         void dictionaryItemDetail(dictionary.id, row.id).then(setEditing).catch(() => {});
       }}>修改</a>,
-      access.canDeleteDictionaries && <Popconfirm key="delete" title="删除该字典项？"
+      !dictionary.systemBuiltin && access.canDeleteDictionaries && <Popconfirm key="delete" title="删除该字典项？"
         description="编码会保留，删除不会改写已保存的业务记录。" okText="删除" cancelText="取消"
         onConfirm={async () => {
           try {
@@ -69,7 +69,7 @@ export default function DictionaryItems({ dictionary }: { dictionary: Dictionary
           return { data: [], total: 0, success: false };
         }
       }}
-      toolBarRender={() => access.canCreateDictionaries ? [
+      toolBarRender={() => !dictionary.systemBuiltin && access.canCreateDictionaries ? [
         <ModalForm<CreateDictionaryItem> key="create" name="dictionary-item-create" title="新增字典项" width={720}
           trigger={<Button type="primary" icon={<PlusOutlined />}>新增字典项</Button>}
           initialValues={{ sort: 0 }} modalProps={compactModalProps}
@@ -91,7 +91,7 @@ export default function DictionaryItems({ dictionary }: { dictionary: Dictionary
     />
     <ModalForm<Omit<UpdateDictionaryItem, 'version'>> key={editing?.id || 'edit'}
       name="dictionary-item-edit" title={editing ? `修改字典项：${editing.paramKey}` : '修改字典项'} width={720}
-      open={!!editing} initialValues={editing && {
+      open={!!editing && !dictionary.systemBuiltin} initialValues={editing && {
         paramValue: editing.paramValue, desp: editing.desp, sort: editing.sort,
       }}
       modalProps={compactModalProps}

@@ -9,6 +9,7 @@ public class ParamBasic {
     private String id;
     private String name;
     private String systemName;
+    private boolean systemBuiltin;
     private Integer sort;
     private Integer version = 0;
 }

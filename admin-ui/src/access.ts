@@ -24,6 +24,10 @@ export default (initialState?: { user?: UserInfo }) => {
       (platformHas(permission) &&
         (platform.includes('platform:data:read-all') ||
           platform.includes('platform:data:operate'))));
+  const canOpenUnitPage = (permission: string) =>
+    unitHas(permission) ||
+    (platformHas(permission) &&
+      (platform.includes('platform:data:read-all') || platform.includes('platform:data:operate')));
   return {
     canReadUsers: canUseGlobal || (!all && (canReadInSelectedUnit('user:read') ||
       (platformHas('user:read') && platform.includes('platform:data:operate')))),
@@ -64,6 +68,8 @@ export default (initialState?: { user?: UserInfo }) => {
     canReadLoginAudits: !all && selected && unitHas('login-audit:read'),
     canManageCaches: !all && selected && unitHas('cache:user:refresh'),
     canReadFiles: canReadInSelectedUnit('file:read'),
+    canOpenFiles: canOpenUnitPage('file:read'),
+    canOpenFileRecycle: canOpenUnitPage('file:recycle:read'),
     canDownloadFiles: canReadInSelectedUnit('file:content:read'),
     canUploadFiles: canWrite('file:upload'),
     canEditFiles: canWrite('file:update'),

@@ -1,7 +1,7 @@
 import { PlusOutlined } from '@ant-design/icons';
 import { ModalForm, PageContainer, ProFormDigit, ProFormText } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
-import { Alert, Button, Card, Empty, Input, Pagination, Popconfirm, Space, Spin, Tree, Typography } from 'antd';
+import { Alert, Button, Card, Empty, Input, Pagination, Popconfirm, Space, Spin, Tag, Tree, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { CompactFields, compactModalProps, ManagementSplit } from '@/components/ManagementLayout';
 import { createDictionary, deleteDictionary, dictionaryDetail, listDictionaries, updateDictionary } from '@/services/system/dictionaries';
@@ -46,7 +46,7 @@ export default function DictionariesPage() {
       <Spin spinning={loading}>
         <div style={{ maxHeight: 'calc(100dvh - 340px)', minHeight: 220, overflow: 'auto' }}>
           {categories.length ? <Tree aria-label="字典分类" blockNode selectedKeys={selected ? [selected.id] : []}
-            treeData={categories.map(row => ({ key: row.id, title: row.name, isLeaf: true }))}
+            treeData={categories.map(row => ({ key: row.id, title: <Space size={4}>{row.name}<Tag color={row.systemBuiltin ? 'blue' : undefined}>{row.systemBuiltin ? '系统' : '业务'}</Tag></Space>, isLeaf: true }))}
             onSelect={keys => { const row = categories.find(item => item.id === keys[0]); if (row) setSelected(row); }} />
             : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={loadError ? '分类加载失败' : '暂无匹配字典'} />}
         </div>
@@ -55,14 +55,15 @@ export default function DictionariesPage() {
       <Typography.Text type="secondary">共 {total} 个分类</Typography.Text>
     </Card>}>
       {selected ? <>
-        <Card size="small" title={selected.name} style={{ marginBottom: 16 }} extra={<Space>
-          {access.canEditDictionaries && <Button size="small" onClick={() => { void dictionaryDetail(selected.id).then(dictionary => setEditor({ dictionary })).catch(() => {}); }}>修改分类</Button>}
-          {access.canDeleteDictionaries && <Popconfirm title="删除该字典？" description="存在字典项时不能删除。" okText="删除" cancelText="取消"
+        <Card size="small" title={<Space>{selected.name}<Tag color={selected.systemBuiltin ? 'blue' : undefined}>{selected.systemBuiltin ? '系统字典 · 只读' : '业务字典'}</Tag></Space>} style={{ marginBottom: 16 }} extra={<Space>
+          {!selected.systemBuiltin && access.canEditDictionaries && <Button size="small" onClick={() => { void dictionaryDetail(selected.id).then(dictionary => { if (!dictionary.systemBuiltin) setEditor({ dictionary }); else reload(); }).catch(() => {}); }}>修改分类</Button>}
+          {!selected.systemBuiltin && access.canDeleteDictionaries && <Popconfirm title="删除该字典？" description="存在字典项时不能删除。" okText="删除" cancelText="取消"
             onConfirm={async () => { try { await deleteDictionary(selected.id, selected.version); setSelected(undefined); reload(); } catch { /* 保留当前分类。 */ } }}>
             <Button size="small" danger>删除分类</Button>
           </Popconfirm>}
         </Space>}>
           <Typography.Text type="secondary">编号：{selected.id}　内部名称：{selected.systemName}</Typography.Text>
+          {selected.systemBuiltin && <Alert type="info" showIcon title="系统字典及其字典项只读，由系统版本统一维护。" style={{ marginTop: 12 }} />}
         </Card>
         <DictionaryItems key={selected.id} dictionary={selected} />
       </> : <Card><Empty description="请在左侧选择或新增字典分类" /></Card>}
@@ -79,6 +80,7 @@ export default function DictionariesPage() {
           setDirty(false); setEditor(undefined); reload(); return true;
         } catch { return false; }
       }}>
+      {!editor.dictionary && <Typography.Paragraph type="secondary">新增分类为业务字典，可按权限维护分类及字典项。</Typography.Paragraph>}
       <CompactFields>
         <ProFormText name="id" label="字典编号" disabled={!!editor.dictionary} fieldProps={{ maxLength: 32 }} rules={[{ required: true, pattern: /^[0-9]{1,32}$/, message: '字典编号应为 1–32 位数字' }]} />
         <ProFormText name="systemName" label="内部名称" disabled={!!editor.dictionary} fieldProps={{ maxLength: 255 }} rules={[{ required: true, whitespace: true, max: 255 }]} />

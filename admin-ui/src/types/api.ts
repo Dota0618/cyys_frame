@@ -20,6 +20,7 @@ export interface UpdateConfiguration {
 }
 export interface Dictionary {
   id: string; name: string; systemName: string; sort: number; version: number;
+  systemBuiltin: boolean;
 }
 export interface CreateDictionary { id: string; name: string; systemName: string; sort?: number }
 export interface UpdateDictionary { version: number; name: string; sort?: number }

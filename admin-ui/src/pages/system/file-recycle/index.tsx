@@ -9,6 +9,15 @@ import { ApiError, StaleRequest } from '@/utils/request';
 
 export default function FileRecyclePage() {
   const access = useAccess();
+  if (!access.canReadFileRecycle) return <PageContainer title="文件回收站">
+    <ScopeSwitch />
+    <Alert type="info" showIcon title="请选择一个具体工作单位后查看文件回收站。" style={{ marginTop: 16 }} />
+  </PageContainer>;
+  return <FileRecycleContent />;
+}
+
+function FileRecycleContent() {
+  const access = useAccess();
   const action = useRef<ActionType | null>(null);
   const [selected, setSelected] = useState<ManagedFile[]>([]);
   const [error, setError] = useState('');

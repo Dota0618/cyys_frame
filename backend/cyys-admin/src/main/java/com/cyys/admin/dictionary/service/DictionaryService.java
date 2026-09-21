@@ -56,7 +56,7 @@ public class DictionaryService {
     @Transactional
     public DictionaryView update(String id, UpdateDictionaryCommand command) {
         security.authorize("dictionary:update");
-        ParamBasic row = requireDictionary(mapper.lock(id));
+        ParamBasic row = requireWritableDictionary(mapper.lock(id));
         row.setVersion(command.version());
         row.setName(command.name());
         row.setSort(command.sort() == null ? 0 : command.sort());
@@ -69,7 +69,7 @@ public class DictionaryService {
     @Transactional
     public void delete(String id, int version) {
         security.authorize("dictionary:delete");
-        requireDictionary(mapper.lock(id));
+        requireWritableDictionary(mapper.lock(id));
         if (mapper.firstItem(id) != null) throw new ApiException(409, "字典仍有字典项，不能删除");
         requireOne(mapper.softDelete(id, version, actor()));
         audit.platformSuccess("dictionary", id, "DELETE");
@@ -93,7 +93,7 @@ public class DictionaryService {
     @Transactional
     public DictionaryItemView createItem(String basicId, CreateDictionaryItemCommand command) {
         security.authorize("dictionary:create");
-        requireDictionary(mapper.lock(basicId));
+        requireWritableDictionary(mapper.lock(basicId));
         var row = new ParamBasicType();
         row.setId(IdWorker.getIdStr());
         row.setBasicId(basicId);
@@ -113,7 +113,7 @@ public class DictionaryService {
     @Transactional
     public DictionaryItemView updateItem(String basicId, String id, UpdateDictionaryItemCommand command) {
         security.authorize("dictionary:update");
-        requireDictionary(mapper.lock(basicId));
+        requireWritableDictionary(mapper.lock(basicId));
         ParamBasicType row = requireItem(mapper.item(basicId, id));
         row.setVersion(command.version());
         row.setParamValue(command.paramValue());
@@ -128,9 +128,16 @@ public class DictionaryService {
     @Transactional
     public void deleteItem(String basicId, String id, int version) {
         security.authorize("dictionary:delete");
-        requireDictionary(mapper.lock(basicId));
+        requireWritableDictionary(mapper.lock(basicId));
         requireOne(mapper.deleteItem(basicId, id, version, actor()));
         audit.platformSuccess("dictionary-item", id, "DELETE");
+    }
+
+    // 所有写入在取得父记录锁后检查；平台超级管理员同样不能修改内置字典。
+    private static ParamBasic requireWritableDictionary(ParamBasic row) {
+        requireDictionary(row);
+        if (row.isSystemBuiltin()) throw new ApiException(403, "系统字典及其字典项只读，请通过版本迁移维护");
+        return row;
     }
 
     private static ParamBasic requireDictionary(ParamBasic row) {

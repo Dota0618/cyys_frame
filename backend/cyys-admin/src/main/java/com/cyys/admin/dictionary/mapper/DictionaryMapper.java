@@ -12,18 +12,18 @@ import org.apache.ibatis.annotations.*;
 public interface DictionaryMapper {
     @Select("""
             <script>
-            select id,name,system_name,sort,version from param_basic where deleted=0
+            select id,name,system_name,sort,version,system_builtin from param_basic where deleted=0
             <if test="name != null and name != ''">and name like concat('%',#{name},'%')</if>
             order by sort,id
             </script>
             """)
     IPage<ParamBasic> page(Page<ParamBasic> page, @Param("name") String name);
 
-    @Select("select id,name,system_name,sort,version from param_basic where id=#{id} and deleted=0")
+    @Select("select id,name,system_name,sort,version,system_builtin from param_basic where id=#{id} and deleted=0")
     ParamBasic detail(String id);
 
     // 分类删除与所有字典项写入使用同一父记录锁，防止并发插入孤立项。
-    @Select("select id,name,system_name,sort,version from param_basic where id=#{id} and deleted=0 for update")
+    @Select("select id,name,system_name,sort,version,system_builtin from param_basic where id=#{id} and deleted=0 for update")
     ParamBasic lock(String id);
 
     @Insert("insert into param_basic(id,name,system_name,sort,created_by,updated_by) "

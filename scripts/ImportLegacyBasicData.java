@@ -38,6 +38,10 @@ class ImportLegacyBasicData {
                 try(var s=c.createStatement();var r=s.executeQuery("select count(*) from flyway_schema_history where version='18' and success=1")) {
                     r.next(); if(r.getInt(1)!=1) throw new IllegalStateException("Expected existing V18 schema");
                 }
+                try(var s=c.createStatement();var r=s.executeQuery("select count(*) from information_schema.columns where table_schema=database() and table_name='param_basic' and column_name='system_builtin'")) {
+                    r.next();
+                    if(r.getInt(1)>0) throw new IllegalStateException("V20 dictionary protection requires a reviewed import mapping; this historical V18 import must not run on the upgraded schema");
+                }
                 Map<String,String> before = untouched(c);
                 boolean empty=true;
                 for(String table:COLUMNS.keySet()) {
