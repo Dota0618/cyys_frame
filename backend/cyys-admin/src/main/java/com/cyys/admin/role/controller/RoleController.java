@@ -32,13 +32,9 @@ public class RoleController {
         return R.ok(service.page(new RoleQuery(page, size, search)));
     }
 
-    @GetMapping("/create-options")
-    @SaCheckPermission("role:create")
-    public Object createOptions() { return R.ok(service.options("role:create")); }
-
-    @GetMapping("/update-options")
-    @SaCheckPermission("role:update")
-    public Object updateOptions() { return R.ok(service.options("role:update")); }
+    @GetMapping({"/create-options", "/update-options"})
+    @SaCheckPermission(value = {"role:create", "role:update"}, mode = cn.dev33.satoken.annotation.SaMode.OR)
+    public Object options() { return R.ok(service.options()); }
 
     @GetMapping("/accounts")
     @SaCheckPermission("role:grant")

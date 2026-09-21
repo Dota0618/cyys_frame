@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
-import com.cyys.admin.auth.service.PlatformSecurityService;
 import com.cyys.admin.region.dto.*;
 import com.cyys.admin.region.mapper.RegionMapper;
 import com.cyys.admin.region.model.Region;
@@ -23,12 +22,10 @@ import java.util.*;
 @RequiredArgsConstructor
 public class RegionService {
     private final RegionMapper regions;
-    private final PlatformSecurityService security;
     private final DataAuditService audit;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public byte[] export(ExportRegionsCommand command) {
-        security.authorize("region:export");
         String parentId = blankToNull(command.parentId());
         if (parentId != null) require(parentId, false);
         var rows = regions.export(parentId, command.name(), BoundedXlsx.MAX_ROWS + 1);
@@ -41,15 +38,12 @@ public class RegionService {
                             row.getLongitude() == null ? null : row.getLongitude().toPlainString(),
                             row.getLatitude() == null ? null : row.getLatitude().toPlainString())).toList());
         } catch (IOException failure) { throw new ApiException(503, "导出文件生成失败，请稍后重试"); }
-        // READ_COMMITTED 使生成后的复核能看见期间已提交的撤权，不沿用生成前的授权快照。
-        security.authorize("region:export");
         audit.platformSuccess("region", IdWorker.getIdStr(), "EXPORT_GENERATED");
         return result;
     }
 
     @Transactional(readOnly=true)
     public IPage<RegionView> page(long page,long size,String parent,String name) {
-        security.authorize("region:read");
         String parentId=blankToNull(parent);
         if(parentId!=null) require(parentId,false);
         var paging=new Page<Region>(page,size); paging.setOptimizeCountSql(false);
@@ -58,13 +52,11 @@ public class RegionService {
 
     @Transactional(readOnly=true)
     public RegionView detail(String id) {
-        security.authorize("region:read");
         return RegionView.from(require(id,false));
     }
 
     @Transactional
     public RegionView create(CreateRegionCommand command) {
-        security.authorize("region:create");
         var row=new Region();
         row.setId(IdWorker.getIdStr()); row.setParentId(blankToNull(command.parentId()));
         row.setLevel(row.getParentId()==null?0:Math.addExact(require(row.getParentId(),true).getLevel(),1));
@@ -80,7 +72,6 @@ public class RegionService {
 
     @Transactional
     public RegionView update(String id,UpdateRegionCommand command) {
-        security.authorize("region:update");
         var row=require(id,true);
         if(!row.getVersion().equals(command.version())) throw new ApiException(409,"地区已变化，请刷新后重试");
         row.setCityCode(command.cityCode().strip()); row.setName(command.name().strip());
@@ -95,7 +86,6 @@ public class RegionService {
 
     @Transactional
     public void delete(List<RegionVersionReference> commands) {
-        security.authorize("region:delete");
         if(commands.isEmpty() || commands.size()>100 || commands.stream().map(RegionVersionReference::id).distinct().count()!=commands.size())
             throw new ApiException(400,"每次删除 1–100 条且不能重复");
         var ordered=commands.stream().sorted(Comparator.comparing(RegionVersionReference::id)).toList();

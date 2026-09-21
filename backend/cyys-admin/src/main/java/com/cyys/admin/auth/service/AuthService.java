@@ -26,6 +26,11 @@ public class AuthService {
     private final LoginProperties loginProperties;
     private final LoginAuditService loginAuditService;
     private final TransactionTemplate transactions;
+    private final PasswordService passwords;
+
+    public void changePassword(com.cyys.admin.auth.dto.ChangePasswordCommand command) {
+        passwords.change(command);
+    }
 
     public LoginVO login(LoginCmd command, String clientIp) {
         if (command.password().getBytes(StandardCharsets.UTF_8).length > 72) {

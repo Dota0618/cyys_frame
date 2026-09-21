@@ -9,11 +9,11 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DataResourceDefinition {
-    String name();
-    String scopeColumn();
-    String departmentColumn();
-    String actorColumn();
+    String name() default "";
+    String scopeColumn() default "scope_id";
+    String departmentColumn() default "org_id";
+    String actorColumn() default "created_by";
     String ancestorsColumn() default "";
-    String versionColumn() default "";
+    String versionColumn() default "version";
     String[] immutableColumns() default {};
 }

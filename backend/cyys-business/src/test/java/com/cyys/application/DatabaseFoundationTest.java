@@ -59,7 +59,7 @@ class DatabaseFoundationTest extends HttpTestSupport {
         org.setCreatedBy("forged");
         org.setUpdatedBy("forged");
         ScopeContext.set(new RequestIdentity("u-alice", "scope-a", List.of(), List.of()));
-        DataPermissionContext.set("department:create", DataPolicyRegistry.View.CURRENT_SCOPE);
+        DataPermissionContext.set(DataPolicyRegistry.View.CURRENT_SCOPE);
         try {
             assertThat(orgMapper.insert(org)).isEqualTo(1);
         } finally {
@@ -71,7 +71,7 @@ class DatabaseFoundationTest extends HttpTestSupport {
         org.setName("已修改");
         org.setCreatedBy("forged-again");
         ScopeContext.set(new RequestIdentity("u-bob", "scope-a", List.of(), List.of()));
-        DataPermissionContext.set("department:update", DataPolicyRegistry.View.CURRENT_SCOPE);
+        DataPermissionContext.set(DataPolicyRegistry.View.CURRENT_SCOPE);
         try {
             assertThat(orgMapper.updateById(org)).isEqualTo(1);
         } finally {

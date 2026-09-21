@@ -7,9 +7,7 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("sys_file_entry")
-@DataResourceDefinition(name = "file", scopeColumn = "scope_id", departmentColumn = "org_id",
-        actorColumn = "created_by", versionColumn = "version",
-        immutableColumns = {"org_id", "storage_profile", "object_key", "expected_bytes", "part_bytes", "expires_at"})
+@DataResourceDefinition(name = "file", immutableColumns = {"org_id", "storage_profile", "object_key", "expected_bytes", "part_bytes", "expires_at"})
 public class FileEntry {
     @TableId(type = IdType.ASSIGN_ID) private String id;
     @TableField(fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NEVER) private String scopeId;

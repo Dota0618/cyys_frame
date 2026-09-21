@@ -1,7 +1,6 @@
 package com.cyys.application;
 
 import com.cyys.admin.audit.service.DataAuditService;
-import com.cyys.admin.auth.service.PlatformSecurityService;
 import com.cyys.admin.scope.dto.*;
 import com.cyys.admin.scope.mapper.ScopeManagementMapper;
 import com.cyys.admin.scope.model.SysScope;
@@ -14,20 +13,14 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ScopeManagementServiceTest {
-    private final PlatformSecurityService security=mock(PlatformSecurityService.class);
     private final ScopeManagementMapper mapper=mock(ScopeManagementMapper.class);
     private final DataAuditService audit=mock(DataAuditService.class);
-    private final ScopeManagementService service=new ScopeManagementService(security,mapper,audit);
+    private final ScopeManagementService service=new ScopeManagementService(mapper,audit);
     @BeforeEach void identity() { ScopeContext.set(new RequestIdentity("actor",null,List.of(),List.of())); when(mapper.lockStructure()).thenReturn("scope-update"); }
     @AfterEach void clear() { ScopeContext.clear(); }
     private CreateScopeCommand command(String code) { return new CreateScopeCommand(code,"测试单位",null,null,null,null,"0"); }
     private SysScope row() { var row=new SysScope();row.setId("scope-a");row.setParentId("0");row.setAncestors("");row.setCode("UNIT_A");row.setName("单位");row.setStatus(1);row.setSort(0);row.setVersion(0);return row; }
 
-    @Test void rejectedPlatformPermissionNeverTouchesRegistry() {
-        when(security.authorize("platform:scope:create")).thenThrow(new ApiException(403,"denied"));
-        assertThatThrownBy(()->service.create(command("NEW"))).isInstanceOf(ApiException.class);
-        verifyNoInteractions(mapper,audit);
-    }
     @Test void createDefaultsAndReservedCode() {
         when(mapper.create(any(),eq("actor"))).thenReturn(1);
         var result=service.create(command("NEW"));

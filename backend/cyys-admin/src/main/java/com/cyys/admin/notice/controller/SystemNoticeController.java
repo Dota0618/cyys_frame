@@ -32,13 +32,9 @@ public class SystemNoticeController {
     @SaCheckPermission("system-notice:read")
     public Object detail(@PathVariable String id) { return R.ok(service.detail(id)); }
 
-    @GetMapping("/create-options")
-    @SaCheckPermission("system-notice:create")
-    public Object createOptions() { return R.ok(service.options(null)); }
-
-    @GetMapping("/{id}/edit-options")
-    @SaCheckPermission("system-notice:update")
-    public Object editOptions(@PathVariable String id) { return R.ok(service.options(id)); }
+    @GetMapping({"/create-options", "/{id}/edit-options"})
+    @SaCheckPermission(value = {"system-notice:create", "system-notice:update"}, mode = cn.dev33.satoken.annotation.SaMode.OR)
+    public Object options(@PathVariable(required = false) String id) { return R.ok(service.options(id)); }
 
     @PostMapping
     @SaCheckPermission("system-notice:create")

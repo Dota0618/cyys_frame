@@ -30,16 +30,46 @@ public class FileService {
     private final TemporaryFileCleaner temporaryCleaner;
     private final FileDirectoryService directories;
     private final FileAttachmentService attachments;
+    private final ResumableUploadService uploads;
+    private final FileRecycleService recycle;
     private final TransactionTemplate transactions;
 
     public FileService(FileEntryMapper mapper, FileOwnerMapper owners, ConfiguredStorage storage,
-                       DataAuditService audit, TemporaryFileCleaner temporaryCleaner, FileDirectoryService directories, FileAttachmentService attachments, PlatformTransactionManager manager) {
+                       DataAuditService audit, TemporaryFileCleaner temporaryCleaner, FileDirectoryService directories, FileAttachmentService attachments,
+                       ResumableUploadService uploads, FileRecycleService recycle, PlatformTransactionManager manager) {
         this.mapper = mapper; this.owners = owners; this.storage = storage; this.audit = audit;
         this.temporaryCleaner = temporaryCleaner;
         this.directories = directories;
         this.attachments = attachments;
+        this.uploads = uploads;
+        this.recycle = recycle;
         this.transactions = new TransactionTemplate(manager);
     }
+
+    public IPage<FileView> recycled(long page, long size, String search) { return recycle.page(page, size, search); }
+
+    public void restore(List<FileVersionReference> commands) { recycle.restore(commands); }
+
+    public void purge(String id, int version) { recycle.purge(id, version); }
+
+    public FileUploadLimitsDTO uploadLimits() { return uploads.limits(); }
+
+    public FileUploadView startUpload(FileUploadStartCmd command) { return uploads.start(command); }
+
+    public FileUploadView uploadProgress(String id) { return uploads.progress(id); }
+
+    public FileUploadView uploadPart(String id, int index, MultipartFile part) { return uploads.put(id, index, part); }
+
+    public FileView completeUpload(String id) { return uploads.complete(id); }
+
+    /** 先提交取消状态再清理对象；物理清理失败时可重试，不恢复已取消的上传。 */
+    @Transactional(propagation = Propagation.NEVER)
+    public void cancelUpload(String id) {
+        uploads.cancel(id);
+        uploads.cleanup(id);
+    }
+
+    public void cleanupUpload(String id) { uploads.cleanup(id); }
 
     @Transactional(readOnly = true)
     public IPage<FileView> page(long page, long size, String search, String directoryId) {
@@ -101,7 +131,7 @@ public class FileService {
             if (error instanceof ApiException api) throw api;
             throw new ApiException(503, "文件写入失败，请稍后重试");
         }
-        // 重新查权；撤权/数据库失败则保留 UPLOADING，绝不返回假成功。
+        // 重新核验数据范围和状态；范围变化/数据库失败则保留 UPLOADING。
         return transactions.execute(status -> {
             FileEntry current = mapper.lock(file.getId());
             if (current == null || !"UPLOADING".equals(current.getState())) throw new ApiException(409, "上传记录状态已变化");

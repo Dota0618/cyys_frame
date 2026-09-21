@@ -31,19 +31,16 @@ public class MenuService {
 
     @Transactional(readOnly = true)
     public List<MenuView> all() {
-        security.authorize("menu:read");
         return mapper.all().stream().map(MenuView::from).toList();
     }
 
     @Transactional(readOnly = true)
     public MenuView detail(String id) {
-        security.authorize("menu:read");
         return MenuView.from(requireMenu(mapper.detail(id)));
     }
 
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public MenuView create(@Valid CreateMenuCommand command) {
-        security.authorize("menu:create");
         validateParent(command.parentId(), null, command.type());
         var menu = new SysMenu();
         menu.setId(IdWorker.getIdStr());
@@ -64,7 +61,6 @@ public class MenuService {
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public MenuView edit(@Valid UpdateMenuCommand command) {
         security.lockAdministratorGuard();
-        security.authorize("menu:update");
         SysMenu menu = requireMenu(mapper.lock(command.id()));
         if (!Objects.equals(menu.getVersion(), command.version())) throw new ApiException(409, "菜单版本已变更");
         validateParent(command.parentId(), menu.getId(), menu.getType());
@@ -81,7 +77,6 @@ public class MenuService {
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public void delete(String id, int version) {
         security.lockAdministratorGuard();
-        security.authorize("menu:delete");
         SysMenu menu = requireMenu(mapper.lock(id));
         if (!Objects.equals(menu.getVersion(), version)) throw new ApiException(409, "菜单版本已变更");
         if (mapper.hasChildren(id)) throw new ApiException(409, "菜单仍有子节点，不能删除");

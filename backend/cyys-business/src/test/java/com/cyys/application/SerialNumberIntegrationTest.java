@@ -151,7 +151,7 @@ class SerialNumberIntegrationTest extends IsolationTestSupport {
 
     private String next(SerialNumberService service,String user,String scope,String code) {
         as(user,scope);
-        DataPermissionContext.set("user:create",DataPolicyRegistry.View.CURRENT_SCOPE);
+        DataPermissionContext.set(DataPolicyRegistry.View.CURRENT_SCOPE);
         try { return service.next(code); }
         finally { DataPermissionContext.clear(); ScopeContext.clear(); }
     }

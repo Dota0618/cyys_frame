@@ -1,7 +1,6 @@
 package com.cyys.application;
 
 import com.cyys.admin.audit.service.DataAuditService;
-import com.cyys.admin.auth.service.PlatformSecurityService;
 import com.cyys.admin.dictionary.dto.*;
 import com.cyys.admin.dictionary.mapper.DictionaryMapper;
 import com.cyys.admin.dictionary.model.ParamBasic;
@@ -20,9 +19,8 @@ import static org.mockito.Mockito.*;
 
 class DictionaryProtectionServiceTest {
     private final DictionaryMapper mapper = mock(DictionaryMapper.class);
-    private final PlatformSecurityService security = mock(PlatformSecurityService.class);
     private final DataAuditService audit = mock(DataAuditService.class);
-    private final DictionaryService service = new DictionaryService(mapper, security, audit, mock(com.cyys.common.cache.CacheGroupService.class));
+    private final DictionaryService service = new DictionaryService(mapper, audit, mock(com.cyys.common.cache.CacheGroupService.class));
 
     @BeforeEach void identity() {
         ScopeContext.set(new RequestIdentity("actor", null, List.of("SUPER_ADMIN"), List.of()));
@@ -63,7 +61,6 @@ class DictionaryProtectionServiceTest {
     @Test void systemDictionaryRemainsReadable() {
         when(mapper.detail("1")).thenReturn(dictionary(true));
         assertThat(service.detail("1").systemBuiltin()).isTrue();
-        verify(security).authorize("dictionary:read");
     }
 
     @Test void businessDictionaryCanBeCreatedAndUpdated() {

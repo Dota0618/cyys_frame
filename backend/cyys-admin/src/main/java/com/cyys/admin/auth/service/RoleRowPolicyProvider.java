@@ -8,7 +8,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import static com.cyys.common.mybatis.DataPolicyRegistry.denied;
 
-/** 功能授权统一；用户数据范围决定可访问行，所选机构仅进一步缩小结果。 */
+/** 仅计算用户数据范围；功能权限由入口的 Sa-Token 注解检查。 */
 @Service
 public class RoleRowPolicyProvider implements RowPolicyProvider {
     private final ObjectProvider<DataAuthorizationMapper> lookups;
@@ -20,15 +20,14 @@ public class RoleRowPolicyProvider implements RowPolicyProvider {
     @Override
     public void authorize(DataPolicyRegistry.Policy policy, RequestIdentity identity) {
         var lookup = lookups.getObject();
-        if (!lookup.hasPermission(identity.loginId(), policy.permission())
-                || lookup.activeProfile(identity.loginId()) == null) throw denied("没有有效的用户资料或操作权限");
+        if (lookup.activeProfile(identity.loginId()) == null) throw denied("没有有效的用户资料");
         if (identity.scopeId() != null && !lookup.hasInstitutionAccess(identity.loginId(), identity.scopeId()))
             throw denied("所选机构已不在当前数据范围内");
-        if (policy.access() == DataPolicyRegistry.Access.WRITE) identity.requireScopeId();
+        if (policy.view() == DataPolicyRegistry.View.CURRENT_SCOPE) identity.requireScopeId();
     }
 
     /** 用于机构取号等没有业务行的操作；机构资格仍由当前用户数据范围核验。 */
-    public void authorizeCurrentScope(String permission, DataPolicyRegistry.Access access, RequestIdentity identity) {
+    public void authorizeCurrentScope(String permission, RequestIdentity identity) {
         var lookup = lookups.getObject();
         if (!lookup.hasPermission(identity.loginId(), permission)
                 || !lookup.hasInstitutionAccess(identity.loginId(), identity.requireScopeId()))
@@ -68,16 +67,7 @@ public class RoleRowPolicyProvider implements RowPolicyProvider {
                 + " and p.status=1 and p.deleted=0 and (p.data_range=0 or ("
                 + "exists(select 1 from sys_scope pol_home where pol_home.id=p.scope_id and pol_home.status=1 and pol_home.deleted=0)"
                 + " and ((" + sameInstitution + ") or (" + institutions + ")))))";
-        return "(" + filter + activeOwner + " and " + permission(actor, literal(policy.permission())) + " and " + range + ")";
-    }
-
-    private static String permission(String actor, String permission) {
-        return "exists(select 1 from sys_user_role pol_ur"
-                + " join sys_user pol_u on pol_u.id=pol_ur.user_id and pol_u.status=1 and pol_u.deleted=0"
-                + " join sys_role pol_r on pol_r.id=pol_ur.role_id and pol_r.status=1 and pol_r.deleted=0"
-                + " join sys_role_menu pol_rm on pol_rm.role_id=pol_r.id and pol_rm.deleted=0"
-                + " join sys_menu pol_m on pol_m.id=pol_rm.menu_id and pol_m.type=3 and pol_m.status=1 and pol_m.deleted=0"
-                + " where pol_ur.deleted=0 and pol_ur.user_id=" + actor + " and pol_m.code=" + permission + ")";
+        return "(" + filter + activeOwner + " and " + range + ")";
     }
 
     private static String literal(String value) { return "'" + value.replace("'", "''").replace("\\", "\\\\") + "'"; }

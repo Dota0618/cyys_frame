@@ -17,12 +17,16 @@ public class PlatformSecurityService {
     private final PlatformSecurityMapper mapper;
 
     public Set<String> authorize(String permission) {
-        var identity = ScopeContext.get();
-        var permissions = Set.copyOf(authorization.permissions(identity.loginId()));
+        var permissions = permissionCeiling();
         if (!permissions.contains(permission)) {
             throw new ApiException(403, "没有此管理操作的权限");
         }
         return permissions;
+    }
+
+    /** 授权管理使用实时权限上限；普通接口的操作权限由 Controller 检查。 */
+    public Set<String> permissionCeiling() {
+        return Set.copyOf(authorization.permissions(ScopeContext.get().loginId()));
     }
 
     public void lockAdministratorGuard() {

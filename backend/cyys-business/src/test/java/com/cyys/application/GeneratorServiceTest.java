@@ -1,9 +1,6 @@
 package com.cyys.application;
 
 import com.cyys.admin.audit.service.DataAuditService;
-import com.cyys.admin.auth.mapper.DataAuthorizationMapper;
-import com.cyys.admin.auth.mapper.PlatformSecurityMapper;
-import com.cyys.admin.auth.service.PlatformSecurityService;
 import com.cyys.admin.generator.dto.*;
 import com.cyys.admin.generator.mapper.GeneratorMetadataMapper;
 import com.cyys.admin.generator.service.*;
@@ -18,46 +15,27 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class GeneratorServiceTest {
-    private final DataAuthorizationMapper authorization=mock(DataAuthorizationMapper.class);
     private final GeneratorMetadataMapper metadata=mock(GeneratorMetadataMapper.class);
     private final DataAuditService audit=mock(DataAuditService.class);
     private final GeneratorService service=new GeneratorService(
-            new PlatformSecurityService(authorization,mock(PlatformSecurityMapper.class)),metadata,
+            metadata,
             new GeneratorRenderer(JsonMapper.builder().build()),audit);
 
     private void identity() {
         ScopeContext.set(new RequestIdentity("actor","unit-a",List.of(),List.of("generator:read","generator:generate")));
     }
-    private final Set<String> granted = new HashSet<>();
-    private void grant(String permission) {
-        granted.add(permission);
-        when(authorization.permissions("actor")).thenAnswer(call -> List.copyOf(granted));
-        when(authorization.hasPermission("actor", "platform:scope:access")).thenReturn(true);
-        when(authorization.hasPermission("actor", permission)).thenReturn(true);
-    }
     @AfterEach void clear() { ScopeContext.clear(); }
 
-    @Test void missingOperationGrantCannotReadMetadataOrGenerate() {
+    @Test void previewDoesNotWriteAudit() {
         identity();
-        assertThatThrownBy(service::tables).isInstanceOf(ApiException.class);
-        assertThatThrownBy(()->service.download(GeneratorRendererTest.sample(GeneratorLayout.LIST))).isInstanceOf(ApiException.class);
-        verifyNoInteractions(metadata,audit);
-    }
-
-    @Test void previewGrantDoesNotGrantDownloadAndRevocationPreventsDelivery() {
-        identity();grant("generator:read");
         var command=GeneratorRendererTest.sample(GeneratorLayout.LIST);
         when(metadata.columns(command.table())).thenReturn(List.of());
         assertThat(service.preview(command).files()).isNotEmpty();
-        assertThatThrownBy(()->service.download(command)).isInstanceOf(ApiException.class);
-        grant("generator:generate");
-        when(authorization.permissions("actor")).thenReturn(List.of("generator:generate"), List.of());
-        assertThatThrownBy(()->service.download(command)).isInstanceOf(ApiException.class);
         verifyNoInteractions(audit);
     }
 
     @Test void downloadAuditsSuccessAndRejectsExistingTableConflict() {
-        identity();grant("generator:generate");
+        identity();
         var command=GeneratorRendererTest.sample(GeneratorLayout.LIST);
         when(metadata.columns(command.table())).thenReturn(List.of());
         assertThat(service.download(command)).startsWith((byte)'P',(byte)'K');
@@ -69,7 +47,7 @@ class GeneratorServiceTest {
     }
 
     @Test void existingTableRequiresFullCompatibleSchemaAndEmitsNoDdl() {
-        identity();grant("generator:read");
+        identity();
         var source=GeneratorRendererTest.sample(GeneratorLayout.TREE);
         var command=new GenerateCodeCommand(source.table(),source.feature(),source.className(),source.title(),source.layout(),true,source.fields());
         var columns=new ArrayList<GeneratorColumn>();

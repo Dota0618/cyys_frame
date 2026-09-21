@@ -6,7 +6,7 @@ import com.cyys.admin.notice.model.SystemNotice;
 import com.cyys.common.mybatis.ManualDataScope;
 import org.apache.ibatis.annotations.*;
 
-/** 全局内容：入口必须经 PlatformSecurityService 核验 GLOBAL 操作权限。 */
+/** 系统共享内容，操作权限由 Controller 的 Sa-Token 注解检查。 */
 @Mapper
 @ManualDataScope
 public interface SystemNoticeMapper {

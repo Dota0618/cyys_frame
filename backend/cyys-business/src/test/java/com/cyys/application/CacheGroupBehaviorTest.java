@@ -196,7 +196,7 @@ class CacheGroupBehaviorTest {
         when(mapper.softDelete(anyString(), anyInt(), anyString())).thenReturn(1);
         when(mapper.createItem(any(), anyString())).thenReturn(1); when(mapper.updateItem(any(), anyString())).thenReturn(1);
         when(mapper.deleteItem(anyString(), anyString(), anyInt(), anyString())).thenReturn(1);
-        var service = new DictionaryService(mapper, mock(PlatformSecurityService.class), mock(DataAuditService.class), groups);
+        var service = new DictionaryService(mapper, mock(DataAuditService.class), groups);
         for (boolean rollback : List.of(true, false)) {
             seed();
             tx.executeWithoutResult(status -> {
@@ -225,8 +225,7 @@ class CacheGroupBehaviorTest {
         when(mapper.insert(any(SysUserScope.class))).thenReturn(1);
         when(mapper.lockForEdit("m")).thenReturn(row); when(mapper.updateById(any(SysUserScope.class))).thenReturn(1);
         when(accounts.accountNames(anyList())).thenReturn(List.of(new MemberOption("u", "login")));
-        var service = new MemberService(mapper, accounts, mock(MemberDepartmentMapper.class), mock(RowPolicyProvider.class),
-                mock(DataPolicyRegistry.class), mock(com.cyys.admin.role.service.RoleGrantService.class), mock(DataAuditService.class),
+        var service = new MemberService(mapper, accounts, mock(MemberDepartmentMapper.class), mock(com.cyys.admin.role.service.RoleGrantService.class), mock(DataAuditService.class),
                 groups, mock(MemberDataPermissionService.class), mock(PlatformSecurityService.class));
         for (boolean rollback : List.of(true, false)) {
             seed();

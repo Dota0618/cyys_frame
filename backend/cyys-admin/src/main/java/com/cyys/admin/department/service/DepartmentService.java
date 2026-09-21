@@ -18,9 +18,6 @@ import com.cyys.admin.department.mapper.DepartmentLeaderMapper;
 import com.cyys.admin.department.mapper.DepartmentReferenceMapper;
 import com.cyys.admin.department.mapper.SysOrgMapper;
 import com.cyys.admin.department.model.SysOrg;
-import com.cyys.common.mybatis.DataPolicyRegistry;
-import com.cyys.common.mybatis.DataTransactionGuard;
-import com.cyys.common.mybatis.RowPolicyProvider;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.web.ApiException;
 import jakarta.validation.Valid;
@@ -42,8 +39,6 @@ public class DepartmentService {
     private final SysOrgMapper mapper;
     private final DepartmentLeaderMapper leaders;
     private final DepartmentReferenceMapper references;
-    private final RowPolicyProvider policy;
-    private final DataPolicyRegistry registry;
     private final DataAuditService audit;
     private final CacheGroupService caches;
 
@@ -76,7 +71,6 @@ public class DepartmentService {
 
     @Transactional(readOnly = true)
     public List<DepartmentLeaderOption> leaderOptionsForCreate(@Size(max = 100) String search) {
-        authorize("department:create", DataPolicyRegistry.Access.WRITE);
         return leaders.activeOptions(ScopeContext.get().requireScopeId(), search);
     }
 
@@ -110,7 +104,6 @@ public class DepartmentService {
 
     private DepartmentView insert(CreateDepartmentCommand command) {
         var identity = ScopeContext.get();
-        authorize("department:create", DataPolicyRegistry.Access.WRITE);
         SysOrg parent = null;
         if (command.parentId() != null) {
             parent = mapper.parentForCreate(command.parentId());
@@ -176,12 +169,4 @@ public class DepartmentService {
     private void requireEligibleLeader(String scope, String leaderId) {
         if (leaders.eligibleForShare(scope, leaderId) == null) throw new ApiException(403, "负责人不是当前单位的有效成员");
     }
-
-    private void authorize(String permission, DataPolicyRegistry.Access access) {
-        var identity = ScopeContext.get();
-        DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);
-        policy.authorize(new DataPolicyRegistry.Policy(registry.resource(SysOrg.class), permission, access,
-                DataPolicyRegistry.View.CURRENT_SCOPE), identity);
-    }
-
 }

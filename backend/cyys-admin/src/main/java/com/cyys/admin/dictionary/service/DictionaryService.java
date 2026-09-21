@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
-import com.cyys.admin.auth.service.PlatformSecurityService;
 import com.cyys.admin.dictionary.dto.*;
 import com.cyys.admin.dictionary.mapper.DictionaryMapper;
 import com.cyys.admin.dictionary.model.ParamBasic;
@@ -20,25 +19,21 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class DictionaryService {
     private final DictionaryMapper mapper;
-    private final PlatformSecurityService security;
     private final DataAuditService audit;
     private final com.cyys.common.cache.CacheGroupService cache;
 
     @Transactional(readOnly = true)
     public IPage<DictionaryView> page(int page, int size, String name) {
-        security.authorize("dictionary:read");
         return mapper.page(new Page<ParamBasic>(page, size), name).convert(DictionaryView::from);
     }
 
     @Transactional(readOnly = true)
     public DictionaryView detail(String id) {
-        security.authorize("dictionary:read");
         return DictionaryView.from(requireDictionary(mapper.detail(id)));
     }
 
     @Transactional
     public DictionaryView create(CreateDictionaryCommand command) {
-        security.authorize("dictionary:create");
         var row = new ParamBasic();
         // 旧工程的分类编号由用户输入，保留其字符串 ID 语义。
         row.setId(command.id());
@@ -57,7 +52,6 @@ public class DictionaryService {
 
     @Transactional
     public DictionaryView update(String id, UpdateDictionaryCommand command) {
-        security.authorize("dictionary:update");
         ParamBasic row = requireWritableDictionary(mapper.lock(id));
         row.setVersion(command.version());
         row.setName(command.name());
@@ -71,7 +65,6 @@ public class DictionaryService {
 
     @Transactional
     public void delete(String id, int version) {
-        security.authorize("dictionary:delete");
         requireWritableDictionary(mapper.lock(id));
         if (mapper.firstItem(id) != null) throw new ApiException(409, "字典仍有字典项，不能删除");
         requireOne(mapper.softDelete(id, version, actor()));
@@ -81,7 +74,6 @@ public class DictionaryService {
 
     @Transactional(readOnly = true)
     public IPage<DictionaryItemView> items(String basicId, int page, int size, String paramValue) {
-        security.authorize("dictionary:read");
         requireDictionary(mapper.detail(basicId));
         return mapper.items(new Page<ParamBasicType>(page, size), basicId, paramValue)
                 .convert(DictionaryItemView::from);
@@ -89,14 +81,12 @@ public class DictionaryService {
 
     @Transactional(readOnly = true)
     public DictionaryItemView item(String basicId, String id) {
-        security.authorize("dictionary:read");
         requireDictionary(mapper.detail(basicId));
         return DictionaryItemView.from(requireItem(mapper.item(basicId, id)));
     }
 
     @Transactional
     public DictionaryItemView createItem(String basicId, CreateDictionaryItemCommand command) {
-        security.authorize("dictionary:create");
         requireWritableDictionary(mapper.lock(basicId));
         var row = new ParamBasicType();
         row.setId(IdWorker.getIdStr());
@@ -117,7 +107,6 @@ public class DictionaryService {
 
     @Transactional
     public DictionaryItemView updateItem(String basicId, String id, UpdateDictionaryItemCommand command) {
-        security.authorize("dictionary:update");
         requireWritableDictionary(mapper.lock(basicId));
         ParamBasicType row = requireItem(mapper.item(basicId, id));
         row.setVersion(command.version());
@@ -133,7 +122,6 @@ public class DictionaryService {
 
     @Transactional
     public void deleteItem(String basicId, String id, int version) {
-        security.authorize("dictionary:delete");
         requireWritableDictionary(mapper.lock(basicId));
         requireOne(mapper.deleteItem(basicId, id, version, actor()));
         audit.platformSuccess("dictionary-item", id, "DELETE");

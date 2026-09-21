@@ -21,7 +21,7 @@ class UnifiedRoleServiceTest {
 
     @BeforeEach void identity() {
         ScopeContext.set(new RequestIdentity("actor", "institution-a", List.of(), List.of()));
-        when(security.authorize("role:grant")).thenReturn(Set.of("user:read", "role:grant"));
+        when(security.permissionCeiling()).thenReturn(Set.of("user:read", "role:grant"));
         when(mapper.lockAccount("target")).thenReturn(new AccountRow("target", "target", "用户", 1));
     }
     @AfterEach void clear() { ScopeContext.clear(); }

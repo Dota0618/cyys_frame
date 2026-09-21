@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
-import com.cyys.admin.auth.service.PlatformSecurityService;
 import com.cyys.admin.scope.dto.*;
 import com.cyys.admin.scope.mapper.ScopeManagementMapper;
 import com.cyys.admin.scope.model.SysScope;
@@ -21,25 +20,21 @@ import java.util.Arrays;
 @Service
 @RequiredArgsConstructor
 public class ScopeManagementService {
-    private final PlatformSecurityService security;
     private final ScopeManagementMapper mapper;
     private final DataAuditService audit;
 
     @Transactional(readOnly=true)
     public List<ScopeView> tree() {
-        security.authorize("platform:scope:read");
         return mapper.tree().stream().map(ScopeView::from).toList();
     }
 
     @Transactional(readOnly=true)
     public IPage<ScopeView> page(int page,int size,String search) {
-        security.authorize("platform:scope:read");
         return mapper.page(new Page<SysScope>(page,size),search).convert(ScopeView::from);
     }
 
     @Transactional
     public ScopeView create(CreateScopeCommand command) {
-        security.authorize("platform:scope:create");
         if("GLOBAL".equalsIgnoreCase(command.code())) throw new ApiException(400,"GLOBAL 为平台保留编码");
         var tree=lockTree();
         if("0".equals(command.parentId()) && !tree.isEmpty())
@@ -57,7 +52,6 @@ public class ScopeManagementService {
 
     @Transactional
     public ScopeView update(String id,UpdateScopeCommand command) {
-        security.authorize("platform:scope:update");
         var tree=lockTree();
         var row=tree.stream().filter(item->item.getId().equals(id)).findFirst().orElse(null);
         if(row==null) throw new ApiException(404,"机构不存在");

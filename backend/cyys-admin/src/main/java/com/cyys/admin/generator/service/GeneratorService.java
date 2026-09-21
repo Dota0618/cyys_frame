@@ -1,7 +1,6 @@
 package com.cyys.admin.generator.service;
 
 import com.cyys.admin.audit.service.DataAuditService;
-import com.cyys.admin.auth.service.PlatformSecurityService;
 import com.cyys.admin.generator.dto.*;
 import com.cyys.admin.generator.mapper.GeneratorMetadataMapper;
 import com.cyys.common.web.ApiException;
@@ -13,14 +12,12 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class GeneratorService {
-    private final PlatformSecurityService security;
     private final GeneratorMetadataMapper metadata;
     private final GeneratorRenderer renderer;
     private final DataAuditService audit;
 
     @Transactional(readOnly=true)
     public List<GeneratorTable> tables() {
-        security.authorize("generator:read");
         var rows=metadata.tables();
         if(rows.size()>200) throw new ApiException(422,"业务表超过 200 张，请按项目拆分生成任务");
         return rows;
@@ -28,7 +25,6 @@ public class GeneratorService {
 
     @Transactional(readOnly=true)
     public List<GeneratorColumn> columns(String table) {
-        security.authorize("generator:read");
         if(!table.matches("biz_[a-z][a-z0-9_]{0,43}")) throw new ApiException(400,"请选择业务表");
         var columns=metadata.columns(table);
         if(columns.isEmpty()) throw new ApiException(404,"业务表不存在");
@@ -38,19 +34,15 @@ public class GeneratorService {
 
     @Transactional(readOnly=true)
     public GeneratorPreview preview(GenerateCodeCommand command) {
-        security.authorize("generator:read");
         checkSchema(command);
         var result=renderer.preview(command);
-        security.authorize("generator:read");
         return result;
     }
 
     @Transactional
     public byte[] download(GenerateCodeCommand command) {
-        security.authorize("generator:generate");
         checkSchema(command);
         byte[] result=renderer.zip(command);
-        security.authorize("generator:generate");
         audit.platformSuccess("generator",command.feature(),"GENERATE");
         return result;
     }

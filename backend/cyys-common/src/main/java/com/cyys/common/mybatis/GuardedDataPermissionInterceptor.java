@@ -53,6 +53,7 @@ public final class GuardedDataPermissionInterceptor extends DataPermissionInterc
         if (mapped.getStatementType() != org.apache.ibatis.mapping.StatementType.PREPARED) throw denied("业务不支持原生或存储过程语句");
         var policy = registry.policy(mapped);
         if (policy == null) return;
+        registry.initialize(mapped.getConfiguration());
         var identity = ScopeContext.get();
         DataTransactionGuard.bind(identity, policy.view());
         provider.authorize(policy, identity);
@@ -67,13 +68,16 @@ public final class GuardedDataPermissionInterceptor extends DataPermissionInterc
             var sources = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<Table, Boolean>());
             new TablesNamesFinder<Void>() {
                 @Override public <S> Void visit(Table table, S context) {
-                    checkTable(table, policy.resource());
+                    checkTable(table);
                     // JSQLParser 对 JOIN 的同一个 Table 节点可能回访；按 AST 节点计数。
                     if (sources.add(table)) expected.merge(table.toString(), 1, Integer::sum);
                     return super.visit(table, context);
                 }
             }.getTables(sql);
             if (expected.isEmpty()) throw denied("受保护查询缺少数据源");
+            if (sources.stream().noneMatch(table -> SqlWriteGuard.name(table.getName()).equals(policy.resource().table()))) {
+                throw denied("SQL 缺少 Mapper 声明的主资源");
+            }
             if (mapped.getSqlCommandType() != SqlCommandType.SELECT) {
                 SqlWriteGuard.check(sql, mapped, bound, policy.resource());
             } else if (!(sql instanceof Select)) {
@@ -81,12 +85,13 @@ public final class GuardedDataPermissionInterceptor extends DataPermissionInterc
             }
             Map<String, Integer> visited = new HashMap<>();
             var rewriter = new DataPermissionInterceptor((MultiDataPermissionHandler) (table, where, statementId) -> {
-                checkTable(table, policy.resource());
+                DataResource resource = checkTable(table);
                 visited.merge(table.toString(), 1, Integer::sum);
                 String qualifier = table.getAlias() == null ? table.getName() : table.getAlias().getName();
                 if (!qualifier.matches("`?[A-Za-z_][A-Za-z0-9_]*`?")) throw denied("不支持的数据源别名");
                 try {
-                    return CCJSqlParserUtil.parseCondExpression(provider.predicate(policy, identity, qualifier));
+                    return CCJSqlParserUtil.parseCondExpression(provider.predicate(
+                            new DataPolicyRegistry.Policy(resource, policy.access(), policy.view()), identity, qualifier));
                 } catch (Exception exception) {
                     throw denied("无法构建行级授权条件");
                 }
@@ -107,9 +112,8 @@ public final class GuardedDataPermissionInterceptor extends DataPermissionInterc
         }
     }
 
-    private void checkTable(Table table, DataResource resource) {
-        if (table.getSchemaName() != null || !SqlWriteGuard.name(table.getName()).equals(resource.table())) {
-            throw denied("SQL 引用了未登记或不属于本资源的数据源");
-        }
+    private DataResource checkTable(Table table) {
+        if (table.getSchemaName() != null) throw denied("SQL 不支持跨数据库访问");
+        return registry.table(table.getName());
     }
 }

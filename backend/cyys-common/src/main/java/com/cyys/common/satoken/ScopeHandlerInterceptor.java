@@ -1,6 +1,5 @@
 package com.cyys.common.satoken;
 
-import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.stp.StpUtil;
 import com.cyys.common.mybatis.DataPermissionContext;
 import com.cyys.common.mybatis.DataPolicyRegistry;
@@ -34,13 +33,8 @@ public class ScopeHandlerInterceptor implements HandlerInterceptor {
             identity.requireScopeId();
         }
         ScopeContext.set(identity);
-        if (handler instanceof org.springframework.web.method.HandlerMethod method) {
-            SaCheckPermission required = method.getMethodAnnotation(SaCheckPermission.class);
-            if (required != null && required.value().length == 1) {
-                DataPermissionContext.set(required.value()[0], globalRead
-                        ? DataPolicyRegistry.View.AUTHORIZED_SCOPES : DataPolicyRegistry.View.CURRENT_SCOPE);
-            }
-        }
+        DataPermissionContext.set(globalRead
+                ? DataPolicyRegistry.View.AUTHORIZED_SCOPES : DataPolicyRegistry.View.CURRENT_SCOPE);
         return true;
     }
 }

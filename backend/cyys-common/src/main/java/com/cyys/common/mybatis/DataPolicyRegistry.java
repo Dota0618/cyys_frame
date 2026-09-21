@@ -16,6 +16,23 @@ public final class DataPolicyRegistry {
     private final Map<Class<?>, DataResource> resources = new ConcurrentHashMap<>();
     private final Map<String, Class<?>> names = new ConcurrentHashMap<>();
     private final Map<String, Class<?>> tables = new ConcurrentHashMap<>();
+    private final Set<org.apache.ibatis.session.Configuration> initialized = ConcurrentHashMap.newKeySet();
+
+    /** 从已注册 Mapper 自动收集表配置，关联查询无需逐方法登记。 */
+    public synchronized void initialize(org.apache.ibatis.session.Configuration configuration) {
+        if (initialized.contains(configuration)) return;
+        for (Class<?> mapper : configuration.getMapperRegistry().getMappers()) {
+            ProtectedMapper definition = mapper.getAnnotation(ProtectedMapper.class);
+            if (definition != null) resource(definition.value());
+        }
+        initialized.add(configuration);
+    }
+
+    public DataResource table(String table) {
+        Class<?> type = tables.get(SqlWriteGuard.name(table));
+        if (type == null) throw denied("SQL 引用了未登记的数据源");
+        return resource(type);
+    }
 
     /** 返回 null 表示该 Mapper 已声明由业务 SQL 自行限定数据范围。 */
     public Policy policy(MappedStatement statement) {
@@ -28,15 +45,15 @@ public final class DataPolicyRegistry {
         if (manual) return null;
 
         DataPermissionContext.Current current = DataPermissionContext.get();
-        Access access = current.access();
         SqlCommandType command = statement.getSqlCommandType();
-        if (access == Access.READ && command != SqlCommandType.SELECT) {
-            throw denied("只读功能权限不能执行写入 SQL");
-        }
+        Access access = command == SqlCommandType.SELECT ? Access.READ : Access.WRITE;
         if (current.view() == View.AUTHORIZED_SCOPES && access != Access.READ) {
             throw denied("跨单位视图只允许读取");
         }
-        return new Policy(resource(automatic.value()), current.permission(), access, current.view());
+        if (access == Access.WRITE && org.springframework.transaction.support.TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
+            throw denied("只读事务不能执行写入 SQL");
+        }
+        return new Policy(resource(automatic.value()), access, current.view());
     }
 
     public DataResource resource(Class<?> type) {
@@ -51,7 +68,7 @@ public final class DataPolicyRegistry {
         }
         DataResource resource;
         try {
-            resource = new DataResource(definition.name(), tableName.value(), definition.scopeColumn(),
+            resource = new DataResource(definition.name().isBlank() ? tableName.value() : definition.name(), tableName.value(), definition.scopeColumn(),
                     definition.departmentColumn(), blankToNull(definition.ancestorsColumn()), definition.actorColumn(),
                     blankToNull(definition.versionColumn()), Set.of(definition.immutableColumns()));
         } catch (IllegalArgumentException exception) {
@@ -88,5 +105,5 @@ public final class DataPolicyRegistry {
 
     public enum Access { READ, WRITE }
     public enum View { CURRENT_SCOPE, AUTHORIZED_SCOPES }
-    public record Policy(DataResource resource, String permission, Access access, View view) {}
+    public record Policy(DataResource resource, Access access, View view) {}
 }

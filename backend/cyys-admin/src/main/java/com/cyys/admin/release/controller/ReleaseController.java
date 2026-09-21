@@ -29,19 +29,17 @@ public class ReleaseController {
     @GetMapping("/{id}") @SaCheckPermission("release:read")
     public Object detail(@PathVariable String id) { return R.ok(service.detail(id)); }
 
-    @GetMapping("/create-options") @SaCheckPermission("release:create")
-    public Object createOptions() { return R.ok(service.options(null)); }
+    @GetMapping({"/create-options", "/{id}/edit-options"})
+    @SaCheckPermission(value = {"release:create", "release:update"}, mode = cn.dev33.satoken.annotation.SaMode.OR)
+    public Object options(@PathVariable(required = false) String id) { return R.ok(service.options(id)); }
 
-    @GetMapping("/{id}/edit-options") @SaCheckPermission("release:update")
-    public Object editOptions(@PathVariable String id) { return R.ok(service.options(id)); }
-
-    @GetMapping("/create-files") @SaCheckPermission("release:create")
+    @GetMapping("/create-files") @SaCheckPermission({"release:create", "file:read", "file:content:read"})
     public Object createFiles(@RequestParam(defaultValue="1") @Min(1) int page,
                               @RequestParam(defaultValue="20") @Min(1) @Max(100) int size,
                               @RequestParam(required=false) @Size(max=200) String search) {
         return R.ok(service.fileOptions(null,page,size,search));
     }
-    @GetMapping("/{id}/edit-files") @SaCheckPermission("release:update")
+    @GetMapping("/{id}/edit-files") @SaCheckPermission({"release:update", "file:read", "file:content:read"})
     public Object editFiles(@PathVariable String id,@RequestParam(defaultValue="1") @Min(1) int page,
                             @RequestParam(defaultValue="20") @Min(1) @Max(100) int size,
                             @RequestParam(required=false) @Size(max=200) String search) {

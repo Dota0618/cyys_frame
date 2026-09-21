@@ -48,12 +48,12 @@ public class SerialNumberService {
         if (rule == null) throw new ApiException(409, "流水号业务规则未配置");
         var identity = ScopeContext.get();
         var operation = DataPermissionContext.get();
-        if (operation.view() != DataPolicyRegistry.View.CURRENT_SCOPE || operation.access() != DataPolicyRegistry.Access.WRITE
-                || !rule.permission().equals(operation.permission())) throw new ApiException(403, "当前业务操作不能申请此流水号");
+        if (operation.view() != DataPolicyRegistry.View.CURRENT_SCOPE)
+            throw new ApiException(403, "跨机构查询不能申请流水号");
         String scope = identity.requireScopeId();
         if ("GLOBAL".equals(scope)) throw new ApiException(403, "流水号必须归属真实单位");
         DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);
-        authorization.authorizeCurrentScope(rule.permission(), DataPolicyRegistry.Access.WRITE, identity);
+        authorization.authorizeCurrentScope(rule.permission(), identity);
         if (!scope.equals(numbers.lockActiveScope(scope))) throw new ApiException(403, "流水号所属单位不可用");
         numbers.ensureRule(scope, businessCode, rule, identity.loginId());
         var saved = numbers.lockRule(scope, businessCode);
@@ -75,7 +75,7 @@ public class SerialNumberService {
         long maximum = Long.parseLong("9".repeat(rule.width()));
         if (counter.sequenceValue() >= maximum) throw new ApiException(409, "当前周期流水号已耗尽");
         long next = counter.sequenceValue() + 1;
-        authorization.authorizeCurrentScope(rule.permission(), DataPolicyRegistry.Access.WRITE, identity);
+        authorization.authorizeCurrentScope(rule.permission(), identity);
         if (numbers.advance(counter.id(), scope, businessCode, period, counter.sequenceValue(), next, identity.loginId()) != 1) {
             throw new ApiException(409, "流水号状态已变化，请重试");
         }

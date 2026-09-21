@@ -3,7 +3,6 @@ package com.cyys.admin.auth.controller;
 import com.cyys.admin.auth.dto.LoginCmd;
 import com.cyys.admin.auth.dto.LoginVO;
 import com.cyys.admin.auth.dto.ChangePasswordCommand;
-import com.cyys.admin.auth.service.PasswordService;
 import com.cyys.common.web.AccountOperation;
 import com.cyys.admin.auth.service.AuthService;
 import com.cyys.common.web.R;
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
-    private final PasswordService passwords;
 
     @PostMapping("/login")
     public R<LoginVO> login(@Valid @RequestBody LoginCmd command, HttpServletRequest request) {
@@ -45,6 +43,6 @@ public class AuthController {
     @PostMapping("/password")
     @AccountOperation
     public R<Void> password(@Valid @RequestBody ChangePasswordCommand command) {
-        passwords.change(command); return R.ok();
+        authService.changePassword(command); return R.ok();
     }
 }

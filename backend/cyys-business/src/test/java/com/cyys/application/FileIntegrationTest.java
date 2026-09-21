@@ -357,7 +357,7 @@ class FileIntegrationTest extends IsolationTestSupport {
         };
         try(var worker=Executors.newSingleThreadExecutor()) {
             var upload=worker.submit(() -> {
-                as("u-alice","scope-a"); DataPermissionContext.set("file:upload",DataPolicyRegistry.View.CURRENT_SCOPE);
+                as("u-alice","scope-a"); DataPermissionContext.set(DataPolicyRegistry.View.CURRENT_SCOPE);
                 try { return fileService.upload(source,null); }
                 finally { ScopeContext.clear(); DataPermissionContext.clear(); }
             });

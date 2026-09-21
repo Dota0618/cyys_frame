@@ -9,9 +9,7 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("sys_org")
-@DataResourceDefinition(name = "department", scopeColumn = "scope_id",
-        departmentColumn = "id", ancestorsColumn = "ancestors", actorColumn = "created_by",
-        versionColumn = "version", immutableColumns = {"parent_id", "ancestors"})
+@DataResourceDefinition(name = "department", departmentColumn = "id", ancestorsColumn = "ancestors", immutableColumns = {"parent_id", "ancestors"})
 /**
  * Organization tree inside one scope.
  * 单个业务单位内的组织树。

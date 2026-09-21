@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
-import com.cyys.admin.auth.service.PlatformSecurityService;
 import com.cyys.admin.configuration.dto.*;
 import com.cyys.admin.configuration.mapper.ConfigureMapper;
 import com.cyys.admin.configuration.model.Configure;
@@ -19,24 +18,20 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ConfigurationService {
     private final ConfigureMapper mapper;
-    private final PlatformSecurityService security;
     private final DataAuditService audit;
 
     @Transactional(readOnly = true)
     public IPage<ConfigurationView> page(int page, int size, String name) {
-        security.authorize("configuration:read");
         return mapper.page(new Page<Configure>(page, size), name).convert(ConfigurationView::from);
     }
 
     @Transactional(readOnly = true)
     public ConfigurationView detail(String id) {
-        security.authorize("configuration:read");
         return ConfigurationView.from(require(id));
     }
 
     @Transactional
     public ConfigurationView create(CreateConfigurationCommand command) {
-        security.authorize("configuration:create");
         var row = new Configure();
         row.setId(IdWorker.getIdStr());
         row.setName(command.name());
@@ -55,7 +50,6 @@ public class ConfigurationService {
 
     @Transactional
     public ConfigurationView update(String id, UpdateConfigurationCommand command) {
-        security.authorize("configuration:update");
         Configure row = require(id);
         row.setVersion(command.version());
         row.setValue(command.value());
@@ -70,7 +64,6 @@ public class ConfigurationService {
 
     @Transactional
     public void delete(String id, int version) {
-        security.authorize("configuration:delete");
         requireOne(mapper.softDelete(id, version, actor()));
         audit.platformSuccess("configuration", id, "DELETE");
     }

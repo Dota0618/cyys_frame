@@ -21,6 +21,7 @@ final class SqlWriteGuard {
                       DataResource resource) {
         Expression where;
         if (sql instanceof Update update) {
+            if (!name(update.getTable().getName()).equals(resource.table())) throw denied("写入目标必须是 Mapper 声明的主资源");
             if (update.getJoins() != null || update.getStartJoins() != null || update.getFromItem() != null) {
                 throw denied("普通写入不支持多表 UPDATE");
             }
@@ -33,6 +34,7 @@ final class SqlWriteGuard {
             }
             where = update.getWhere();
         } else if (sql instanceof Delete delete) {
+            if (!name(delete.getTable().getName()).equals(resource.table())) throw denied("写入目标必须是 Mapper 声明的主资源");
             if (delete.getJoins() != null || (delete.getTables() != null && !delete.getTables().isEmpty())) {
                 throw denied("普通写入不支持多表 DELETE");
             }

@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
-import com.cyys.admin.auth.service.PlatformSecurityService;
 import com.cyys.admin.dictionary.dto.DictionaryOption;
 import com.cyys.admin.dictionary.service.DictionaryLookupService;
 import com.cyys.admin.notice.dto.*;
@@ -24,32 +23,27 @@ public class SystemNoticeService {
     private static final String TYPES = "SYSTEM_NOTICE_TYPE";
     private final SystemNoticeMapper notices;
     private final DictionaryLookupService dictionaries;
-    private final PlatformSecurityService security;
     private final DataAuditService audit;
 
     @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public IPage<SystemNoticeView> page(long page, long size, String title) {
-        security.authorize("system-notice:read");
         var result = notices.page(new Page<SystemNotice>(page, size), title);
         return result.convert(this::view);
     }
 
     @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public SystemNoticeView detail(String id) {
-        security.authorize("system-notice:read");
         return view(require(id));
     }
 
     @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public List<DictionaryOption> options(String id) {
-        security.authorize(id == null ? "system-notice:create" : "system-notice:update");
         if (id != null) require(id);
         return dictionaries.options(TYPES);
     }
 
     @Transactional
     public SystemNoticeView create(CreateSystemNoticeCommand command) {
-        security.authorize("system-notice:create");
         var row = new SystemNotice();
         row.setId(IdWorker.getIdStr());
         row.setTitle(command.title().strip());
@@ -63,7 +57,6 @@ public class SystemNoticeService {
 
     @Transactional
     public SystemNoticeView update(String id, UpdateSystemNoticeCommand command) {
-        security.authorize("system-notice:update");
         var row = require(id);
         row.setVersion(command.version());
         row.setTitle(command.title().strip());
@@ -78,7 +71,6 @@ public class SystemNoticeService {
 
     @Transactional
     public void delete(String id, int version) {
-        security.authorize("system-notice:delete");
         require(id);
         requireOne(notices.softDelete(id, version, ScopeContext.get().loginId()));
         audit.platformSuccess("system-notice", id, "DELETE");

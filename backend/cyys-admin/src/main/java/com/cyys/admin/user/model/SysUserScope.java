@@ -9,9 +9,7 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("sys_user_scope")
-@DataResourceDefinition(name = "user", scopeColumn = "scope_id",
-        departmentColumn = "org_id", actorColumn = "user_id", versionColumn = "version",
-        immutableColumns = {"user_id", "data_range"})
+@DataResourceDefinition(name = "user", actorColumn = "user_id", immutableColumns = {"user_id", "data_range"})
 /**
  * One home institution and data range per user.
  * 用户唯一的所属机构、部门和数据范围。

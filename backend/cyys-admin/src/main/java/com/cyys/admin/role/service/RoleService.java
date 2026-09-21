@@ -37,7 +37,6 @@ public class RoleService {
 
     @Transactional(readOnly = true)
     public IPage<RoleView> page(@Valid RoleQuery query) {
-        security.authorize("role:read");
         Page<SysRole> page = new Page<>(query.page(), query.size());
         page.setOptimizeCountSql(false);
         return mapper.page(page, query.search()).convert(RoleView::from);
@@ -45,15 +44,15 @@ public class RoleService {
 
     @Transactional(readOnly = true)
     public RoleDetail detail(String id) {
-        Set<String> ceiling = security.authorize("role:read");
+        Set<String> ceiling = security.permissionCeiling();
         SysRole role = requireRole(mapper.detail(id));
         return new RoleDetail(RoleView.from(role), mapper.menuIds(id),
                 withinCeiling(List.of(id), ceiling));
     }
 
     @Transactional(readOnly = true)
-    public RoleOptions options(String permission) {
-        Set<String> ceiling = security.authorize(permission);
+    public RoleOptions options() {
+        Set<String> ceiling = security.permissionCeiling();
         return new RoleOptions(mapper.menus().stream()
                 .filter(menu -> menu.type() != 3 || ceiling.contains(menu.code()))
                 .toList());
@@ -61,7 +60,7 @@ public class RoleService {
 
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public RoleView create(@Valid CreateRoleCommand command) {
-        Set<String> ceiling = security.authorize("role:create");
+        Set<String> ceiling = security.permissionCeiling();
         validateSelections(command.menuIds(), ceiling);
         var role = new SysRole();
         role.setId(IdWorker.getIdStr());
@@ -80,7 +79,7 @@ public class RoleService {
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public RoleView edit(@Valid UpdateRoleCommand command) {
         security.lockAdministratorGuard();
-        Set<String> ceiling = security.authorize("role:update");
+        Set<String> ceiling = security.permissionCeiling();
         SysRole role = requireRole(mapper.lock(command.id()));
         if (!Objects.equals(role.getVersion(), command.version())) throw new ApiException(409, "角色版本已变更");
         requireWithinCeiling(role.getId(), ceiling);
@@ -101,7 +100,7 @@ public class RoleService {
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public void delete(String id, int version) {
         security.lockAdministratorGuard();
-        Set<String> ceiling = security.authorize("role:delete");
+        Set<String> ceiling = security.permissionCeiling();
         SysRole role = requireRole(mapper.lock(id));
         if (!Objects.equals(role.getVersion(), version)) throw new ApiException(409, "角色版本已变更");
         requireWithinCeiling(id, ceiling);
@@ -114,7 +113,6 @@ public class RoleService {
 
     @Transactional(readOnly = true)
     public IPage<AccountView> accounts(@Valid RoleQuery query) {
-        security.authorize("role:grant");
         security.requireAllDataRange();
         Page<AccountRow> page = new Page<>(query.page(), query.size());
         page.setOptimizeCountSql(false);
@@ -125,7 +123,7 @@ public class RoleService {
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public void assign(String userId, @Valid AssignRolesCommand command) {
         security.lockAdministratorGuard();
-        Set<String> ceiling = security.authorize("role:grant");
+        Set<String> ceiling = security.permissionCeiling();
         security.requireAllDataRange();
         assignAuthorized(userId, command.roleIds(), ceiling);
     }
