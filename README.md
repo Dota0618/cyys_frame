@@ -9,6 +9,7 @@ I often build Java applications for standalone projects, and I see many that are
 
 ## 开发入口
 
+- 首次准备环境和构建：见[目录与构建](docs/development/project-build.md)。
 - 地区使用平台共享的逐级分页与旧字段。成员/地区同步 XLSX 导出各需独立权限，最多 5000 条、服务端固定字段；成员导出使用当前单位和操作对应的行范围，生成后复核授权及可见性。全部单位只读视图不导出。
 - 通用流水号按用户要求已实现，使用数据库事务和唯一约束保证单位/业务/周期计数；服务器配置规则，业务 Service 调用，无任意取号 HTTP 接口。旧“系统编号”实际是微信 AppID/AppSecret 配置，随微信接入暂缓。
 - 个人改密需验证原密码；平台管理员重置只输入目标账号的新密码与确认，不再输入管理员自身密码。改密/重置后旧会话失效。
@@ -17,7 +18,7 @@ I often build Java applications for standalone projects, and I see many that are
 - 生成器沿用平台权限：`platform:scope:access` + `generator:read`（元数据/预览），下载另需 `generator:generate` 并记录审计。不创建默认账号，不自动授权，不写入工程或执行 SQL；生成后的业务代码按包内 `INTEGRATION.md` 合入并做实际业务与单位隔离验收。生成配置随下载包保存，无额外配置表或数据库迁移。
 - [部署与回滚顺序](deploy/README.md) 提供 Linux + Docker + Nginx 配置、本机恢复脚本与集中验收入口；当前会话为进程内存储，只部署一个 API 实例。两 JVM 流水号验收不代表分布式登录会话已接入。
 
-- 开发节点使用本地 Git 提交保存，不再另存源码快照。现有 `docs/` 忽略设置保留；未跟踪文档不包含在提交中。
+- 开发节点使用本地 Git 提交保存，不再另存源码快照。开发规则和必要模板清单随仓库保存，其余本机记录继续忽略。
 
 - 查阅本轮交付：见 [最终验收对照](docs/migration/final-acceptance.md) 和 [实际进度](docs/migration/progress.md)；临时改造规则已结束，后续按现有开发指南执行。
 - 后续功能开发：按任务查询 [开发规则索引](docs/development/README.md)，单项指南在能力稳定并获用户批准后建立。

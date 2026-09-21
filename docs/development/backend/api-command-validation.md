@@ -1,5 +1,9 @@
 # API 命令与输入校验
 
+- admin 包使用 `com.cyys.admin.<功能>.<职责>`。
+- 业务包使用 `com.cyys.modules.<功能>.<职责>`。
+- 按需使用 controller、model、dto、service、mapper，不增加空层。
+- common 只提供技术能力，不查询 admin 业务表。
 - Controller 只调用一个主要 Service。
 - 请求体基础约束写在 DTO，由 Controller 的 `@Valid` 触发。
 - 路径和查询参数在 Controller 校验。
