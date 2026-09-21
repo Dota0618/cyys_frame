@@ -1,4 +1,5 @@
 param(
+    [ValidateSet('web', 'api', 'all')][string]$Target = 'all',
     [Parameter(Mandatory)][uri]$BaseUrl,
     [Parameter(Mandatory)][string]$ReportPath,
     [switch]$LocalCertificate,
@@ -32,11 +33,14 @@ function Check([string]$Path, [int]$Status, [string]$Type, [string]$Method = 'GE
 try {
     if ($ExpectUnavailable) { Check '/api/health' 503 'application/json' }
     else {
+        if ($Target -ne 'web') {
         Check '/api/health' 200 'application/json'
-        Check '/system/users' 200 'text/html'
-        Check '/missing-acceptance.js' 404 'text/html'
         Check '/api' 404 'application/json'
         Check '/api/auth/me' 401 'application/json'
+        }
+        if ($Target -ne 'api') {
+        Check '/system/users' 200 'text/html'
+        Check '/missing-acceptance.js' 404 'text/html'
         Check '/v3/api-docs' 404 'text/html'
         Check '/.env' 404 'text/html'
         Check '/api/admin/files' 413 'application/json' 'POST' ([byte[]]::new(22MB))
@@ -48,9 +52,10 @@ try {
             $results.Add([ordered]@{path=$redirect.AbsoluteUri; status=[int]$response.StatusCode; location=$response.Headers.Location.AbsoluteUri; passed=$passed})
             if (-not $passed) { throw 'HTTP did not redirect to the expected HTTPS URL.' }
         } finally { $response.Dispose() }
+        }
     }
 } finally {
-    [ordered]@{time=[DateTimeOffset]::Now.ToString('o'); baseUrl=$BaseUrl.AbsoluteUri; checks=@($results.ToArray())} |
+    [ordered]@{time=[DateTimeOffset]::Now.ToString('o'); target=$Target; baseUrl=$BaseUrl.AbsoluteUri; checks=@($results.ToArray())} |
         ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $ReportPath -Encoding utf8
     $client.Dispose(); $handler.Dispose()
 }

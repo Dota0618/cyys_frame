@@ -3,10 +3,14 @@
 在项目根目录的 PowerShell 7.4+ 中执行：
 
 ```powershell
-./scripts/deploy-dev.ps1
+./scripts/deploy-dev.ps1 web   # 只更新前端
+./scripts/deploy-dev.ps1 api   # 只更新后端
+./scripts/deploy-dev.ps1 all   # 前后端一起更新
 ```
 
-命令复用本机 Docker Desktop Linux 环境，完成后端打包、前端类型检查与构建、镜像构建、停服务备份、容器更新和 HTTP 检查。成功后访问 https://localhost/，重新登录。
+命令复用本机 Docker Desktop Linux 环境，只构建和替换指定的服务。前端部署不重启 API、不操作数据库；后端部署先备份数据库和附件，保留 Web 容器。成功后访问 https://localhost/，仅 API 重启后需要重新登录。
+
+必须指定 `web`、`api` 或 `all`，不默认更新全部。前端检查静态页面和 Nginx，后端通过已有 Web 代理检查 API。
 
 默认更新现有 `cyys-local-acceptance` 项目。优先使用 `deploy/.env.dev`；未创建时沿用已有的 `backend/cyys-business/target/docker-local/.env`。日常运行不重新配置环境；前端依赖只在缺失或锁文件变化时安装。
 
@@ -21,9 +25,9 @@
 
 ## 排查与恢复
 
-仅检查配置：`./scripts/deploy-dev.ps1 -Mode Check`。仅构建产物：`./scripts/deploy-dev.ps1 -Mode Build`。这两个模式均不停止或更新服务。
+按目标追加 `-Mode Check` 仅检查配置，追加 `-Mode Build` 仅构建产物；均不停止或更新服务。
 
-结果和日志在 `backend/logs/dev-*/`，停服务后的数据库、附件、部署配置和凭据备份在 `deploy/.local/dev-*/`，均不提交。部署期间不要启动其他连接同库的写入进程。
+结果和日志在 `backend/logs/dev-*/`，备份在 `deploy/.local/dev-*/`，均不提交。前端仅备份部署配置和 TLS 文件；涉及后端时才停服务备份数据库、附件和后端凭据，此期间不要启动其他同库写入进程。
 
 构建失败保留旧服务；备份失败尝试恢复原先运行的服务。新服务启动失败时保留现场，不自动回滚数据库。`previous.env` 保存旧镜像配置，`next.env` 保存本轮镜像配置；数据库迁移后的恢复须配套恢复数据库、附件、配置及对应镜像。
 

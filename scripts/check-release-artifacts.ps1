@@ -1,10 +1,11 @@
+param([ValidateSet('web', 'api', 'all')][string]$Target = 'all')
 $ErrorActionPreference = 'Stop'
 $framework = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $backend = Join-Path $framework 'backend'
 $jar = Join-Path $backend 'cyys-business\target\cyys-business.jar'
 $dist = Join-Path $framework 'admin-ui\dist'
+if ($Target -ne 'web') {
 if (!(Test-Path -LiteralPath $jar -PathType Leaf)) { throw 'Executable JAR is missing.' }
-if (!(Test-Path -LiteralPath (Join-Path $dist 'index.html') -PathType Leaf)) { throw 'Built frontend index.html is missing.' }
 
 $archive = [IO.Compression.ZipFile]::OpenRead($jar)
 try {
@@ -46,7 +47,11 @@ foreach ($module in @('cyys-common','cyys-admin')) {
         }
     } finally { $library.Dispose() }
 }
+}
+if ($Target -ne 'api') {
+if (!(Test-Path -LiteralPath (Join-Path $dist 'index.html') -PathType Leaf)) { throw 'Built frontend index.html is missing.' }
 if (@(Get-ChildItem -LiteralPath $dist -Recurse -File | Where-Object { $_.Name -like '.env*' -or $_.Extension -in '.pem','.p12','.pfx','.key','.jks' }).Count -gt 0) {
     throw 'Frontend output contains an environment or credential file.'
 }
-Write-Output 'Release structure verified: one executable backend, ordinary libraries, exact migration resources and frontend entry.'
+}
+Write-Output "Release structure verified: $Target."
