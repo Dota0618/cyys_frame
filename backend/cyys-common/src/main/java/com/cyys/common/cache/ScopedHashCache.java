@@ -7,103 +7,93 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
 
-/** 单位范围的有界 Hash 缓存；Redis 不可用时统一降级为未命中。 */
+/** 有界 Hash 按需回源；区域代次阻止失效前开始的查询再次填入旧值。 */
 @Component
 @RequiredArgsConstructor
 public final class ScopedHashCache {
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(ScopedHashCache.class);
     private static final int MAX_ENTRIES = 10_000;
+    private static final int MAX_VALUE_BYTES = 256 * 1024;
     private static final long TTL_SECONDS = Duration.ofMinutes(10).toSeconds();
-    private static final DefaultRedisScript<Long> FILL_SCRIPT = fillScript();
+    private static final String GENERATION = "@generation";
+    private static final DefaultRedisScript<String> OPEN_SCRIPT = script("redis/bounded-hash-open.lua", String.class);
+    private static final DefaultRedisScript<Long> FILL_SCRIPT = script("redis/bounded-hash-fill.lua", Long.class);
     private final StringRedisTemplate redis;
     private final CacheKeys keys;
 
-    public Map<String, String> getUnit(String region, List<String> fields) {
+    public Map<String, String> getOrLoad(CacheRegion region, List<String> fields,
+                                       Function<List<String>, Map<String, String>> loader) {
         if (fields.isEmpty()) return Map.of();
+        var unique = fields.stream().distinct().toList();
+        if (unique.contains(GENERATION)) throw new IllegalArgumentException("保留缓存字段");
+        // 写事务可能读到自身未提交修改；未知/RR 隔离级别也可能回填旧事务快照。
+        if (TransactionSynchronizationManager.isActualTransactionActive()
+                && (!TransactionSynchronizationManager.isCurrentTransactionReadOnly()
+                || !Integer.valueOf(java.sql.Connection.TRANSACTION_READ_COMMITTED).equals(
+                    TransactionSynchronizationManager.getCurrentTransactionIsolationLevel())))
+            return Map.copyOf(loader.apply(unique));
+        String key = key(region);
+        String generation = null;
+        Map<String, String> result = new LinkedHashMap<>();
         try {
-            List<String> cached = redis.<String, String>opsForHash().multiGet(keys.unit(region), fields);
-            if (cached == null) return Map.of();
-            Map<String, String> result = new LinkedHashMap<>();
-            for (int index = 0; index < fields.size(); index++) {
-                String value = cached.get(index);
-                if (value != null) result.put(fields.get(index), value);
+            generation = redis.execute(OPEN_SCRIPT, List.of(key), UUID.randomUUID().toString(), Long.toString(TTL_SECONDS));
+            List<String> cached = redis.<String, String>opsForHash().multiGet(key, unique);
+            if (cached != null) for (int i = 0; i < unique.size(); i++) {
+                if (cached.get(i) != null) result.put(unique.get(i), cached.get(i));
             }
-            return Map.copyOf(result);
         } catch (DataAccessException unavailable) {
-            LOG.warn("Cache read unavailable; falling back to source, region={}", region);
-            return Map.of();
+            generation = null;
+            LOG.warn("Cache read unavailable; falling back to source, region={}", region.id());
         }
+        List<String> missing = unique.stream().filter(field -> !result.containsKey(field)).toList();
+        if (!missing.isEmpty()) {
+            Map<String, String> loaded = loader.apply(missing);
+            result.putAll(loaded);
+            if (generation != null && !loaded.isEmpty()) fill(key, generation, loaded, region.id());
+        }
+        return Map.copyOf(result);
     }
 
-    public void putUnit(String region, Map<String, String> values) {
-        if (values.isEmpty()) return;
-        var arguments = new ArrayList<String>(2 + values.size() * 2);
+    private void fill(String key, String generation, Map<String, String> values, String region) {
+        var arguments = new ArrayList<String>();
         arguments.add(Integer.toString(MAX_ENTRIES));
-        arguments.add(Long.toString(TTL_SECONDS));
+        arguments.add(generation);
         values.forEach((field, value) -> {
-            arguments.add(field);
-            arguments.add(value);
-        });
-        try {
-            Long stored = redis.execute(FILL_SCRIPT, List.of(keys.unit(region)), arguments.toArray());
-            if (!Long.valueOf(1).equals(stored)) {
-                LOG.warn("Cache region capacity reached; skipping fill, region={}", region);
+            if (!GENERATION.equals(field) && value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= MAX_VALUE_BYTES) {
+                arguments.add(field); arguments.add(value);
             }
+        });
+        if (arguments.size() == 2) return;
+        try {
+            redis.execute(FILL_SCRIPT, List.of(key), arguments.toArray());
         } catch (DataAccessException unavailable) {
             LOG.warn("Cache fill unavailable; continuing without cache, region={}", region);
         }
     }
 
-    public void evictUnit(String region) {
-        evict(keys.unit(region), region, false);
+    List<String> groupKeys(CacheGroup group) { return group.regions().stream().map(this::key).distinct().toList(); }
+    private String key(CacheRegion region) {
+        return region.scope() == CacheScope.UNIT ? keys.unit(region.id()) : keys.platform(region.id());
     }
 
-    private void evict(String key, String region, boolean required) {
+    void evict(List<String> groupKeys, boolean required) {
         try {
-            redis.delete(key);
+            // 单次 DEL 覆盖固定组内键；不扫描，不触及会话或其他单位。
+            if (redis.delete(groupKeys) == null) throw new org.springframework.data.redis.RedisSystemException("Missing eviction result", null);
         } catch (DataAccessException unavailable) {
-            if (required) {
-                throw new com.cyys.common.web.ApiException(503, "缓存服务暂不可用，请稍后重试");
-            }
-            LOG.warn("Cache eviction unavailable; entry remains bounded by TTL, region={}", region);
+            if (required) throw new com.cyys.common.web.ApiException(503, "缓存服务暂不可用，请稍后重试");
+            LOG.warn("Cache group eviction unavailable; entries remain bounded by TTL, regions={}", groupKeys.size());
         }
     }
 
-    public void evictUnitAfterCommit(String region) {
-        evictAfterCommit(region, false);
-    }
-
-    /** 显式管理操作必须报告 Redis 失败，不能将后台失效的容错语义作为成功响应。 */
-    public void refreshUnitAfterCommit(String region) {
-        evictAfterCommit(region, true);
-    }
-
-    private void evictAfterCommit(String region, boolean required) {
-        String key = keys.unit(region);
-        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
-            evict(key, region, required);
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override public void afterCommit() {
-                evict(key, region, required);
-            }
-        });
-    }
-
-    private static DefaultRedisScript<Long> fillScript() {
-        var script = new DefaultRedisScript<Long>();
-        script.setLocation(new ClassPathResource("redis/bounded-hash-fill.lua"));
-        script.setResultType(Long.class);
-        return script;
+    private static <T> DefaultRedisScript<T> script(String path, Class<T> type) {
+        var script = new DefaultRedisScript<T>();
+        script.setLocation(new ClassPathResource(path)); script.setResultType(type); return script;
     }
 }

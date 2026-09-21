@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
 import com.cyys.admin.auth.service.PlatformSecurityService;
 import com.cyys.admin.dictionary.dto.DictionaryOption;
-import com.cyys.admin.dictionary.mapper.DictionaryOptionMapper;
+import com.cyys.admin.dictionary.service.DictionaryLookupService;
 import com.cyys.admin.notice.dto.*;
 import com.cyys.admin.notice.mapper.SystemNoticeMapper;
 import com.cyys.admin.notice.model.SystemNotice;
@@ -26,11 +26,11 @@ import java.util.stream.Collectors;
 public class SystemNoticeService {
     private static final String TYPES = "SYSTEM_NOTICE_TYPE";
     private final SystemNoticeMapper notices;
-    private final DictionaryOptionMapper dictionaries;
+    private final DictionaryLookupService dictionaries;
     private final PlatformSecurityService security;
     private final DataAuditService audit;
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public IPage<SystemNoticeView> page(long page, long size, String title) {
         security.authorize("system-notice:read");
         var result = notices.page(new Page<SystemNotice>(page, size), title);
@@ -38,13 +38,13 @@ public class SystemNoticeService {
         return result.convert(row -> view(row, labels));
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public SystemNoticeView detail(String id) {
         security.authorize("system-notice:read");
         return view(require(id));
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public List<DictionaryOption> options(String id) {
         security.authorize(id == null ? "system-notice:create" : "system-notice:update");
         if (id != null) require(id);

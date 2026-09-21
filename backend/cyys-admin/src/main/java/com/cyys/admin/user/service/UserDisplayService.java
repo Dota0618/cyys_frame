@@ -3,6 +3,7 @@ package com.cyys.admin.user.service;
 import com.cyys.admin.auth.mapper.DataAuthorizationMapper;
 import com.cyys.admin.user.mapper.UserDisplayMapper;
 import com.cyys.common.cache.ScopedHashCache;
+import com.cyys.admin.cache.service.BusinessCacheGroups;
 import com.cyys.common.mybatis.DataPolicyRegistry;
 import com.cyys.common.mybatis.DataTransactionGuard;
 import com.cyys.common.satoken.ScopeContext;
@@ -22,7 +23,6 @@ import java.util.Map;
 @Validated
 @RequiredArgsConstructor
 public class UserDisplayService {
-    private static final String CACHE_REGION = "user-display";
     private final UserDisplayMapper mapper;
     private final DataAuthorizationMapper authorization;
     private final ScopedHashCache cache;
@@ -33,28 +33,11 @@ public class UserDisplayService {
         if (mapper.visibleMembers(ScopeContext.get().requireScopeId(), unique).size() != unique.size()) {
             throw new ApiException(403, "请求包含不可访问的单位成员");
         }
-        Map<String,String> values = new LinkedHashMap<>();
-        values.putAll(cache.getUnit(CACHE_REGION, unique));
-        List<String> missing = unique.stream().filter(id -> !values.containsKey(id)).toList();
-        if (!missing.isEmpty()) {
+        return cache.getOrLoad(BusinessCacheGroups.USER_NAMES, unique, missing -> {
             Map<String,String> loaded = new LinkedHashMap<>();
             mapper.labels(ScopeContext.get().requireScopeId(),missing).forEach(label -> loaded.put(label.id(), label.name()));
-            values.putAll(loaded);
-            if (!loaded.isEmpty()) {
-                cache.putUnit(CACHE_REGION, loaded);
-            }
-        }
-        return Map.copyOf(values);
-    }
-
-    public void refreshCurrentUnit() {
-        require("cache:user:refresh");
-        cache.refreshUnitAfterCommit(CACHE_REGION);
-    }
-
-    @org.springframework.transaction.annotation.Transactional(propagation=org.springframework.transaction.annotation.Propagation.MANDATORY)
-    public void invalidateAfterCommit() {
-        cache.evictUnitAfterCommit(CACHE_REGION);
+            return loaded;
+        });
     }
 
     private void require(String permission) {

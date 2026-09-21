@@ -51,7 +51,7 @@ public class MemberService {
     private final DataPolicyRegistry registry;
     private final RoleGrantService grants;
     private final DataAuditService audit;
-    private final UserDisplayService cache;
+    private final com.cyys.common.cache.CacheGroupService cache;
     private final MemberDataPermissionService dataPermissions;
     private final com.cyys.admin.auth.service.PlatformSecurityService security;
 
@@ -127,6 +127,7 @@ public class MemberService {
         } catch(DataIntegrityViolationException error) { throw new ApiException(409,"登录账号不可使用"); }
         saveDataPermission(member, command.dataPermission());
         audit.success("user",member.getId(),"CREATE");
+        cache.invalidateAfterCommit(com.cyys.admin.cache.service.BusinessCacheGroups.USERS);
         return view(member,Map.of(member.getUserId(),command.loginName()));
     }
 
@@ -144,7 +145,7 @@ public class MemberService {
         saveDataPermission(member, command.dataPermission());
         security.requireUsableAdministrator();
         audit.success("user",id,"UPDATE");
-        cache.invalidateAfterCommit();
+        cache.invalidateAfterCommit(com.cyys.admin.cache.service.BusinessCacheGroups.USERS);
         return view(member,names(List.of(member)));
     }
 

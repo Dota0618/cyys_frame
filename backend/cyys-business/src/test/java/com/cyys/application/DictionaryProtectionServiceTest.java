@@ -22,7 +22,7 @@ class DictionaryProtectionServiceTest {
     private final DictionaryMapper mapper = mock(DictionaryMapper.class);
     private final PlatformSecurityService security = mock(PlatformSecurityService.class);
     private final DataAuditService audit = mock(DataAuditService.class);
-    private final DictionaryService service = new DictionaryService(mapper, security, audit);
+    private final DictionaryService service = new DictionaryService(mapper, security, audit, mock(com.cyys.common.cache.CacheGroupService.class));
 
     @BeforeEach void identity() {
         ScopeContext.set(new RequestIdentity("actor", null, List.of("SUPER_ADMIN"), List.of()));

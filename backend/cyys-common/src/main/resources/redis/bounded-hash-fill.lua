@@ -1,5 +1,6 @@
 local maximum = tonumber(ARGV[1])
-local ttl = tonumber(ARGV[2])
+-- DEL 或 TTL 到期后禁止旧查询回填；新读会取得不同的代次。
+if redis.call('HGET', KEYS[1], '@generation') ~= ARGV[2] then return -1 end
 local additions = 0
 
 for index = 3, #ARGV, 2 do
@@ -8,12 +9,9 @@ for index = 3, #ARGV, 2 do
     end
 end
 
-if redis.call('HLEN', KEYS[1]) + additions > maximum then
+if redis.call('HLEN', KEYS[1]) - 1 + additions > maximum then
     return 0
 end
 
 redis.call('HSET', KEYS[1], unpack(ARGV, 3))
-if redis.call('TTL', KEYS[1]) < 0 then
-    redis.call('EXPIRE', KEYS[1], ttl)
-end
 return 1

@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
 import com.cyys.admin.auth.service.PlatformSecurityService;
 import com.cyys.admin.dictionary.dto.DictionaryOption;
-import com.cyys.admin.dictionary.mapper.DictionaryOptionMapper;
+import com.cyys.admin.dictionary.service.DictionaryLookupService;
 import com.cyys.admin.file.dto.FileOption;
 import com.cyys.admin.file.service.FileAttachmentService;
 import com.cyys.admin.file.service.FileService;
@@ -28,11 +28,11 @@ public class ReleaseService {
     private static final String TYPES = "VERSION_TYPE";
     private final ReleaseMapper releases;
     private final PlatformSecurityService security;
-    private final DictionaryOptionMapper dictionaries;
+    private final DictionaryLookupService dictionaries;
     private final FileAttachmentService attachments;
     private final DataAuditService audit;
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public IPage<ReleaseView> page(long page,long size,String number) {
         security.authorize("release:read");
         var result=releases.page(new Page<Release>(page,size),number);
@@ -40,19 +40,19 @@ public class ReleaseService {
         return result.convert(row -> view(row,labels));
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public ReleaseDetail detail(String id) {
         security.authorize("release:read");
         return detail(require(id,false));
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public List<DictionaryOption> options(String id) {
         authorizeEdit(id);
         return dictionaries.options(TYPES);
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public IPage<FileOption> fileOptions(String id,long page,long size,String search) {
         authorizeEdit(id);
         security.authorize("file:read");
@@ -102,7 +102,7 @@ public class ReleaseService {
         audit.platformSuccess("release",id,"DELETE");
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public FileService.Download download(String id,String file) {
         security.authorize("release:read");
         require(id,false);

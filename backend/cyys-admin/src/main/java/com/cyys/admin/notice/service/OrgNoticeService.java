@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
 import com.cyys.admin.department.mapper.SysOrgMapper;
 import com.cyys.admin.dictionary.dto.DictionaryOption;
-import com.cyys.admin.dictionary.mapper.DictionaryOptionMapper;
+import com.cyys.admin.dictionary.service.DictionaryLookupService;
 import com.cyys.admin.file.dto.FileOption;
 import com.cyys.admin.file.model.AttachmentResource;
 import com.cyys.admin.file.service.FileAttachmentService;
@@ -30,11 +30,11 @@ public class OrgNoticeService {
     private final OrgNoticeMapper notices;
     private final OrgNoticeReadMapper reads;
     private final SysOrgMapper departments;
-    private final DictionaryOptionMapper dictionaries;
+    private final DictionaryLookupService dictionaries;
     private final FileAttachmentService attachments;
     private final DataAuditService audit;
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public IPage<OrgNoticeView> page(long page,long size,String title) {
         var paging=new Page<OrgNotice>(page,size); paging.setOptimizeCountSql(false);
         var result=notices.selectPage(paging,new QueryWrapper<OrgNotice>()
@@ -43,16 +43,16 @@ public class OrgNoticeService {
         return result.convert(notice -> views.get(notice.getId()));
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public OrgNoticeDetail detail(String id) { return detail(require(id,false)); }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public OrgNoticeOptions options(String id) {
         if(id!=null) require(id,false);
         return new OrgNoticeOptions(id==null?departments.parentOptionsForCreate():List.of(),dictionaries.options(TYPES));
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public IPage<FileOption> fileOptions(String id,long page,long size,String search) {
         if(id!=null) require(id,false);
         return attachments.options(page,size,search);
@@ -97,13 +97,13 @@ public class OrgNoticeService {
         reads.read(notice.getScopeId(),id,ScopeContext.get().loginId());
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public IPage<OrgNoticeReadView> readers(String id,long page,long size) {
         var notice=require(id,false); var paging=new Page<OrgNoticeReadView>(page,size); paging.setOptimizeCountSql(false);
         return reads.page(paging,notice.getScopeId(),id);
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public FileService.Download download(String id,String file) {
         require(id,false);
         return attachments.download(AttachmentResource.ORG_NOTICE,id,file);

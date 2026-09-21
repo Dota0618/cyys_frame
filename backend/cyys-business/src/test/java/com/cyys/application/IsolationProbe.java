@@ -26,6 +26,7 @@ public class IsolationProbe {
     private final UnknownResourceProbeMapper unknownResource;
     private final RoleGrantService grants;
     private final UserDisplayService users;
+    private final com.cyys.admin.cache.service.CacheManagementService caches;
 
     @GetMapping("/departments")
     @SaCheckPermission("department:read")
@@ -80,5 +81,5 @@ public class IsolationProbe {
     @GetMapping("/user-names")
     Object names(@RequestParam List<String> ids) { return R.ok(users.names(ids)); }
     @PostMapping("/user-cache-refresh")
-    Object refresh() { users.refreshCurrentUnit(); return R.ok(); }
+    Object refresh() { caches.refresh("user-display"); return R.ok(); }
 }

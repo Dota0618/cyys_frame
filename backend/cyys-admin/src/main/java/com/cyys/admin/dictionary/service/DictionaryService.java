@@ -22,6 +22,7 @@ public class DictionaryService {
     private final DictionaryMapper mapper;
     private final PlatformSecurityService security;
     private final DataAuditService audit;
+    private final com.cyys.common.cache.CacheGroupService cache;
 
     @Transactional(readOnly = true)
     public IPage<DictionaryView> page(int page, int size, String name) {
@@ -50,6 +51,7 @@ public class DictionaryService {
             throw new ApiException(409, "字典编号或内部名称已存在（包含已删除记录）");
         }
         audit.platformSuccess("dictionary", row.getId(), "CREATE");
+        cache.invalidateAfterCommit(com.cyys.admin.cache.service.BusinessCacheGroups.DICTIONARIES);
         return DictionaryView.from(row);
     }
 
@@ -63,6 +65,7 @@ public class DictionaryService {
         requireOne(mapper.update(row, actor()));
         row.setVersion(command.version() + 1);
         audit.platformSuccess("dictionary", id, "UPDATE");
+        cache.invalidateAfterCommit(com.cyys.admin.cache.service.BusinessCacheGroups.DICTIONARIES);
         return DictionaryView.from(row);
     }
 
@@ -73,6 +76,7 @@ public class DictionaryService {
         if (mapper.firstItem(id) != null) throw new ApiException(409, "字典仍有字典项，不能删除");
         requireOne(mapper.softDelete(id, version, actor()));
         audit.platformSuccess("dictionary", id, "DELETE");
+        cache.invalidateAfterCommit(com.cyys.admin.cache.service.BusinessCacheGroups.DICTIONARIES);
     }
 
     @Transactional(readOnly = true)
@@ -107,6 +111,7 @@ public class DictionaryService {
             throw new ApiException(409, "当前字典内该编码已存在（包含已删除记录）");
         }
         audit.platformSuccess("dictionary-item", row.getId(), "CREATE");
+        cache.invalidateAfterCommit(com.cyys.admin.cache.service.BusinessCacheGroups.DICTIONARIES);
         return DictionaryItemView.from(row);
     }
 
@@ -122,6 +127,7 @@ public class DictionaryService {
         requireOne(mapper.updateItem(row, actor()));
         row.setVersion(command.version() + 1);
         audit.platformSuccess("dictionary-item", id, "UPDATE");
+        cache.invalidateAfterCommit(com.cyys.admin.cache.service.BusinessCacheGroups.DICTIONARIES);
         return DictionaryItemView.from(row);
     }
 
@@ -131,6 +137,7 @@ public class DictionaryService {
         requireWritableDictionary(mapper.lock(basicId));
         requireOne(mapper.deleteItem(basicId, id, version, actor()));
         audit.platformSuccess("dictionary-item", id, "DELETE");
+        cache.invalidateAfterCommit(com.cyys.admin.cache.service.BusinessCacheGroups.DICTIONARIES);
     }
 
     // 所有写入在取得父记录锁后检查；平台超级管理员同样不能修改内置字典。

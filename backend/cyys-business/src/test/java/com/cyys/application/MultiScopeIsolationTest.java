@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.*;
         properties={"cyys.data-isolation.mode=multi","cyys.data-isolation.single-scope-id="})
 @DirtiesContext(classMode=DirtiesContext.ClassMode.AFTER_CLASS)
 class MultiScopeIsolationTest extends IsolationTestSupport {
+    @Autowired com.cyys.common.cache.CacheGroupService groups;
     @Autowired DepartmentService departments;
     @Autowired UserDisplayService users;
     @Autowired PlatformTransactionManager transactions;
@@ -200,7 +201,7 @@ class MultiScopeIsolationTest extends IsolationTestSupport {
         assertThat(call("GET","/user-names?ids=u-alice",alice,"scope-a",null).status()).isEqualTo(403);
         jdbc.update("update sys_menu set status=1 where code='user:display:read'");
         as("u-alice","scope-a");
-        try { new TransactionTemplate(transactions).executeWithoutResult(status -> {users.refreshCurrentUnit();status.setRollbackOnly();}); }
+        try { new TransactionTemplate(transactions).executeWithoutResult(status -> {groups.invalidateAfterCommit(com.cyys.admin.cache.service.BusinessCacheGroups.USERS);status.setRollbackOnly();}); }
         finally { ScopeContext.clear(); }
         assertThat(redis.hasKey(a)).isTrue();
         ok("POST","/user-cache-refresh",alice,"scope-a",null);
