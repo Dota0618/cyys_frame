@@ -1,6 +1,8 @@
 # Linux / Docker / Nginx 部署准备
 
-最新本机版本：API/Web 均为 single-root-20260921，数据库 V26，地址 https://localhost/。机构树只有一个实际总单位；沿用现有“测试单位”，master 归属总单位且权限保持全系统。升级前备份 before-single-root-20260921.sql，23 项定向检查及数据保留核对通过。下方为历次部署记录。
+最新本机版本：API/Web 均为 `cache-groups-20260921`，数据库仍为 V26，地址 https://localhost/。用户/字典缓存分组已接入事务提交后自动失效，默认下次读取时加载；共享字典刷新还需字典管理权限。旧镜像和 `.env.before-cache-groups-20260921` 保留，数据源、账号和文件挂载配置不变。
+
+本轮 28 项缓存/字典保护/架构定向检查、前端类型检查及生产构建、缓存页面 Ant lint、发布产物结构检查通过。Redis/Lua 使用独立随机缓存命名空间验证；事务同步由 Spring JDBC 事务管理器配合模拟数据库连接验证，未运行需要清库的历史数据库套件。部署后 9 项 HTTP 检查通过，停旧 API 后记录的 26 张完整表指纹与新 API 启动后完全一致；当前本地私有文件目录为空。证据位于 `backend/logs/cache-tests.log`、`cache-ui-typecheck.log`、`cache-ui-build.log`、`cache-antd.json`、`cache-deployment-http.json` 和 `cache-preservation.properties`。未做登录后的页面操作回归。本次无数据库迁移，应用重启后进程内会话需要重新登录；缓存组刷新本身不触及会话键。
 ## 当前机构模型版本（2026-09-21）
 
 当前本机地址仍为 https://localhost/，API 镜像为 `organization-20260921`，Web 为 `organization-20260921-2`，Flyway V25。使用统一账号和角色、机构树、单一用户资料及数据范围；右上角是机构筛选。生成器暂停，旧平台角色与跨单位权限入口退出。下方按日期保留的 single/multi、平台角色和旧镜像记录是历史验收，不是当前部署配置。

@@ -262,4 +262,3 @@ class CacheGroupBehaviorTest {
         verify(mapper, never()).labels(anyString(), anyList());
     }
 }
-
