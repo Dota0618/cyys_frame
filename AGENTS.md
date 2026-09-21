@@ -31,7 +31,7 @@ Spring Boot backend migration workspace under `F:\git\frame\cyys-framework\`.
 
 ## Constraints
 
-- Latest user scope (2026-09-20): unit-notice development is resumed by the user's "start unit notification" request. Reuse the existing unit-scoped CRUD, attachments and first-read receipts. System notices remain platform-maintained shared content with no read tracking or receipts. Omit holiday management; code generation and guide pages remain paused.
+- Latest user scope (2026-09-21): code-generator development is resumed and deployment to local Docker is requested. Unit notices were already resumed; reuse their scoped CRUD, attachments and first-read receipts. System notices remain platform-maintained shared content with no read tracking or receipts. Omit holiday management; guide pages remain paused.
 - Keep verification proportional: compile/typecheck during development; defer page-operation/browser tests and full regression to final acceptance, as requested on 2026-09-20. Do not repeatedly run tests after small edits.
 - Password reset: administrators do not re-enter their own password; require the independent platform reset permission and only ask for the target account's new password and confirmation. Personal password changes still verify the current password.
 

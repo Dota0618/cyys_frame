@@ -2,6 +2,10 @@
 
 用户于 2026-09-20 确认该部署方式，并指定本机 Docker 演练。已在 Docker Desktop Linux 引擎构建并启动 api/web、连接现有 MySQL/Redis，通过 HTTPS/静态路由/未登录拒绝/413 JSON 和 API 停机重建检查；仅绑定本机地址，没有连接生产主机、新建数据库或执行上线。专属 A/B 单位样本与附件的停写备份恢复、多/单单位来回切换已通过；这不等于真实旧库生产切换。用户本轮选择的基础数据已导入现有测试库并核对，见 [迁移记录](../docs/migration/legacy-basic-data.md)；生产切换另需真实环境和维护窗口。
 
+2026-09-21：代码生成器和单位通知页面更新已部署到同一本机 Compose 项目 `cyys-local-acceptance`，API/web 镜像分别为 `cyys-framework-api:generator-20260921`、`cyys-framework-web:generator-20260921`。生成器入口 `https://localhost/system/generator`。沿用登录/平台权限，不创建账号、不绕过登录；本轮无新迁移，启动校验现有 17 个脚本、版本 V18。旧 `local-acceptance` 镜像保留，忽略目录 `backend/cyys-business/target/docker-local/` 内保留旧环境文件 `.env.before-generator-20260921`；当前 `.env` 指向新镜像。
+
+本次验证为 6 项无数据库写入的生成器专项、普通/树形生成源码实际 Java 编译和 TypeScript 检查、后台类型检查/构建、改动页面与服务 Ant lint、产物结构及本机部署 HTTP 检查；未重跑整套数据库或页面套件，也未创建登录身份做已登录页面验收。生成业务包未合入运行应用，须按包内接入说明完成具体业务操作和单位隔离验证。证据在 `backend/logs/generator_*`；基础数据逐字段核对和其余 22 张表摘要不变见 `legacy-basic-verify-20260921-084946.log`。
+
 ## 构建和验收
 
 在已配置固定工具链、现有受管 MySQL 测试 schema、Redis、本机 Chrome 的 Windows 构建机运行：
