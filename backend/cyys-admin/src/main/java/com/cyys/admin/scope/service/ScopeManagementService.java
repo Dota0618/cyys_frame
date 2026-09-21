@@ -42,12 +42,15 @@ public class ScopeManagementService {
         security.authorize("platform:scope:create");
         if("GLOBAL".equalsIgnoreCase(command.code())) throw new ApiException(400,"GLOBAL 为平台保留编码");
         var tree=lockTree();
+        if("0".equals(command.parentId()) && !tree.isEmpty())
+            throw new ApiException(409,"总单位已存在，请选择上级机构新增下级单位");
         var row=new SysScope();row.setId(IdWorker.getIdStr());row.setCode(command.code());
         row.setParentId(command.parentId());row.setAncestors(parentPath(command.parentId(),tree,true));
         row.setName(command.name());row.setShortName(command.shortName());row.setContactPerson(command.contactPerson());
         row.setContactPhone(command.contactPhone());row.setRemark(command.remark());row.setStatus(1);row.setSort(0);row.setVersion(0);
         try { requireOne(mapper.create(row,ScopeContext.get().loginId())); }
         catch(DuplicateKeyException failure) { throw new ApiException(409,"机构编码已存在"); }
+        if("0".equals(row.getParentId())) mapper.attachSystemAccounts(row.getId(),ScopeContext.get().loginId());
         audit.platformSuccess("scope",row.getId(),"CREATE");
         return ScopeView.from(row);
     }
@@ -59,6 +62,10 @@ public class ScopeManagementService {
         var row=tree.stream().filter(item->item.getId().equals(id)).findFirst().orElse(null);
         if(row==null) throw new ApiException(404,"机构不存在");
         if(!Objects.equals(row.getVersion(),command.version())) throw new ApiException(409,"机构已被修改，请刷新");
+        if("0".equals(row.getParentId())) {
+            if(!"0".equals(command.parentId())) throw new ApiException(400,"总单位不能设置上级机构");
+            if(!command.enabled()) throw new ApiException(409,"总单位不能停用");
+        } else if("0".equals(command.parentId())) throw new ApiException(400,"下级机构不能改为总单位，请选择上级机构");
         String ancestors=parentPath(command.parentId(),tree,command.enabled());
         if(id.equals(command.parentId())||contains(ancestors,id)) throw new ApiException(400,"不能将机构移动到自身或下级机构");
         var descendants=tree.stream().filter(item->contains(item.getAncestors(),id)).toList();

@@ -1,4 +1,6 @@
 # Linux / Docker / Nginx 部署准备
+
+最新本机版本：API/Web 均为 single-root-20260921，数据库 V26，地址 https://localhost/。机构树只有一个实际总单位；沿用现有“测试单位”，master 归属总单位且权限保持全系统。升级前备份 before-single-root-20260921.sql，23 项定向检查及数据保留核对通过。下方为历次部署记录。
 ## 当前机构模型版本（2026-09-21）
 
 当前本机地址仍为 https://localhost/，API 镜像为 `organization-20260921`，Web 为 `organization-20260921-2`，Flyway V25。使用统一账号和角色、机构树、单一用户资料及数据范围；右上角是机构筛选。生成器暂停，旧平台角色与跨单位权限入口退出。下方按日期保留的 single/multi、平台角色和旧镜像记录是历史验收，不是当前部署配置。

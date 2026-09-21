@@ -28,6 +28,9 @@ public interface ScopeManagementMapper {
     @Insert("insert into sys_scope(id,code,name,parent_id,ancestors,short_name,contact_person,contact_phone,remark,status,sort,created_by,updated_by) values(#{row.id},#{row.code},#{row.name},#{row.parentId},#{row.ancestors},#{row.shortName},#{row.contactPerson},#{row.contactPhone},#{row.remark},1,0,#{actor},#{actor})")
     int create(@Param("row") SysScope row,@Param("actor") String actor);
 
+    @Update("update sys_user_scope set scope_id=#{root},version=version+1,updated_by=#{actor},updated_at=CURRENT_TIMESTAMP where scope_id is null and data_range=0 and deleted=0")
+    int attachSystemAccounts(@Param("root") String root,@Param("actor") String actor);
+
     @Update("update sys_scope set name=#{row.name},parent_id=#{row.parentId},ancestors=#{row.ancestors},short_name=#{row.shortName},contact_person=#{row.contactPerson},contact_phone=#{row.contactPhone},remark=#{row.remark},status=#{row.status},sort=#{row.sort},version=version+1,updated_by=#{actor},updated_at=CURRENT_TIMESTAMP where id=#{row.id} and version=#{row.version} and deleted=0")
     int update(@Param("row") SysScope row,@Param("actor") String actor);
 

@@ -21,7 +21,7 @@ class OrganizationModelIntegrationTest extends HttpTestSupport {
         jdbc.update("update sys_user_scope set data_range=6,display_name='上级管理员' where user_id='u-alice'");
         jdbc.update("update sys_user_scope set data_range=1,display_name='下级用户' where user_id='u-bob'");
         user("u-platform", "system-admin");
-        jdbc.update("insert into sys_user_scope(id,user_id,scope_id,display_name,data_range) values('g1-system-profile','u-platform',NULL,'系统管理员',0)");
+        jdbc.update("insert into sys_user_scope(id,user_id,scope_id,display_name,data_range) values('g1-system-profile','u-platform','scope-a','系统管理员',0)");
         role("role-platform", "GLOBAL", "SYSTEM_ADMIN");
         grant("u-platform", "role-platform", "GLOBAL");
         for (String permission : List.of("role:read", "role:create", "role:update", "role:delete", "role:grant",
@@ -51,7 +51,7 @@ class OrganizationModelIntegrationTest extends HttpTestSupport {
             jdbc.update("delete from sys_role_menu where role_id=?", id);
             jdbc.update("delete from sys_role where id=? and code='ORG_QA_ROLE'", id);
         }
-        jdbc.update("update sys_scope set parent_id='0',ancestors='' where id in ('scope-a','scope-b')");
+        jdbc.update("update sys_scope set parent_id='scope-a',ancestors='scope-a' where id='scope-b'");
         if (extraInstitution != null) jdbc.update("delete from sys_scope where id=? and remark='CYYS organization acceptance fixture'", extraInstitution);
     }
 
@@ -74,7 +74,8 @@ class OrganizationModelIntegrationTest extends HttpTestSupport {
         assertThat(inChild.has("unitPermissions")).isFalse();
         assertThat(request("GET", "/api/admin/users", bob, "scope-a", null).status()).isEqualTo(403);
         assertThat(ok("GET", "/api/admin/users", alice, "scope-b", null).raw()).contains("下级用户").doesNotContain("系统管理员");
-        assertThat(ok("GET", "/api/admin/users", admin, "scope-b", null).raw()).contains("系统管理员");
+        assertThat(ok("GET", "/api/admin/users", admin, "scope-a", null).raw()).contains("系统管理员");
+        assertThat(ok("GET", "/api/auth/me", admin, "scope-a", null).body().at("/data/homeScopeId").asText()).isEqualTo("scope-a");
         assertThat(ok("GET", "/api/admin/departments", alice, "scope-b", null).raw()).contains("下级部门");
         assertThat(ok("GET", "/api/admin/files", alice, "scope-b", null).raw()).contains("验收文件");
         ok("PUT", "/api/admin/files/g1-org-file", alice, "scope-b", Map.of("version",0,"name","上级修改的文件"));
@@ -113,15 +114,21 @@ class OrganizationModelIntegrationTest extends HttpTestSupport {
                 JSON.writeValueAsString(Map.of("version",0,"displayName","系统管理员","status",0))).status()).isEqualTo(409);
         assertThat(count("select status from sys_user_scope where id='g1-system-profile'")).isEqualTo(1);
 
+        assertThat(request("POST", "/api/admin/platform/scopes", admin, null, JSON.writeValueAsString(Map.of(
+                "code","ORG_QA_SECOND_ROOT","name","第二总单位","parentId","0"))).status()).isEqualTo(409);
+        assertThatThrownBy(() -> jdbc.update("insert into sys_scope(id,code,name,parent_id) values('g1-second-root','QA_SECOND_ROOT','第二总单位','0')"))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        assertThat(request("PUT", "/api/admin/platform/scopes/scope-a", admin, null, JSON.writeValueAsString(Map.of(
+                "version",0,"name","总单位","enabled",false,"sort",0,"parentId","0"))).status()).isEqualTo(409);
         var institution = ok("POST", "/api/admin/platform/scopes", admin, null, Map.of("code","ORG_QA_EXTRA",
-                "name","其他分支","parentId","0","remark","CYYS organization acceptance fixture"));
+                "name","其他分支","parentId","scope-a","remark","CYYS organization acceptance fixture"));
         extraInstitution = institution.body().at("/data/id").asText();
         assertThat(ok("GET", "/api/admin/platform/scopes/tree", admin, null, null).raw()).contains("其他分支");
         assertThat(request("PUT", "/api/admin/platform/scopes/scope-a", admin, null,
                 JSON.writeValueAsString(Map.of("version",0,"name","父机构","enabled",true,"sort",0,"parentId","scope-b"))).status()).isEqualTo(400);
         ok("PUT", "/api/admin/platform/scopes/scope-b", admin, null,
                 Map.of("version",0,"name","移动后的下级","enabled",true,"sort",0,"parentId",extraInstitution,"remark","CYYS automated test fixture"));
-        assertThat(jdbc.queryForObject("select ancestors from sys_scope where id='scope-b'",String.class)).isEqualTo(extraInstitution);
+        assertThat(jdbc.queryForObject("select ancestors from sys_scope where id='scope-b'",String.class)).isEqualTo("scope-a,"+extraInstitution);
         ok("PUT", "/api/admin/platform/scopes/scope-b", admin, "scope-b",
                 Map.of("version",1,"name","移动后的下级","enabled",false,"sort",0,"parentId",extraInstitution,"remark","CYYS automated test fixture"));
         assertThat(request("GET", "/api/auth/me", admin, "scope-b", null).status()).isEqualTo(403);
