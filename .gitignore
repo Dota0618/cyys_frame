@@ -90,6 +90,7 @@ application-local.yml
 application-local.yaml
 application-dev.yml.override
 application-dev.yaml.override
+/deploy/.local/
 *.p12
 *.pfx
 *.jks

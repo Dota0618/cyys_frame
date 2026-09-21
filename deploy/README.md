@@ -1,5 +1,7 @@
 # Linux / Docker / Nginx 部署准备
 
+日常更新本机开发环境使用[开发部署命令](development.md)。下文保留生产发布准备和历史记录，日常部署无需逐项读取或重跑历史验收。
+
 最新本机版本：API 为 `cache-values-20260921`，Web 沿用 `cache-groups-20260921`，数据库仍为 V26，地址 https://localhost/。已有返回模型使用 `@CacheValue`：部门负责人姓名/展示状态、通知阅读人、通知部门、单位通知/系统通知/版本类型及通知字典选项。用户共享记录包含停用用户，按用户 ID 自动失效；部门按实际单位、字典按系统组失效。回填不增加目标用户单位或状态查询，业务原有授权仍保留。规则与来源清单见 `docs/development/backend/cache-usage.md`。
 
 本轮 35 项集中检查通过（含 3 项真实 HTTP/独立 MySQL/Redis 集成场景、字段类型与空值、事务回滚、按 ID 失效并发保护），前端类型与发布产物结构检查通过。前端仅同步可空返回类型，没有界面或运行时代码变更，沿用已构建 Web。部署后 9 项 HTTP 检查通过，停旧 API 后记录的 26 张完整表指纹与新 API 启动后完全一致；私有文件目录仍为空。证据：`backend/logs/cache-values-tests.log`、`cache-values-models-tests.log`、`cache-values-concurrency.log`、`cache-values-ui-typecheck.log`、`cache-values-deployment-http.json`、`cache-values-preservation.properties`。API 镜像 digest：`sha256:3ca10f267075a37200ec5fa42230af4482cf1a3824e74170ec76176ba4ec5517`；上一版 `cache-groups-20260921` 及 `.env.before-cache-values-20260921` 保留，数据源、账号和文件挂载未改动。本次无数据库迁移、未运行历史全量或登录后页面操作套件。应用重启后的进程内会话需要重新登录；缓存刷新本身不触及会话键。源码仅本地提交，不推送、不另存源码快照。

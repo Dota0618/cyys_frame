@@ -9,6 +9,7 @@ I often build Java applications for standalone projects, and I see many that are
 
 ## 开发入口
 
+- 日常部署开发环境：在项目根目录运行 `./scripts/deploy-dev.ps1`，见[使用说明](deploy/development.md)。
 - 首次准备环境和构建：见[目录与构建](docs/development/project-build.md)。
 - 地区使用平台共享的逐级分页与旧字段。成员/地区同步 XLSX 导出各需独立权限，最多 5000 条、服务端固定字段；成员导出使用当前单位和操作对应的行范围，生成后复核授权及可见性。全部单位只读视图不导出。
 - 通用流水号按用户要求已实现，使用数据库事务和唯一约束保证单位/业务/周期计数；服务器配置规则，业务 Service 调用，无任意取号 HTTP 接口。旧“系统编号”实际是微信 AppID/AppSecret 配置，随微信接入暂缓。
