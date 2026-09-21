@@ -22,6 +22,14 @@ import java.util.List;
 @RequestMapping("/api/admin/users")
 public class MemberController {
     private final MemberService service;
+    private final com.cyys.admin.user.service.MemberDataPermissionService dataPermissions;
+    @GetMapping("/{id}/data-permission") @SaCheckPermission("user:data-permission")
+    public Object dataPermission(@PathVariable String id) { return R.ok(dataPermissions.detail(id)); }
+    @PutMapping("/{id}/data-permission") @SaCheckPermission("user:data-permission")
+    public Object updateDataPermission(@PathVariable String id,
+            @Valid @RequestBody com.cyys.admin.user.dto.UpdateMemberDataPermissionCommand command) {
+        return R.ok(dataPermissions.update(id, command));
+    }
     @PostMapping("/export") @SaCheckPermission("user:export")
     public void export(@Valid @RequestBody ExportMembersCommand command, HttpServletResponse response) throws IOException {
         byte[] content = service.export(command);

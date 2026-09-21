@@ -52,16 +52,16 @@ class MemberExportIntegrationTest extends IsolationTestSupport {
         assertThat(rows).hasSize(3);
         assertThat(rows.toString()).contains("=1+1","乙成员","alice","bob").doesNotContain("另一个单位秘密","private-id-card",PASSWORD_HASH);
         assertThat(export(alice,"scope-b","{}").statusCode()).isEqualTo(403);
-        jdbc.update("update sys_role set data_range=5 where id='role-a'");
+        jdbc.update("update sys_user_scope set data_range=5 where user_id='u-alice' and scope_id='scope-a'");
         rows=rows(export(alice,"scope-a","{}"));
         assertThat(rows).hasSize(2);
         assertThat(rows.get(1)).contains("=1+1","alice","不可见或已失效").doesNotContain("bob");
-        jdbc.update("update sys_role set data_range=3 where id='role-a'");
+        jdbc.update("update sys_user_scope set data_range=3 where user_id='u-alice' and scope_id='scope-a'");
         assertThat(rows(export(alice,"scope-a","{}"))).hasSize(2);
-        jdbc.update("update sys_role set data_range=4 where id='role-a'");
+        jdbc.update("update sys_user_scope set data_range=4 where user_id='u-alice' and scope_id='scope-a'");
         assertThat(rows(export(alice,"scope-a","{}"))).hasSize(3);
-        jdbc.update("update sys_role set data_range=2 where id='role-a'");
-        jdbc.update("insert into sys_role_org(role_id,scope_id,org_id) values('role-a','scope-a','g1-a-child')");
+        jdbc.update("update sys_user_scope set data_range=2 where user_id='u-alice' and scope_id='scope-a'");
+        jdbc.update("insert into sys_user_scope_org(member_id,scope_id,org_id) values('u-alice-scope-a','scope-a','g1-a-child')");
         rows=rows(export(alice,"scope-a","{}"));
         assertThat(rows).hasSize(2);
         assertThat(rows.get(1)).contains("bob").doesNotContain("alice");
@@ -96,7 +96,7 @@ class MemberExportIntegrationTest extends IsolationTestSupport {
         try(var worker=Executors.newSingleThreadExecutor()) {
             for(boolean removePermission : List.of(true,false)) {
                 jdbc.update("update sys_role_menu rm join sys_menu m on m.id=rm.menu_id set rm.deleted=0 where rm.role_id='role-a' and m.code='user:export'");
-                jdbc.update("update sys_role set data_range=1 where id='role-a'");
+                jdbc.update("update sys_user_scope set data_range=1 where user_id='u-alice' and scope_id='scope-a'");
                 var gate=new ExportGate();
                 barrier.pending.set(gate);
                 var response=worker.submit(() -> export(alice,"scope-a","{}"));
@@ -104,7 +104,7 @@ class MemberExportIntegrationTest extends IsolationTestSupport {
                     assertThat(gate.loaded.await(10,TimeUnit.SECONDS)).as("real export SQL completed").isTrue();
                     if(removePermission) {
                         jdbc.update("update sys_role_menu rm join sys_menu m on m.id=rm.menu_id set rm.deleted=1 where rm.role_id='role-a' and m.code='user:export'");
-                    } else jdbc.update("update sys_role set data_range=5 where id='role-a'");
+                    } else jdbc.update("update sys_user_scope set data_range=5 where user_id='u-alice' and scope_id='scope-a'");
                 } finally { gate.resume.countDown(); barrier.pending.set(null); }
                 var denied=response.get(20,TimeUnit.SECONDS);
                 assertThat(denied.statusCode()).isEqualTo(removePermission?403:409);

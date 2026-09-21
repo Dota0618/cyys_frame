@@ -9,13 +9,14 @@ import {
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { Alert, App, Button, Drawer, Tag } from 'antd';
 import { useEffect, useRef, useState } from 'react';
-import type { DepartmentOption, Member, MemberDetail, Option } from '@/types/api';
+import type { DepartmentOption, Member, MemberDetail, MemberDataPermission, Option } from '@/types/api';
 import {
   departmentOptions,
   exportMembers,
   grantRoles,
   listMembers,
   memberDetail,
+  memberDataPermission,
   roleOptions,
 } from '@/services/system/users';
 import { ApiError, StaleRequest } from '@/utils/request';
@@ -25,6 +26,8 @@ import ScopeSwitch from '@/components/ScopeSwitch';
 import CreateForm from './components/CreateForm';
 import UpdateForm from './components/UpdateForm';
 import ResetPasswordForm from './components/ResetPasswordForm';
+import DataPermissionForm from './components/DataPermissionForm';
+import { dataRanges } from './components/DataPermissionFields';
 
 export default function TableList() {
   const access = useAccess();
@@ -54,6 +57,8 @@ function MemberTable() {
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [roles, setRoles] = useState<Option[]>([]);
   const [editing, setEditing] = useState<Member>();
+  const [editingPermission, setEditingPermission] = useState<MemberDataPermission>();
+  const [dataPermission, setDataPermission] = useState<{member: Member; permission: MemberDataPermission}>();
   const [resetting, setResetting] = useState<Member>();
   const [detail, setDetail] = useState<MemberDetail>();
   const [granting, setGranting] = useState<MemberDetail>();
@@ -81,7 +86,15 @@ function MemberTable() {
     try {
       const result = await memberDetail(member.id);
       if (kind === 'detail') setDetail(result);
-      if (kind === 'edit') setEditing(result.member);
+      if (kind === 'edit') {
+        const permission = access.canManageMemberDataPermission ? await memberDataPermission(member.id) : undefined;
+        if (permission && permission.version !== result.member.version) {
+          void message.warning('成员已变更，请重新打开修改');
+          return;
+        }
+        setEditingPermission(permission);
+        setEditing(result.member);
+      }
       if (kind === 'roles') setGranting(result);
     } catch {
       /* 请求入口已处理错误及过期响应。 */
@@ -120,6 +133,10 @@ function MemberTable() {
           },
         ] as ProColumns<Member>[])),
     {
+      title: '数据范围', dataIndex: 'dataRange', search: false,
+      renderText: value => dataRanges.find(range => range.value === value)?.label || '未配置',
+    },
+    {
       title: '成员状态',
       dataIndex: 'status',
       search: false,
@@ -138,7 +155,7 @@ function MemberTable() {
     {
       title: '操作',
       valueType: 'option',
-      width: all ? 130 : 260,
+      width: all ? 130 : 330,
       render: (_, row) =>
         all
           ? [
@@ -168,6 +185,9 @@ function MemberTable() {
                   角色
                 </a>
               ),
+              access.canManageMemberDataPermission && <a key="data" onClick={() => {
+                void memberDataPermission(row.id).then(permission => setDataPermission({ member: row, permission })).catch(() => {});
+              }}>数据权限</a>,
               access.canResetAccountPasswords && <a key="password" onClick={() => setResetting(row)}>重置密码</a>,
             ].filter(Boolean),
     },
@@ -261,12 +281,14 @@ function MemberTable() {
       <UpdateForm
         key={editing?.id || 'edit'}
         values={editing}
+        permission={editingPermission}
         departments={departments}
-        onClose={() => setEditing(undefined)}
+        onClose={() => { setEditing(undefined); setEditingPermission(undefined); }}
         reload={async () => {
           await action.current?.reload();
         }}
       />
+      {dataPermission && <DataPermissionForm {...dataPermission} onClose={() => setDataPermission(undefined)} onSaved={() => { void action.current?.reload(); }} />}
       {resetting && <ResetPasswordForm account={resetting} onClose={() => setResetting(undefined)} />}
 
       <ModalForm<{ roleIds: string[] }>

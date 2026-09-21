@@ -77,7 +77,7 @@ class OrgNoticeIntegrationTest extends IsolationTestSupport {
         // 同单位读者无需文件管理权限，附件读取沿父通知授权；解除后立即拒绝。
         membership("u-bob","scope-a",false);
         role("g1-notice-reader","scope-a","NOTICE_READER"); allow("g1-notice-reader","org-notice:read",false);
-        jdbc.update("update sys_role set data_range=1 where id='g1-notice-reader'");
+        jdbc.update("update sys_user_scope set data_range=1 where user_id='u-bob' and scope_id='scope-a'");
         jdbc.update("delete from sys_user_role where user_id='u-bob' and scope_id='scope-a'");
         grant("u-bob","g1-notice-reader","scope-a");
         assertThat(content(id,file,bob,"scope-a").body()).isEqualTo("attachment bytes".getBytes(StandardCharsets.UTF_8));

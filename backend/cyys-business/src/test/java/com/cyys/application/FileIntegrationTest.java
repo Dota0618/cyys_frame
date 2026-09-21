@@ -161,18 +161,18 @@ class FileIntegrationTest extends IsolationTestSupport {
     @Test void sameUnitDepartmentAndSelfRangesApplyToFilesAndDepartmentDeletion() throws Exception {
         membership("u-bob","scope-a",false); grant("u-bob","role-a","scope-a");
         jdbc.update("update sys_user_scope set org_id='g1-a-child' where user_id='u-bob' and scope_id='scope-a'");
-        jdbc.update("update sys_role set data_range=3 where id='role-a'");
+        jdbc.update("update sys_user_scope set data_range=3 where user_id='u-alice' and scope_id='scope-a'");
         String alice=token("alice"), bob=token("bob");
         Reply created=multipart("POST",BASE_FILE,bob,"scope-a","department.bin",data(12));
         assertThat(created.status()).as(created.raw()).isEqualTo(200);
         String id=created.body().at("/data/id").asText();
         assertThat(download(id,alice,"scope-a").statusCode()).isEqualTo(404);
-        jdbc.update("update sys_role set data_range=4 where id='role-a'");
+        jdbc.update("update sys_user_scope set data_range=4 where user_id='u-alice' and scope_id='scope-a'");
         assertThat(download(id,alice,"scope-a").statusCode()).isEqualTo(200);
-        jdbc.update("update sys_role set data_range=5 where id='role-a'");
+        jdbc.update("update sys_user_scope set data_range=5 where user_id='u-alice' and scope_id='scope-a'");
         assertThat(download(id,alice,"scope-a").statusCode()).isEqualTo(404);
         assertThat(download(id,bob,"scope-a").statusCode()).isEqualTo(200);
-        jdbc.update("update sys_role set data_range=1 where id='role-a'");
+        jdbc.update("update sys_user_scope set data_range=1 where user_id='u-alice' and scope_id='scope-a'");
         jdbc.update("update sys_user_scope set org_id=null where user_id='u-bob' and scope_id='scope-a'");
         assertThat(request("DELETE","/api/admin/departments",alice,"scope-a","[{\"id\":\"g1-a-child\",\"version\":0}]").status()).isEqualTo(409);
         jdbc.update("update sys_menu set status=0 where code='file:content:read'");

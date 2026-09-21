@@ -35,9 +35,9 @@ class MemberIntegrationTest extends IsolationTestSupport {
         assertThat(users("GET","",token,null,null).status()).isEqualTo(403);
         membership("u-bob","scope-a",false);
         jdbc.update("update sys_user_scope set org_id='g1-a-child' where user_id='u-bob' and scope_id='scope-a'");
-        jdbc.update("update sys_role set data_range=4 where id='role-a'");
+        jdbc.update("update sys_user_scope set data_range=4 where user_id='u-alice' and scope_id='scope-a'");
         assertThat(users("GET","",token,"scope-a",null).body().at("/data/total").asInt()).isEqualTo(2);
-        jdbc.update("update sys_role set data_range=5 where id='role-a'");
+        jdbc.update("update sys_user_scope set data_range=5 where user_id='u-alice' and scope_id='scope-a'");
         assertThat(users("GET","",token,"scope-a",null).body().at("/data/total").asInt()).isEqualTo(1);
     }
     @Test void createUsesCurrentUnitRejectsPrivilegedFieldsAndRollsBackGlobalAccount() throws Exception {

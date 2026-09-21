@@ -172,7 +172,6 @@ public class PlatformRoleService {
 
     private static void apply(SysRole role, String name, int status, int sort, String remark) {
         role.setName(name);
-        role.setDataRange(1);
         role.setStatus(status);
         role.setSort(sort);
         role.setRemark(remark);

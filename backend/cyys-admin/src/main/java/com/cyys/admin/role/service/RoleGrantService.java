@@ -2,9 +2,8 @@ package com.cyys.admin.role.service;
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.cyys.admin.audit.service.DataAuditService;
-import com.cyys.admin.auth.mapper.DataAuthorizationMapper;
+import com.cyys.admin.auth.service.UnitAdministrationService;
 import com.cyys.admin.role.mapper.RoleGrantMapper;
-import com.cyys.admin.user.mapper.SysUserRoleMapper;
 import com.cyys.common.mybatis.DataPolicyRegistry;
 import com.cyys.common.mybatis.DataTransactionGuard;
 import com.cyys.common.satoken.ScopeContext;
@@ -24,8 +23,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class RoleGrantService {
     private final RoleGrantMapper mapper;
-    private final DataAuthorizationMapper authorization;
-    private final SysUserRoleMapper roles;
+    private final UnitAdministrationService administration;
     private final DataAuditService audit;
 
     @Transactional(readOnly = true)
@@ -33,11 +31,7 @@ public class RoleGrantService {
         var identity = ScopeContext.get();
         String scope = identity.requireScopeId();
         DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);
-        if (!authorization.hasPermission(identity.loginId(), scope, "role:grant")) {
-            throw new ApiException(403, "没有本单位角色授予权限");
-        }
-        Set<String> ceiling = Set.copyOf(roles.selectUnitWidePermissionCodes(identity.loginId(), List.of(scope)));
-        if (!ceiling.contains("role:grant")) throw new ApiException(403, "局部数据范围的角色委派尚未开放");
+        Set<String> ceiling = administration.authorize("role:grant", true);
         List<RoleGrantMapper.RoleOption> candidates = mapper.activeUnitRoles(scope);
         if (candidates.isEmpty()) return candidates;
         Set<String> rejected = mapper.permissions(candidates.stream().map(RoleGrantMapper.RoleOption::value).toList()).stream()
@@ -52,11 +46,7 @@ public class RoleGrantService {
         var identity = ScopeContext.get();
         String scope = identity.requireScopeId();
         DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);
-        if (!authorization.hasPermission(identity.loginId(), scope, "role:grant")) {
-            throw new ApiException(403, "没有本单位角色授予权限");
-        }
-        Set<String> ceiling = Set.copyOf(roles.selectUnitWidePermissionCodes(identity.loginId(), List.of(scope)));
-        if (!ceiling.contains("role:grant")) throw new ApiException(403, "局部数据范围的角色委派尚未开放");
+        Set<String> ceiling = administration.authorize("role:grant", true);
         if (Set.copyOf(roleIds).size() != roleIds.size()) throw new ApiException(400, "角色不能重复");
         if (mapper.lockMembership(userId, scope) == null) throw new ApiException(403, "目标成员不可操作");
         if (!roleIds.isEmpty()) {

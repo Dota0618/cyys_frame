@@ -103,23 +103,22 @@ class MultiScopeIsolationTest extends IsolationTestSupport {
     }
 
     @Test
-    void fiveRangesAreAppliedOnlyForTheCurrentOperation() throws Exception {
+    void fiveMemberRangesApplyUniformlyAndAnotherRoleCannotExpandThem() throws Exception {
         String token=token("alice");
-        jdbc.update("insert into sys_role_org(role_id,scope_id,org_id) values('role-a','scope-a','g1-a-child')");
+        jdbc.update("insert into sys_user_scope_org(member_id,scope_id,org_id) values('u-alice-scope-a','scope-a','g1-a-child')");
         int[] expected={3,1,1,2,1};
         for (int range=1;range<=5;range++) {
-            jdbc.update("update sys_role set data_range=? where id='role-a'",range);
+            jdbc.update("update sys_user_scope set data_range=? where user_id='u-alice' and scope_id='scope-a'",range);
             assertThat(ok("GET","/sql/count",token,"scope-a",null).body().path("data").asInt()).as("range "+range).isEqualTo(expected[range-1]);
         }
         role("g1-wide-read","scope-a","WIDE_READ");
-        jdbc.update("update sys_role set data_range=1 where id='g1-wide-read'");
         grant("u-alice","g1-wide-read","scope-a");
         allow("g1-wide-read","department:read",false);
-        assertThat(ok("GET","/sql/count",token,"scope-a",null).body().path("data").asInt()).isEqualTo(3);
+        assertThat(ok("GET","/sql/count",token,"scope-a",null).body().path("data").asInt()).isEqualTo(1);
         assertThat(call("PUT","/departments",token,"scope-a",Map.of("id","g1-a-root","version",0,"name","bad")).status()).isEqualTo(409);
         ok("PUT","/departments",token,"scope-a",Map.of("id","g1-a-self","version",0,"name","mine"));
-        jdbc.update("update sys_role set data_range=2 where id='role-a'");
-        jdbc.update("update sys_role_org set scope_id='scope-b',org_id='g1-b-root' where role_id='role-a'");
+        jdbc.update("update sys_user_scope set data_range=2 where user_id='u-alice' and scope_id='scope-a'");
+        jdbc.update("update sys_user_scope_org set scope_id='scope-b',org_id='g1-b-root' where member_id='u-alice-scope-a'");
         jdbc.update("delete from sys_user_role where role_id='g1-wide-read'");
         assertThat(ok("GET","/sql/count",token,"scope-a",null).body().path("data").asInt()).isZero();
     }
@@ -178,7 +177,7 @@ class MultiScopeIsolationTest extends IsolationTestSupport {
         assertThat(count("select count(*) from sys_user_role where user_id='u-bob' and scope_id='scope-b' and role_id='role-b'")).isEqualTo(1);
         assertThat(count("select count(*) from sys_user_role where user_id='u-bob' and scope_id='scope-a' and role_id='role-a'")).isEqualTo(1);
         assertThat(count("select count(*) from sys_user_role where user_id='u-bob' and scope_id='GLOBAL'")).isEqualTo(1);
-        jdbc.update("update sys_role set data_range=5 where id='role-a'");
+        jdbc.update("update sys_user_scope set data_range=5 where user_id='u-alice' and scope_id='scope-a'");
         assertThat(call("POST","/roles/u-bob",token,"scope-a",List.of("role-a")).status()).isEqualTo(403);
         assertThat(count("select count(*) from information_schema.referential_constraints where constraint_schema=database()")).isZero();
     }

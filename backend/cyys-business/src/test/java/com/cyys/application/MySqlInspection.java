@@ -20,7 +20,7 @@ public class MySqlInspection {
             }
             if (args.length == 1 && args[0].equals("--verify-cyys")) {
                 for (String table : java.util.List.of("sys_scope", "sys_user", "sys_user_scope", "sys_role",
-                        "sys_user_role", "sys_menu", "sys_role_menu", "sys_org", "sys_role_org", "sys_data_audit")) {
+                        "sys_user_role", "sys_menu", "sys_role_menu", "sys_org", "sys_user_scope_org", "sys_data_audit")) {
                     try (var rows = statement.executeQuery("select count(*) from " + table)) {
                         rows.next();
                         System.out.println("EXACT_ROWS=" + table + ":" + rows.getLong(1));

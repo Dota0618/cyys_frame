@@ -26,9 +26,6 @@ public class SysRole implements Serializable {
 
     private String name;
 
-    /** 1 本单位全部，2 自定义部门，3 本部门，4 本部门及下级，5 本人；只合并持有所需操作的角色。 */
-    private Integer dataRange;
-
     private Integer status;
 
     private Integer sort;

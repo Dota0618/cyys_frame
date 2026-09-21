@@ -86,7 +86,7 @@ class PlatformManagementIntegrationTest extends HttpTestSupport {
         assertThat(created.status()).as(created.raw()).isEqualTo(200);
         String id = created.body().at("/data/id").asText();
         assertThat(jdbc.queryForObject("select scope_id from sys_role where id=?", String.class, id)).isEqualTo("GLOBAL");
-        assertThat(jdbc.queryForObject("select data_range from sys_role where id=?", Integer.class, id)).isOne();
+        assertThat(jdbc.queryForObject("select count(*) from information_schema.columns where table_schema=database() and table_name='sys_role' and column_name='data_range'", Integer.class)).isZero();
 
         var detail = request("GET", ROLES + "/" + id, token, null, null);
         assertThat(detail.status()).as(detail.raw()).isEqualTo(200);

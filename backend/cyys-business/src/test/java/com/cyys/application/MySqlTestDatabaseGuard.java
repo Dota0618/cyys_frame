@@ -57,7 +57,10 @@ public class MySqlTestDatabaseGuard implements ApplicationContextInitializer<Con
             regionTables.add("param_region");
             var serialTables=new HashSet<>(regionTables);
             serialTables.addAll(Set.of("sys_serial_rule","sys_serial_counter"));
-            if (!actualTables.equals(TABLES) && !actualTables.equals(upgradedTables)
+            var memberRangeTables = new HashSet<>(serialTables);
+            memberRangeTables.remove("sys_role_org");
+            memberRangeTables.add("sys_user_scope_org");
+            if (!actualTables.equals(memberRangeTables) && !actualTables.equals(TABLES) && !actualTables.equals(upgradedTables)
                     && !actualTables.equals(phase4Tables) && !actualTables.equals(loginAuditTables)
                     && !actualTables.equals(fileTables) && !actualTables.equals(directoryTables)
                     && !actualTables.equals(noticeTables) && !actualTables.equals(systemNoticeTables)
@@ -67,7 +70,9 @@ public class MySqlTestDatabaseGuard implements ApplicationContextInitializer<Con
             try (var statement = connection.createStatement()) {
                 for (String table : actualTables) {
                     if (table.equals("flyway_schema_history")) continue;
-                    try (var rows = statement.executeQuery("select 1 from " + table + " limit 1")) {
+                    String seedFilter = table.equals("sys_menu")
+                            ? " where not (id='perm-user-data-permission' and code='user:data-permission' and type=3 and created_by='migration-v21')" : "";
+                    try (var rows = statement.executeQuery("select 1 from " + table + seedFilter + " limit 1")) {
                         if (rows.next()) {
                             throw new IllegalStateException("测试拒绝含已有数据的 schema（" + table
                                     + "）；不会清空业务数据或自动处理残留测试记录。");

@@ -381,6 +381,10 @@ WHERE NOT EXISTS(SELECT 1 FROM sys_menu WHERE code='generator:generate');
 UPDATE sys_menu m JOIN sys_menu p ON p.code='nav:menu:generator' SET m.name='下载代码包',m.parent_id=p.id,m.sort=2,m.version=m.version+1 WHERE m.code='generator:generate';
 
 -- 已有超级管理员继续获得新增的单位管理权限，不按登录名设置绕过。
+-- V21 用户数据权限归入用户管理；空库先执行 V21 再初始化菜单时同样挂接。
+UPDATE sys_menu m JOIN sys_menu p ON p.code='nav:menu:users'
+SET m.parent_id=p.id,m.name='配置数据权限',m.sort=7,m.version=m.version+1
+WHERE m.code='user:data-permission';
 INSERT INTO sys_role_menu(id,role_id,menu_id,created_by)
 SELECT REPLACE(UUID(),'-',''),r.id,m.id,'system-migration'
 FROM sys_role r JOIN sys_menu m ON m.code IN ('platform:scope:read','platform:scope:create','platform:scope:update')

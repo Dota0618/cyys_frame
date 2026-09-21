@@ -3,7 +3,6 @@ import {
   ModalForm,
   PageContainer,
   ProForm,
-  ProFormDependency,
   ProFormDigit,
   ProFormRadio,
   ProFormText,
@@ -16,6 +15,7 @@ import { Alert, App, Button, Popconfirm, Tag } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import CheckedTree from '@/components/CheckedTree';
 import ScopeSwitch from '@/components/ScopeSwitch';
+import { compactModalProps } from '@/components/ManagementLayout';
 import {
   createRole,
   deleteRole,
@@ -36,15 +36,7 @@ import { ApiError, StaleRequest } from '@/utils/request';
 import { roleTreeData } from '@/utils/roles';
 import { setDirty } from '@/utils/session';
 
-const emptyOptions: RoleOptions = { menus: [], departments: [] };
-const dataRanges = [
-  { value: 1, label: '本单位全部' },
-  { value: 2, label: '自定义部门' },
-  { value: 3, label: '本部门' },
-  { value: 4, label: '本部门及下级' },
-  { value: 5, label: '本人' },
-];
-const dataRangeNames = new Map(dataRanges.map((item) => [item.value, item.label]));
+const emptyOptions: RoleOptions = { menus: [] };
 function RoleFields({ options, editing }: { options: RoleOptions; editing?: boolean }) {
   const menuTree = useMemo(
     () =>
@@ -55,10 +47,6 @@ function RoleFields({ options, editing }: { options: RoleOptions; editing?: bool
         })),
       ),
     [options.menus],
-  );
-  const departmentTree = useMemo(
-    () => roleTreeData(options.departments),
-    [options.departments],
   );
   return (
     <>
@@ -77,25 +65,6 @@ function RoleFields({ options, editing }: { options: RoleOptions; editing?: bool
         fieldProps={{ maxLength: 50 }}
         rules={[{ required: true, whitespace: true }]}
       />
-      <ProFormRadio.Group
-        name="dataRange"
-        label="数据范围"
-        options={dataRanges}
-        rules={[{ required: true }]}
-      />
-      <ProFormDependency name={['dataRange']}>
-        {({ dataRange }) =>
-          dataRange === 2 ? (
-            <ProForm.Item
-              name="orgIds"
-              label="自定义部门"
-              rules={[{ required: true, type: 'array', min: 1, message: '至少选择一个部门' }]}
-            >
-              <CheckedTree treeData={departmentTree} label="自定义部门" />
-            </ProForm.Item>
-          ) : null
-        }
-      </ProFormDependency>
       <ProForm.Item
         name="menuIds"
         label="菜单与操作权限"
@@ -139,10 +108,6 @@ export default function RolesPage() {
     { title: '角色名称', dataIndex: 'name' },
     { title: '角色编码', dataIndex: 'code', search: false },
     {
-      title: '数据范围', dataIndex: 'dataRange', search: false,
-      renderText: (value) => dataRangeNames.get(value) || '未知范围',
-    },
-    {
       title: '状态', dataIndex: 'status', search: false,
       render: (_, row) => <Tag color={row.status === 1 ? 'success' : 'default'}>{row.status === 1 ? '启用' : '停用'}</Tag>,
     },
@@ -172,7 +137,7 @@ export default function RolesPage() {
   return (
     <PageContainer
       title="角色管理"
-      subTitle="维护当前单位的角色、菜单权限和数据范围；权限候选与保存均受当前操作者授予上限约束。"
+      subTitle="维护当前单位的角色及菜单权限；数据权限在用户管理中单独配置。权限候选与保存均受当前操作者授予上限约束。"
     >
       {loadError && <Alert type="error" showIcon title={loadError} style={{ marginBottom: 20 }} />}
       <ProTable<Role>
@@ -203,8 +168,8 @@ export default function RolesPage() {
             title="新增角色"
             width={680}
             trigger={<Button type="primary" icon={<PlusOutlined />}>新增角色</Button>}
-            initialValues={{ dataRange: 5, status: 1, sort: 0, menuIds: [], orgIds: [] }}
-            modalProps={{ destroyOnHidden: true }}
+            initialValues={{ status: 1, sort: 0, menuIds: [] }}
+            modalProps={compactModalProps}
             onValuesChange={() => setDirty(true)}
             onOpenChange={(open) => {
               if (open) void roleCreateOptions().then(setCreateOptions).catch(() => {});
@@ -212,7 +177,7 @@ export default function RolesPage() {
             }}
             onFinish={async (values) => {
               try {
-                await createRole({ ...values, menuIds: values.menuIds || [], orgIds: values.dataRange === 2 ? values.orgIds || [] : [] });
+                await createRole({ ...values, menuIds: values.menuIds || [] });
                 void message.success('角色已新增');
                 await action.current?.reload();
                 return true;
@@ -228,8 +193,8 @@ export default function RolesPage() {
         title="修改角色"
         width={680}
         open={!!editing}
-        initialValues={editing ? { ...editing.role, menuIds: editing.menuIds, orgIds: editing.orgIds } : undefined}
-        modalProps={{ destroyOnHidden: true }}
+        initialValues={editing ? { ...editing.role, menuIds: editing.menuIds } : undefined}
+        modalProps={compactModalProps}
         onValuesChange={() => setDirty(true)}
         onOpenChange={(open) => {
           if (!open) { setEditing(undefined); setUpdateOptions(emptyOptions); setDirty(false); }
@@ -238,7 +203,7 @@ export default function RolesPage() {
           if (!editing) return false;
           try {
             await editRole({ ...values, id: editing.role.id, version: editing.role.version,
-              menuIds: values.menuIds || [], orgIds: values.dataRange === 2 ? values.orgIds || [] : [] });
+              menuIds: values.menuIds || [] });
             void message.success('角色已更新');
             await action.current?.reload();
             return true;

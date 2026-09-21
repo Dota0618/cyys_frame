@@ -16,3 +16,7 @@ export const editMember = (id: string, body: EditMember) => api<Member>(`${root}
 export const grantRoles = (id: string, body: string[]) => api<void>(`${root}/${encodeURIComponent(id)}/roles`, { method: 'PUT', body });
 export const departmentOptions = () => api<DepartmentOption[]>(`${root}/departments`);
 export const roleOptions = () => api<Option[]>(`${root}/roles`);
+
+export const memberDataPermission = (id: string) => api<import('@/types/api').MemberDataPermission>(`/api/admin/users/${encodeURIComponent(id)}/data-permission`);
+export const updateMemberDataPermission = (id: string, body: import('@/types/api').UpdateMemberDataPermission) =>
+  api<import('@/types/api').MemberDataPermission>(`/api/admin/users/${encodeURIComponent(id)}/data-permission`, { method: 'PUT', body });

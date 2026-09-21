@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
-import com.cyys.admin.auth.mapper.DataAuthorizationMapper;
+import com.cyys.admin.auth.service.UnitAdministrationService;
 import com.cyys.admin.role.dto.RoleQuery;
 import com.cyys.admin.role.dto.CreateRoleCommand;
 import com.cyys.admin.role.dto.UpdateRoleCommand;
@@ -15,7 +15,6 @@ import com.cyys.admin.role.dto.RoleDetail;
 import com.cyys.admin.role.mapper.RoleGrantMapper;
 import com.cyys.admin.role.mapper.SysRoleMapper;
 import com.cyys.admin.role.model.SysRole;
-import com.cyys.admin.user.mapper.SysUserRoleMapper;
 import com.cyys.common.mybatis.DataPolicyRegistry;
 import com.cyys.common.mybatis.DataTransactionGuard;
 import com.cyys.common.satoken.ScopeContext;
@@ -34,8 +33,7 @@ import java.util.*;
 public class RoleService {
     private final SysRoleMapper mapper;
     private final RoleGrantMapper grantMapper;
-    private final SysUserRoleMapper userRoles;
-    private final DataAuthorizationMapper authorization;
+    private final UnitAdministrationService administration;
     private final DataAuditService audit;
 
     @Transactional(readOnly = true)
@@ -52,7 +50,7 @@ public class RoleService {
         SysRole role = requireRole(mapper.detail(id, scope()));
         List<String> menuIds = mapper.menuIds(role.getId());
         boolean editable = withinCeiling(List.of(role.getId()), ceiling);
-        return new RoleDetail(RoleView.from(role), menuIds, mapper.orgIds(role.getId(), scope()), editable);
+        return new RoleDetail(RoleView.from(role), menuIds, editable);
     }
 
     @Transactional(readOnly = true)
@@ -70,15 +68,15 @@ public class RoleService {
     @Transactional
     public RoleView create(@Valid CreateRoleCommand command) {
         Set<String> ceiling = authorize("role:create", true);
-        validateSelections(command.dataRange(), command.menuIds(), command.orgIds(), ceiling);
+        validateSelections(command.menuIds(), ceiling);
         var role = new SysRole();
         role.setId(IdWorker.getIdStr());
         role.setScopeId(scope());
         role.setCode(command.code());
-        apply(role, command.name(), command.dataRange(), command.status(), command.sort(), command.remark());
+        apply(role, command.name(), command.status(), command.sort(), command.remark());
         try {
             requireOne(mapper.create(role, actor()));
-            replaceRelations(role.getId(), command.menuIds(), command.orgIds());
+            replaceRelations(role.getId(), command.menuIds());
         } catch (DataIntegrityViolationException exception) {
             throw new ApiException(409, "角色编码或关联关系冲突");
         }
@@ -92,11 +90,11 @@ public class RoleService {
         SysRole role = requireRole(mapper.lock(command.id(), scope()));
         if (!Objects.equals(role.getVersion(), command.version())) throw new ApiException(409, "角色版本已变更");
         requireExistingWithinCeiling(role.getId(), ceiling);
-        validateSelections(command.dataRange(), command.menuIds(), command.orgIds(), ceiling);
-        apply(role, command.name(), command.dataRange(), command.status(), command.sort(), command.remark());
+        validateSelections(command.menuIds(), ceiling);
+        apply(role, command.name(), command.status(), command.sort(), command.remark());
         try {
             requireOne(mapper.updateRole(role, actor()));
-            replaceRelations(role.getId(), command.menuIds(), command.orgIds());
+            replaceRelations(role.getId(), command.menuIds());
         } catch (DataIntegrityViolationException exception) {
             throw new ApiException(409, "角色关联关系冲突");
         }
@@ -113,7 +111,6 @@ public class RoleService {
         requireExistingWithinCeiling(role.getId(), ceiling);
         if (mapper.hasUserGrant(role.getId(), scope())) throw new ApiException(409, "角色仍授予有效成员，不能删除");
         mapper.removeMenus(role.getId());
-        mapper.removeDepartments(role.getId(), scope());
         requireOne(mapper.softDelete(role.getId(), scope(), version, actor()));
         audit.success("role", role.getId(), "DELETE");
     }
@@ -122,12 +119,11 @@ public class RoleService {
         List<RoleMenuOption> menus = mapper.menus().stream()
                 .filter(menu -> menu.type() != 3 || ceiling.contains(menu.code()))
                 .toList();
-        return new RoleOptions(menus, mapper.departments(scope()));
+        return new RoleOptions(menus);
     }
 
-    private void validateSelections(int dataRange, List<String> menuIds, List<String> orgIds, Set<String> ceiling) {
+    private void validateSelections(List<String> menuIds, Set<String> ceiling) {
         requireDistinct(menuIds, "菜单权限不能重复");
-        requireDistinct(orgIds, "数据范围部门不能重复");
         if (!menuIds.isEmpty()) {
             List<RoleMenuOption> selected = mapper.lockMenus(menuIds);
             if (selected.size() != menuIds.size()
@@ -135,35 +131,15 @@ public class RoleService {
                 throw new ApiException(403, "菜单权限超出当前操作者的授予上限");
             }
         }
-        if (dataRange == 2) {
-            if (orgIds.isEmpty()) throw new ApiException(400, "自定义部门范围至少选择一个部门");
-            if (mapper.lockDepartments(orgIds, scope()).size() != orgIds.size()) {
-                throw new ApiException(403, "数据范围包含其他单位或无效部门");
-            }
-        } else if (!orgIds.isEmpty()) {
-            throw new ApiException(400, "仅自定义部门范围可以提交部门");
-        }
     }
 
-    private void replaceRelations(String roleId, List<String> menuIds, List<String> orgIds) {
+    private void replaceRelations(String roleId, List<String> menuIds) {
         mapper.removeMenus(roleId);
         for (String menuId : menuIds) requireOne(mapper.addMenu(IdWorker.getIdStr(), roleId, menuId, actor()));
-        mapper.removeDepartments(roleId, scope());
-        for (String orgId : orgIds) requireOne(mapper.addDepartment(roleId, scope(), orgId));
     }
 
     private Set<String> authorize(String permission, boolean grantOperation) {
-        var identity = ScopeContext.get();
-        String scope = identity.requireScopeId();
-        DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);
-        if (!authorization.hasPermission(identity.loginId(), scope, permission)) {
-            throw new ApiException(403, "没有当前单位的角色管理权限");
-        }
-        Set<String> ceiling = Set.copyOf(userRoles.selectUnitWidePermissionCodes(identity.loginId(), List.of(scope)));
-        if (!ceiling.contains(permission) || (grantOperation && !ceiling.contains("role:grant"))) {
-            throw new ApiException(403, "局部数据范围不能管理角色授权");
-        }
-        return ceiling;
+        return administration.authorize(permission, grantOperation);
     }
 
     private boolean withinCeiling(List<String> roleIds, Set<String> ceiling) {
@@ -177,9 +153,8 @@ public class RoleService {
         }
     }
 
-    private static void apply(SysRole role, String name, int dataRange, int status, int sort, String remark) {
+    private static void apply(SysRole role, String name, int status, int sort, String remark) {
         role.setName(name);
-        role.setDataRange(dataRange);
         role.setStatus(status);
         role.setSort(sort);
         role.setRemark(remark);

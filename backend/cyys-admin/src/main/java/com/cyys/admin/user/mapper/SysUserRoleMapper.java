@@ -53,14 +53,14 @@ public interface SysUserRoleMapper extends BaseMapper<SysUserRole> {
             + GRANT_SCOPE + " and (r.scope_id='GLOBAL' or m.platform_only=0) order by m.sort,m.id</script>")
     List<NavigationMenu> selectNavigation(@Param("userId") String userId,@Param("scopeIds") List<String> scopeIds);
 
-    /** 角色授予只使用本单位全部数据范围的权限作为上限，暂不开放局部范围委派。 */
+    /** 授权管理要求操作者在当前单位的数据范围为全部；角色仅提供功能权限。 */
     @Select("""
             <script>select distinct m.code
             """ + VALID_GRANT + """
             join sys_role_menu rm on rm.role_id=r.id and rm.deleted=0
             join sys_menu m on m.id=rm.menu_id and m.deleted=0 and m.status=1 and m.type=3 and m.platform_only=0
             """ + GRANT_SCOPE + """
-              and r.scope_id&lt;&gt;'GLOBAL' and r.data_range=1</script>
+              and r.scope_id&lt;&gt;'GLOBAL' and exists(select 1 from sys_user_scope adm_us where adm_us.user_id=ur.user_id and adm_us.scope_id=ur.scope_id and adm_us.data_range=1 and adm_us.deleted=0 and adm_us.status=1 and (adm_us.expire_at is null or adm_us.expire_at &gt; CURRENT_TIMESTAMP))</script>
             """)
     List<String> selectUnitWidePermissionCodes(@Param("userId") String userId, @Param("scopeIds") List<String> scopeIds);
 }

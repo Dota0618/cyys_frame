@@ -37,8 +37,8 @@ public interface PlatformRoleMapper {
             + "<foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach> for update</script>")
     List<PlatformRoleMenuOption> lockMenus(@Param("ids") List<String> ids);
 
-    @Insert("insert into sys_role(id,scope_id,code,name,data_range,status,sort,remark,created_by,updated_by) "
-            + "values(#{role.id},'GLOBAL',#{role.code},#{role.name},1,#{role.status},#{role.sort},#{role.remark},#{actor},#{actor})")
+    @Insert("insert into sys_role(id,scope_id,code,name,status,sort,remark,created_by,updated_by) "
+            + "values(#{role.id},'GLOBAL',#{role.code},#{role.name},#{role.status},#{role.sort},#{role.remark},#{actor},#{actor})")
     int create(@Param("role") SysRole role, @Param("actor") String actor);
 
     @Update("update sys_role set name=#{role.name},status=#{role.status},sort=#{role.sort},remark=#{role.remark},"

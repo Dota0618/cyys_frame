@@ -7,10 +7,13 @@ import {
 } from '@ant-design/pro-components';
 import { useMutation } from '@tanstack/react-query';
 import { App, Button } from 'antd';
+import { useAccess } from '@umijs/max';
+import { CompactFields, compactModalProps } from '@/components/ManagementLayout';
+import DataPermissionFields from './DataPermissionFields';
 import ScopeSwitch from '@/components/ScopeSwitch';
 import NewPasswordFields from '@/components/NewPasswordFields';
 import { createMember } from '@/services/system/users';
-import type { CreateMember, DepartmentOption } from '@/types/api';
+import type { CreateMember, DepartmentOption, MemberDataPermissionInput } from '@/types/api';
 import { departmentTreeData } from '@/utils/departments';
 import { setDirty } from '@/utils/session';
 
@@ -22,6 +25,7 @@ export default function CreateForm({
   departments: DepartmentOption[];
 }) {
   const { message } = App.useApp();
+  const access = useAccess();
   const { mutateAsync: run, isPending: loading } = useMutation({
     mutationFn: createMember,
     onSuccess: () => {
@@ -30,32 +34,40 @@ export default function CreateForm({
     },
   });
   return (
-    <ModalForm<CreateMember>
+    <ModalForm<CreateMember & MemberDataPermissionInput>
       name="member-create"
       title="新增成员"
-      width={480}
+      width={920}
+      initialValues={{ dataRange: 5, orgIds: [] }}
       trigger={
         <Button type="primary" icon={<PlusOutlined />}>
           新增成员
         </Button>
       }
-      modalProps={{ destroyOnHidden: true, okButtonProps: { loading } }}
+      modalProps={{ ...compactModalProps, okButtonProps: { loading } }}
       onValuesChange={() => setDirty(true)}
       onOpenChange={(open) => {
         if (!open) setDirty(false);
       }}
       onFinish={async (values) => {
         try {
-          await run(values);
+          await run({
+            loginName: values.loginName, password: values.password,
+            displayName: values.displayName, orgId: values.orgId,
+            ...(access.canManageMemberDataPermission ? { dataPermission: {
+              dataRange: values.dataRange, orgIds: values.dataRange === 2 ? values.orgIds || [] : [],
+            } } : {}),
+          });
           return true;
         } catch {
           return false;
         }
       }}
     >
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 14 }}>
         <ScopeSwitch />
       </div>
+      <CompactFields><div>
       <ProFormText
         name="loginName"
         label="登录账号"
@@ -87,6 +99,7 @@ export default function CreateForm({
           treeNodeFilterProp: 'title',
         }}
       />
+      </div><div><DataPermissionFields departments={departments} editable={access.canManageMemberDataPermission} /></div></CompactFields>
     </ModalForm>
   );
 }

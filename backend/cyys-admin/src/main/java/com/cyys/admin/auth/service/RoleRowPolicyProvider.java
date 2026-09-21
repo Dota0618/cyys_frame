@@ -66,7 +66,7 @@ public class RoleRowPolicyProvider implements RowPolicyProvider {
         String creator = qualifier + "." + resource.actorColumn();
         // 更新成员表时，MySQL 禁止在相关子查询中直接重读目标表；LIMIT 使当前操作者成员行物化。
         String membershipSource = resource.table().equals("sys_user_scope")
-                ? "(select user_id,scope_id,org_id,status,deleted,expire_at from sys_user_scope where user_id=" + actor + " and scope_id=" + scope + " limit 1)"
+                ? "(select id,user_id,scope_id,org_id,data_range,status,deleted,expire_at from sys_user_scope where user_id=" + actor + " and scope_id=" + scope + " limit 1)"
                 : "sys_user_scope";
         String descendants = resource.ancestorsColumn() != null
                 ? "(pol_us.org_id=" + department + " or find_in_set(pol_us.org_id," + qualifier + "." + resource.ancestorsColumn() + ")>0)"
@@ -80,11 +80,11 @@ public class RoleRowPolicyProvider implements RowPolicyProvider {
                 + "join " + membershipSource + " pol_us on pol_us.user_id=pol_ur.user_id and pol_us.scope_id=pol_ur.scope_id "
                 + "and pol_us.status=1 and pol_us.deleted=0 and (pol_us.expire_at is null or pol_us.expire_at>CURRENT_TIMESTAMP) "
                 + "where pol_ur.deleted=0 and pol_ur.user_id=" + actor + " and pol_ur.scope_id=" + scope
-                + " and pol_m.code=" + permission + " and (pol_r.data_range=1 "
-                + "or (pol_r.data_range=2 and exists(select 1 from sys_role_org pol_ro where pol_ro.role_id=pol_r.id "
+                + " and pol_m.code=" + permission + " and (pol_us.data_range=1 "
+                + "or (pol_us.data_range=2 and exists(select 1 from sys_user_scope_org pol_ro where pol_ro.member_id=pol_us.id "
                 + "and pol_ro.scope_id=" + owner + " and pol_ro.org_id=" + department + ")) "
-                + "or (pol_r.data_range=3 and pol_us.org_id=" + department + ") "
-                + "or (pol_r.data_range=4 and " + descendants + ") or (pol_r.data_range=5 and " + creator + "=" + actor + ")))";
+                + "or (pol_us.data_range=3 and pol_us.org_id=" + department + ") "
+                + "or (pol_us.data_range=4 and " + descendants + ") or (pol_us.data_range=5 and " + creator + "=" + actor + ")))";
         String platformAction = globalPermission(actor, literal("platform:data:operate"));
         if (policy.access() == DataPolicyRegistry.Access.READ) {
             platformAction = "(" + platformAction + " or " + globalPermission(actor, literal("platform:data:read-all")) + ")";

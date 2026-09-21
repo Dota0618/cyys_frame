@@ -51,7 +51,6 @@ class BrowserAcceptance extends IsolationTestSupport {
         for (String id : jdbc.queryForList("select id from sys_role where code in ('G4_BROWSER_ROLE','G4_BROWSER_PLATFORM_ROLE','G4_BROWSER_GLOBAL_ROLE')", String.class)) {
             jdbc.update("delete from sys_user_role where role_id=?", id);
             jdbc.update("delete from sys_role_menu where role_id=?", id);
-            jdbc.update("delete from sys_role_org where role_id=?", id);
             jdbc.update("delete from sys_role where id=?", id);
         }
         jdbc.update("delete from sys_role_menu where menu_id in (select id from sys_menu where code='g4-browser-menu')");

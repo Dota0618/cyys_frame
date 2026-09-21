@@ -22,7 +22,7 @@ abstract class IsolationTestSupport extends HttpTestSupport {
             allow("role-a", "department:" + action, false);
             allow("role-b", "department:" + action, false);
         }
-        jdbc.update("update sys_role set data_range=1 where id in ('role-a','role-b')");
+        jdbc.update("update sys_user_scope set data_range=1 where user_id in ('u-alice','u-bob') and scope_id in ('scope-a','scope-b')");
         org("g1-a-root", "scope-a", null, "", "u-bob");
         org("g1-a-child", "scope-a", "g1-a-root", "g1-a-root", "u-bob");
         org("g1-a-self", "scope-a", null, "", "u-alice");

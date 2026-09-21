@@ -27,7 +27,7 @@ public final class LocalDeploymentFixture {
         OWNED.put("sys_org", "id in ('rehearsal-org-a','rehearsal-org-b') and scope_id in " + SCOPES + " and created_by='rehearsal-user'");
         OWNED.put("sys_user", "id='rehearsal-user' and login_name='local-rehearsal'");
         OWNED.put("sys_scope", "id in " + SCOPES + " and remark='CYYS local Docker rehearsal'");
-        for (String table : List.of("sys_role_org", "sys_configure", "param_basic", "param_basic_type",
+        for (String table : List.of("sys_user_scope_org", "sys_configure", "param_basic", "param_basic_type",
                 "sys_file_dir", "sys_org_notice", "sys_org_notice_ref", "sys_file_binding", "sys_notice",
                 "sys_version", "param_region", "sys_serial_rule", "sys_serial_counter")) OWNED.put(table, "1=0");
     }
@@ -65,7 +65,7 @@ public final class LocalDeploymentFixture {
     private static void seed(Connection c) throws SQLException {
         String hash = BCrypt.hashpw(required("CYYS_REHEARSAL_PASSWORD"), BCrypt.gensalt(10));
         execute(c, "insert into sys_user(id,login_name,password_hash,real_name) values(?,'local-rehearsal',?,'本机演练账号')", USER, hash);
-        execute(c, "insert into sys_role(id,scope_id,code,name,data_range) values('rehearsal-role','GLOBAL','LOCAL_REHEARSAL','本机演练平台角色',1)");
+        execute(c, "insert into sys_role(id,scope_id,code,name) values('rehearsal-role','GLOBAL','LOCAL_REHEARSAL','本机演练平台角色')");
         execute(c, "insert into sys_user_role(id,user_id,role_id,scope_id) values('rehearsal-grant',?,'rehearsal-role','GLOBAL')", USER);
         for (String suffix : List.of("a", "b")) {
             String scope = "rehearsal-" + suffix;

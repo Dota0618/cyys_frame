@@ -11,18 +11,20 @@ export default function CheckedTree({
   treeData,
   label,
   menuSelection = false,
+  independentSelection = false,
 }: {
   value?: string[];
   onChange?: (ids: string[]) => void;
   treeData: TreeDataNode[];
   label: string;
   menuSelection?: boolean;
+  independentSelection?: boolean;
 }) {
   return (
     <div style={menuSelection ? { maxHeight: 360, overflow: 'auto' } : undefined}>
     <Tree
       checkable
-      checkStrictly={menuSelection}
+      checkStrictly={menuSelection || independentSelection}
       selectable={false}
       defaultExpandAll={!menuSelection}
       checkedKeys={value}

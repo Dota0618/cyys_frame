@@ -6,33 +6,37 @@ import {
   ProFormTreeSelect,
 } from '@ant-design/pro-components';
 import { App, Descriptions } from 'antd';
+import { CompactFields, compactModalProps } from '@/components/ManagementLayout';
+import DataPermissionFields from './DataPermissionFields';
 import ScopeSwitch from '@/components/ScopeSwitch';
 import { editMember } from '@/services/system/users';
-import type { DepartmentOption, EditMember, Member } from '@/types/api';
+import type { DepartmentOption, EditMember, Member, MemberDataPermission, MemberDataPermissionInput } from '@/types/api';
 import { departmentTreeData } from '@/utils/departments';
-import { setDirty } from '@/utils/session';
+import { setDirty, refreshIdentity } from '@/utils/session';
 
 export default function UpdateForm({
   values,
   departments,
+  permission,
   onClose,
   reload,
 }: {
   values?: Member;
   departments: DepartmentOption[];
+  permission?: MemberDataPermission;
   onClose: () => void;
   reload?: ActionType['reload'];
 }) {
   const { message } = App.useApp();
   if (!values) return null;
   return (
-    <ModalForm<EditMember>
+    <ModalForm<EditMember & MemberDataPermissionInput>
       name="member-edit"
       title="修改成员"
-      width={640}
+      width={920}
       open
-      initialValues={values}
-      modalProps={{ destroyOnHidden: true }}
+      initialValues={{ ...values, orgIds: permission?.orgIds || [] }}
+      modalProps={compactModalProps}
       onOpenChange={(open) => {
         if (!open) {
           onClose();
@@ -47,22 +51,27 @@ export default function UpdateForm({
             orgId: form.orgId,
             status: form.status,
             version: values.version,
+            ...(permission ? { dataPermission: {
+              dataRange: form.dataRange, orgIds: form.dataRange === 2 ? form.orgIds || [] : [],
+            } } : {}),
           });
           void message.success('成员资料已更新');
           void reload?.();
+          if (permission) refreshIdentity();
           return true;
         } catch {
           return false;
         }
       }}
     >
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 14 }}>
         <ScopeSwitch />
       </div>
+      <CompactFields><div>
       <Descriptions
         size="small"
         column={1}
-        style={{ marginBottom: 20 }}
+        style={{ marginBottom: 14 }}
         items={[
           { key: 'account', label: '登录账号', children: values.loginName },
         ]}
@@ -93,6 +102,8 @@ export default function UpdateForm({
         ]}
         rules={[{ required: true }]}
       />
+      </div><div><DataPermissionFields departments={permission?.departments || departments}
+        editable={!!permission} currentRange={values.dataRange} /></div></CompactFields>
     </ModalForm>
   );
 }

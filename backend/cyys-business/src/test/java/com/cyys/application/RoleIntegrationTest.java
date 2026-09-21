@@ -30,7 +30,6 @@ class RoleIntegrationTest extends IsolationTestSupport {
         for (String id : ids) {
             jdbc.update("delete from sys_user_role where role_id=?", id);
             jdbc.update("delete from sys_role_menu where role_id=?", id);
-            jdbc.update("delete from sys_role_org where role_id=?", id);
             jdbc.update("delete from sys_role where id=?", id);
         }
     }
@@ -51,7 +50,7 @@ class RoleIntegrationTest extends IsolationTestSupport {
 
         var options = roles("GET", "/create-options", token, "scope-a", null);
         assertThat(options.status()).as(options.raw()).isEqualTo(200);
-        assertThat(options.raw()).contains("permission-read", "g1-a-child").doesNotContain("permission-write", "g1-b-root");
+        assertThat(options.raw()).contains("permission-read").doesNotContain("permission-write", "g1-b-root");
         assertThat(roles("GET", "", token, null, null).status()).isEqualTo(403);
     }
 
@@ -60,16 +59,16 @@ class RoleIntegrationTest extends IsolationTestSupport {
         platformUser();
         String token = token("alice");
         var create = Map.of(
-                "code", "G4_EDITOR", "name", "测试编辑角色", "dataRange", 2, "status", 1, "sort", 3,
-                "remark", "integration", "menuIds", List.of("permission-read"), "orgIds", List.of("g1-a-child"));
+                "code", "G4_EDITOR", "name", "测试编辑角色", "status", 1, "sort", 3,
+                "remark", "integration", "menuIds", List.of("permission-read"));
         var created = roles("POST", "", token, "scope-a", create);
         assertThat(created.status()).as(created.raw()).isEqualTo(200);
         String id = created.body().at("/data/id").asText();
         assertThat(created.body().at("/data/scopeId").asText()).isEqualTo("scope-a");
-        assertThat(count("select count(*) from sys_role_org where role_id='" + id + "' and scope_id='scope-a' and org_id='g1-a-child'")).isOne();
+        assertThat(created.body().path("data").has("dataRange")).isFalse();
 
-        var edit = Map.of("id", id, "version", 0, "name", "测试编辑角色已修改", "dataRange", 1,
-                "status", 1, "sort", 4, "remark", "updated", "menuIds", List.of("permission-read"), "orgIds", List.of());
+        var edit = Map.of("id", id, "version", 0, "name", "测试编辑角色已修改",
+                "status", 1, "sort", 4, "remark", "updated", "menuIds", List.of("permission-read"));
         var edited = roles("PUT", "", token, "scope-a", edit);
         assertThat(edited.status()).as(edited.raw()).isEqualTo(200);
         assertThat(edited.body().at("/data/version").asInt()).isEqualTo(1);
@@ -88,12 +87,12 @@ class RoleIntegrationTest extends IsolationTestSupport {
     @Test
     void saveRechecksGrantCeilingAndOperationPermission() throws Exception {
         String token = token("alice");
-        var beyond = Map.of("code", "G4_BEYOND", "name", "越权角色", "dataRange", 1, "status", 1, "sort", 0,
-                "menuIds", List.of("permission-write"), "orgIds", List.of());
+        var beyond = Map.of("code", "G4_BEYOND", "name", "越权角色", "status", 1, "sort", 0,
+                "menuIds", List.of("permission-write"));
         assertThat(roles("POST", "", token, "scope-a", beyond).status()).isEqualTo(403);
-        var crossDepartment = Map.of("code", "G4_CROSS", "name", "跨单位角色", "dataRange", 2, "status", 1, "sort", 0,
+        var crossDepartment = Map.of("code", "G4_CROSS", "name", "跨单位角色", "status", 1, "sort", 0,
                 "menuIds", List.of("permission-read"), "orgIds", List.of("g1-b-root"));
-        assertThat(roles("POST", "", token, "scope-a", crossDepartment).status()).isEqualTo(403);
+        assertThat(roles("POST", "", token, "scope-a", crossDepartment).status()).isEqualTo(400);
 
         jdbc.update("delete from sys_role_menu where role_id='role-a' and menu_id in (select id from sys_menu where code='role:create')");
         assertThat(roles("GET", "/create-options", token, "scope-a", null).status()).isEqualTo(403);

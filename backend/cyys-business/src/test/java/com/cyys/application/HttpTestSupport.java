@@ -64,7 +64,7 @@ abstract class HttpTestSupport {
         }
         // 启动前已确认这是空的测试 schema；只清理由本组用例插入的记录。
         jdbc.update("delete from sys_data_audit where scope_id in ('scope-a','scope-b')");
-        jdbc.update("delete from sys_role_org where scope_id in ('scope-a','scope-b')");
+        jdbc.update("delete from sys_user_scope_org where scope_id in ('scope-a','scope-b')");
         jdbc.update("delete from sys_role_menu where role_id in ('role-a','role-b','role-platform')");
         jdbc.update("delete from sys_role_menu where role_id like 'g1-%'");
         jdbc.update("delete from sys_user_role where user_id in ('u-alice','u-bob','u-platform','1')");

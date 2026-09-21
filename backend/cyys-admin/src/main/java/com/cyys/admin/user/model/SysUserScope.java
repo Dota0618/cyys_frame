@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @TableName("sys_user_scope")
 @DataResourceDefinition(name = "user", scopeColumn = "scope_id",
         departmentColumn = "org_id", actorColumn = "user_id", versionColumn = "version",
-        immutableColumns = {"user_id", "member_role", "default_flag", "expire_at"})
+        immutableColumns = {"user_id", "member_role", "default_flag", "expire_at", "data_range"})
 /**
  * Membership relation between a global account and a business scope.
  * 全局账号与业务单位之间的成员关系。
@@ -30,6 +30,9 @@ public class SysUserScope implements Serializable {
     private String scopeId;
 
     private String displayName;
+
+    @TableField(updateStrategy = FieldStrategy.NEVER)
+    private Integer dataRange = 5;
 
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String orgId;

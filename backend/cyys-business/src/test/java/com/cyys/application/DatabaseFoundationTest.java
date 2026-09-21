@@ -53,7 +53,7 @@ class DatabaseFoundationTest extends HttpTestSupport {
         permission("role-a", "g1-update", "department:update", false);
         membership("u-bob", "scope-a", false);
         grant("u-bob", "role-a", "scope-a");
-        jdbc.update("update sys_role set data_range=1 where id='role-a'");
+        jdbc.update("update sys_user_scope set data_range=1 where user_id in ('u-alice','u-bob') and scope_id='scope-a'");
         var org = new SysOrg();
         org.setId("audit-org");
         org.setScopeId("scope-a");

@@ -15,6 +15,8 @@ import com.cyys.admin.user.dto.MemberView;
 import com.cyys.admin.user.dto.MemberDetail;
 import com.cyys.admin.user.dto.MemberOption;
 import com.cyys.admin.user.dto.MemberDepartmentOption;
+import com.cyys.admin.user.dto.MemberDataPermissionInput;
+import com.cyys.admin.user.dto.UpdateMemberDataPermissionCommand;
 import com.cyys.admin.user.mapper.MemberAccountMapper;
 import com.cyys.admin.user.mapper.MemberMapper;
 import com.cyys.admin.user.mapper.MemberDepartmentMapper;
@@ -50,6 +52,7 @@ public class MemberService {
     private final RoleGrantService grants;
     private final DataAuditService audit;
     private final UserDisplayService cache;
+    private final MemberDataPermissionService dataPermissions;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public byte[] export(@Valid ExportMembersCommand command) {
@@ -108,7 +111,7 @@ public class MemberService {
         return new MemberDetail(view(member,names(List.of(member))),accounts.roleIds(member.getUserId(),member.getScopeId()));
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public MemberView create(@Valid CreateMemberCommand command) {
         authorize("user:create",DataPolicyRegistry.Access.WRITE);
         String scope=ScopeContext.get().requireScopeId();
@@ -122,17 +125,20 @@ public class MemberService {
             accounts.createAccount(member.getUserId(),command.loginName(),PasswordPolicy.hash(command.password()),ScopeContext.get().loginId());
             if(mapper.insert(member)!=1) throw new ApiException(409,"新增成员失败");
         } catch(DataIntegrityViolationException error) { throw new ApiException(409,"登录账号不可使用"); }
+        saveDataPermission(member, command.dataPermission());
         audit.success("user",member.getId(),"CREATE");
         return view(member,Map.of(member.getUserId(),command.loginName()));
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public MemberView edit(String id,@Valid UpdateMemberCommand command) {
+        if (command.dataPermission() != null) dataPermissions.lockForUpdate(id, command.version());
         var member=mapper.lockForEdit(id);
         if(member==null||!member.getVersion().equals(command.version())) throw new ApiException(409,"成员不可修改或已变更");
         if(command.orgId()!=null&&departments.forEdit(command.orgId())==null) throw new ApiException(403,"关联部门不可用");
         member.setDisplayName(command.displayName()); member.setOrgId(command.orgId()); member.setStatus(command.status());
         if(mapper.updateById(member)!=1) throw new ApiException(409,"成员已变更");
+        saveDataPermission(member, command.dataPermission());
         audit.success("user",id,"UPDATE");
         cache.invalidateAfterCommit();
         return view(member,names(List.of(member)));
@@ -160,6 +166,13 @@ public class MemberService {
         DataTransactionGuard.bind(identity,DataPolicyRegistry.View.CURRENT_SCOPE);
         policy.authorize(new DataPolicyRegistry.Policy(registry.resource(SysUserScope.class),permission,access,DataPolicyRegistry.View.CURRENT_SCOPE),identity);
     }
+    private void saveDataPermission(SysUserScope member, MemberDataPermissionInput input) {
+        if (input == null) return;
+        var saved = dataPermissions.update(member.getId(), new UpdateMemberDataPermissionCommand(
+                member.getVersion(), input.dataRange(), input.orgIds()));
+        member.setVersion(saved.version());
+        member.setDataRange(saved.dataRange());
+    }
     private IPage<MemberView> views(IPage<SysUserScope> page) {
         Map<String,String> names=names(page.getRecords());
         return page.convert(member->view(member,names));
@@ -172,6 +185,6 @@ public class MemberService {
     private MemberView view(SysUserScope member,Map<String,String> names) {
         String login=names.get(member.getUserId());
         return new MemberView(member.getId(),member.getUserId(),member.getScopeId(),login,
-                member.getDisplayName()==null?login:member.getDisplayName(),member.getOrgId(),member.getStatus(),member.getVersion(),member.getCreatedAt());
+                member.getDisplayName()==null?login:member.getDisplayName(),member.getOrgId(),member.getStatus(),member.getVersion(),member.getCreatedAt(),member.getDataRange());
     }
 }
