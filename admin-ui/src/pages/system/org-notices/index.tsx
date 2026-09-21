@@ -1,3 +1,4 @@
+import { compactFormProps, verticalFormItemProps } from '@/components/ManagementLayout';
 import { ModalForm, PageContainer, ProForm, ProFormText, ProFormTextArea, ProFormTreeSelect, ProTable } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
@@ -66,7 +67,7 @@ export default function OrgNoticesPage() {
         try { const result = await listNotices(params.current || 1, params.pageSize || 20, params.title); return { data: result.records, total: result.total, success: true }; }
         catch (failure) { failed(failure); return { data: [], success: false }; }
       }} />
-    {editor && <ModalForm<FormValue> name="org-notice-editor" title={detail ? '编辑通知' : '新增通知'} open omitNil={false}
+    {editor && <ModalForm<FormValue> {...compactFormProps} name="org-notice-editor" title={detail ? '编辑通知' : '新增通知'} open omitNil={false}
       initialValues={{ title: detail?.notice.title, content: detail?.content, type: detail?.notice.type ?? null, attachments: detail?.attachments || [] }}
       modalProps={{ destroyOnHidden: true }} onValuesChange={() => setDirty(true)}
       onOpenChange={(open) => { if (!open) { setEditor(undefined); setDirty(false); } }}
@@ -83,8 +84,8 @@ export default function OrgNoticesPage() {
       <ProFormText name="title" label="通知标题" rules={[{ required: true, whitespace: true, message: '请输入通知标题' }, { max: 100 }]} />
       <ProForm.Item name="type" label="通知类型"><DictionarySelect ariaLabel="通知类型" options={editor.options.types}
         historical={detail?.notice.type ? { value: detail.notice.type, label: detail.notice.typeLabel || detail.notice.type, disabled: detail.notice.typeDisabled } : undefined} /></ProForm.Item>
-      <ProFormTextArea name="content" label="通知内容" fieldProps={{ rows: 5 }} rules={[{ required: true, whitespace: true, message: '请输入通知内容' }, { max: 2000 }]} />
-      <ProForm.Item name="attachments" label="附件" rules={[{ type: 'array', max: 10 }]}>
+      <ProFormTextArea formItemProps={verticalFormItemProps} name="content" label="通知内容" fieldProps={{ rows: 5 }} rules={[{ required: true, whitespace: true, message: '请输入通知内容' }, { max: 2000 }]} />
+      <ProForm.Item {...verticalFormItemProps} name="attachments" label="附件" rules={[{ type: 'array', max: 10 }]}>
         <AttachmentField canUpload={access.canUploadFiles} load={(page, size, search) => noticeFiles(detail?.notice.id, page, size, search)} />
       </ProForm.Item>
     </ModalForm>}

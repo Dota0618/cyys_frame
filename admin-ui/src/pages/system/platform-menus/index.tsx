@@ -14,7 +14,7 @@ import { menuRows } from '@/utils/menus';
 import type { MenuRow } from '@/utils/menus';
 import { menuIcon } from '@/utils/menuIcons';
 import MenuIconSelect from '@/components/MenuIconSelect';
-import { CompactFields, compactModalProps, ManagementSplit } from '@/components/ManagementLayout';
+import { CompactFields, compactModalProps, ManagementSplit, compactFormProps } from '@/components/ManagementLayout';
 
 const menuTypes = [{ value: 1, label: '目录' }, { value: 2, label: '菜单' }, { value: 3, label: '按钮权限' }];
 const typeNames = new Map(menuTypes.map(item => [item.value, item.label]));
@@ -118,13 +118,13 @@ export default function PlatformMenusPage() {
           access.canCreatePlatformMenus && <Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>{selected ? '新增下级' : '新增菜单'}</Button>,
         ].filter(Boolean)} />
     </ManagementSplit>
-    {creating && <ModalForm<CreatePlatformMenu> name="platform-menu-create" title={selected ? `新增下级 · ${selected.name}` : '新增菜单'} width={800} open
+    {creating && <ModalForm<CreatePlatformMenu> {...compactFormProps} name="platform-menu-create" title={selected ? `新增下级 · ${selected.name}` : '新增菜单'} width={800} open
       modalProps={compactModalProps} initialValues={{ parentId: selectedId, type: selected?.type === 2 ? 3 : selected ? 2 : 1, sort: 0, visible: 1, status: 1, platformOnly: selected?.platformOnly || 0, keepAlive: 0, alwaysShow: 0 }}
       onValuesChange={() => setDirty(true)} onOpenChange={open => { if (!open) { setCreating(false); setDirty(false); } }}
       onFinish={async values => { try { await createPlatformMenu(values); setDirty(false); setCreating(false); await reload(); void message.success('菜单已新增'); return true; } catch { return false; } }}>
       <MenuFields menus={menus} />
     </ModalForm>}
-    <ModalForm<EditPlatformMenu & { code: string; type: number }> key={editing?.id || 'edit'} name="platform-menu-edit" title="修改菜单" width={800}
+    <ModalForm<EditPlatformMenu & { code: string; type: number }> {...compactFormProps} key={editing?.id || 'edit'} name="platform-menu-edit" title="修改菜单" width={800}
       open={!!editing} initialValues={editing} modalProps={compactModalProps} onValuesChange={() => setDirty(true)}
       onOpenChange={open => { if (!open) { setEditing(undefined); setDirty(false); } }}
       onFinish={async ({ code: _code, type: _type, ...values }) => {

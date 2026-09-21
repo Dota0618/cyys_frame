@@ -1,3 +1,4 @@
+import { compactFormProps } from '@/components/ManagementLayout';
 import { ModalForm, ProFormText } from '@ant-design/pro-components';
 import { App } from 'antd';
 import { useEffect, useId } from 'react';
@@ -9,7 +10,7 @@ export default function ChangePasswordForm({ onClose }: { onClose: () => void })
   const { message } = App.useApp();
   const owner = useId();
   useEffect(() => () => setDirty(false, owner), [owner]);
-  return <ModalForm<{ currentPassword: string; newPassword: string; confirmPassword: string }>
+  return <ModalForm<{ currentPassword: string; newPassword: string; confirmPassword: string }> {...compactFormProps}
     name="account-password" title="修改密码" open width={480} modalProps={{ destroyOnHidden: true }}
     onValuesChange={() => setDirty(true, owner)} onOpenChange={(open) => { if (!open) onClose(); }}
     onFinish={async ({ currentPassword, newPassword }) => {

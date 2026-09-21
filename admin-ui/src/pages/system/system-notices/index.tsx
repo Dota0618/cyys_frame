@@ -1,3 +1,4 @@
+import { compactFormProps, verticalFormItemProps } from '@/components/ManagementLayout';
 import { ModalForm, PageContainer, ProForm, ProFormText, ProFormTextArea, ProTable } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
@@ -60,7 +61,7 @@ export default function SystemNoticesPage() {
       toolBarRender={() => access.canCreateSystemNotices ? [
         <Button key="create" type="primary" onClick={() => { void edit(); }}>新增系统通知</Button>,
       ] : []} />
-    {editor && <ModalForm<SystemNoticeCommand> name="system-notice-editor" title={detail ? '编辑系统通知' : '新增系统通知'}
+    {editor && <ModalForm<SystemNoticeCommand> {...compactFormProps} name="system-notice-editor" title={detail ? '编辑系统通知' : '新增系统通知'}
       open initialValues={detail || { visible: false }} modalProps={{ destroyOnHidden: true }}
       onValuesChange={() => setDirty(true)}
       onOpenChange={(open) => { if (!open) { setEditor(undefined); setDirty(false); } }}
@@ -80,7 +81,7 @@ export default function SystemNoticesPage() {
         <DictionarySelect ariaLabel="通知类型" options={editor.options}
           historical={detail ? { value: detail.type, label: detail.typeLabel || detail.type } : undefined} />
       </ProForm.Item>
-      <ProFormTextArea name="content" label="通知正文" fieldProps={{ maxLength: 2000, showCount: true, rows: 8 }}
+      <ProFormTextArea formItemProps={verticalFormItemProps} name="content" label="通知正文" fieldProps={{ maxLength: 2000, showCount: true, rows: 8 }}
         rules={[{ required: true, whitespace: true, max: 2000, message: '请输入 1–2000 个字符的通知正文' }]} />
       <ProForm.Item name="visible" label="是否显示" valuePropName="checked">
         <Switch aria-label="是否显示" checkedChildren="显示" unCheckedChildren="隐藏" />

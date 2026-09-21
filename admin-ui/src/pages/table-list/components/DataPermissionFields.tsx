@@ -1,3 +1,4 @@
+import { verticalFormItemProps } from '@/components/ManagementLayout';
 import { ProForm, ProFormDependency, ProFormRadio } from '@ant-design/pro-components';
 import { Alert } from 'antd';
 import CheckedTree from '@/components/CheckedTree';
@@ -18,10 +19,10 @@ export default function DataPermissionFields({ departments, editable = true, cur
   const tree = roleTreeData(departments.map(row => ({ id: row.value, name: row.label, parentId: row.parentId })));
   return <>
     <Alert type="info" showIcon title="数据范围统一适用于当前单位，菜单和操作权限由角色分配。" style={{ marginBottom: 14 }} />
-    <ProFormRadio.Group name="dataRange" label="数据范围" options={dataRanges} rules={[{ required: true }]}
+    <ProFormRadio.Group formItemProps={verticalFormItemProps} name="dataRange" label="数据范围" options={dataRanges} rules={[{ required: true }]}
       fieldProps={{ style: { display: 'flex', flexWrap: 'wrap', gap: 8 } }} />
     <ProFormDependency name={['dataRange']}>
-      {({ dataRange }) => dataRange === 2 ? <ProForm.Item name="orgIds" label="可访问部门"
+      {({ dataRange }) => dataRange === 2 ? <ProForm.Item {...verticalFormItemProps} name="orgIds" label="可访问部门"
         extra="按勾选部门生效；需要下级部门时请一并勾选。"
         rules={[{ required: true, type: 'array', min: 1, message: '至少选择一个部门' }]}>
         <CheckedTree treeData={tree} label="可访问部门" independentSelection />

@@ -83,3 +83,7 @@ docker compose --env-file /etc/cyys/release.env -f deploy/compose.yml logs --tai
 2026-09-21 单位入口精简：按用户要求，仅保留全局右上角工作单位选择器。移除用户/部门/角色、文件/回收站、通知/版本、配置/审计/缓存页面及弹窗的重复选择器，移除列表“进入单位”和页内“查看全部单位”切换快捷入口；全部单位只读仍从右上角选择。未选单位时用户、文件、回收站保留页面标题，不重复提示或发起单位业务请求。单位选择仍使用原 ScopeSwitch 和 IdentityBoundary，保留未保存内容保护、切换后卸载旧表单和旧响应隔离。规则补充在既有 frontend/request-context.md，没有新建规范文件。
 
 前端类型检查、生产构建通过；Ant 页面扫描仅原 35 条模板基线告警。一次只读定向验证通过：全页唯一选择器、未选单位不请求文件、右上角切换后加载文件目录、用户新增弹窗无单位选择器、全部单位只读和切回具体单位。未创建/修改业务数据，未运行后端或全量回归。本机仅更新 web 镜像为 header-unit-20260921，API 保持 member-form-20260921、数据库 V21；原环境配置保存为忽略的 .env.before-header-unit-20260921。证据 backend/logs/header-unit-verification.json 及对应构建日志。
+
+2026-09-21 表单标签紧凑布局：按用户要求在既有 ManagementLayout 中抽取 compactFormProps 和 verticalFormItemProps。后台普通编辑字段采用左标签/右控件，统一标签宽度与 14px 间距；输入列按剩余宽度伸缩，避免平台角色窄栏因控件默认宽度自动换行。正文/备注、多选、权限树、部门勾选、附件和数据范围组合保留上下布局。覆盖用户、部门、单位、角色、菜单、字典、配置、文件、通知、版本、地区、密码及生成器配置；未启用的模板演示页面和登录页不改动。生成器模板同步复用布局，生成多行字段使用上下布局，移除生成页面和弹窗里的重复单位选择器。开发规则追加在既有 frontend/template-reuse.md。
+
+后端打包、6 项生成器测试、前端类型及最终生产构建通过；Ant 全 src 检查保持原 35 条模板基线告警。一次集中布局检查覆盖单位、菜单、系统通知、平台角色和用户弹窗，确认普通字段横排、备注/正文/树形权限上下排列以及 1280×600 菜单弹窗边界。过程中修正窄栏输入换行；检查只打开表单，没有保存业务数据，没有运行全量回归。证据 backend/logs/horizontal-form-verification.json、horizontal-form-menu.png、horizontal-form-user.png 及构建日志。本机 API=horizontal-form-20260921，Web=horizontal-form-20260921-2，数据库仍为 V21；上一版环境配置保存为忽略的 .env.before-horizontal-form-20260921。源码本地提交，不推送、不另存快照。

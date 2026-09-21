@@ -6,7 +6,7 @@ import {
   ProFormTreeSelect,
 } from '@ant-design/pro-components';
 import { App, Descriptions } from 'antd';
-import { CompactFields, compactModalProps } from '@/components/ManagementLayout';
+import { CompactFields, compactModalProps, compactFormProps } from '@/components/ManagementLayout';
 import DataPermissionFields from './DataPermissionFields';
 import { editMember } from '@/services/system/users';
 import type { DepartmentOption, EditMember, Member, MemberDataPermission, MemberDataPermissionInput } from '@/types/api';
@@ -29,7 +29,7 @@ export default function UpdateForm({
   const { message } = App.useApp();
   if (!values) return null;
   return (
-    <ModalForm<EditMember & MemberDataPermissionInput>
+    <ModalForm<EditMember & MemberDataPermissionInput> {...compactFormProps}
       name="member-edit"
       title="修改成员"
       width={920}

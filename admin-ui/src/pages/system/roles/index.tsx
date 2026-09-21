@@ -14,7 +14,7 @@ import { useAccess } from '@umijs/max';
 import { Alert, App, Button, Popconfirm, Tag } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import CheckedTree from '@/components/CheckedTree';
-import { compactModalProps } from '@/components/ManagementLayout';
+import { compactModalProps, verticalFormItemProps, compactFormProps } from '@/components/ManagementLayout';
 import {
   createRole,
   deleteRole,
@@ -63,7 +63,7 @@ function RoleFields({ options, editing }: { options: RoleOptions; editing?: bool
         fieldProps={{ maxLength: 50 }}
         rules={[{ required: true, whitespace: true }]}
       />
-      <ProForm.Item
+      <ProForm.Item {...verticalFormItemProps}
         name="menuIds"
         label="菜单与操作权限"
       >
@@ -76,7 +76,7 @@ function RoleFields({ options, editing }: { options: RoleOptions; editing?: bool
         rules={[{ required: true }]}
       />
       <ProFormDigit name="sort" label="排序" fieldProps={{ precision: 0 }} rules={[{ required: true }]} />
-      <ProFormTextArea name="remark" label="备注" fieldProps={{ maxLength: 500, showCount: true }} />
+      <ProFormTextArea formItemProps={verticalFormItemProps} name="remark" label="备注" fieldProps={{ maxLength: 500, showCount: true }} />
     </>
   );
 }
@@ -160,7 +160,7 @@ export default function RolesPage() {
           }
         }}
         toolBarRender={() => access.canCreateRoles ? [
-          <ModalForm<CreateRole>
+          <ModalForm<CreateRole> {...compactFormProps}
             key="create"
             name="role-create"
             title="新增角色"
@@ -185,7 +185,7 @@ export default function RolesPage() {
         ] : []}
       />
 
-      <ModalForm<EditRole>
+      <ModalForm<EditRole> {...compactFormProps}
         key={editing?.role.id || 'edit'}
         name="role-edit"
         title="修改角色"

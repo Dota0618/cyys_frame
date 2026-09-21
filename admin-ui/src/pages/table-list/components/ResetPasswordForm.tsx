@@ -1,3 +1,4 @@
+import { compactFormProps } from '@/components/ManagementLayout';
 import { ModalForm } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
 import { App } from 'antd';
@@ -12,7 +13,7 @@ export default function ResetPasswordForm({ account, onClose }: { account: Membe
   const { message } = App.useApp();
   const owner = useId();
   useEffect(() => () => setDirty(false, owner), [owner]);
-  return <ModalForm<{ newPassword: string; confirmPassword: string }> name="reset-account-password"
+  return <ModalForm<{ newPassword: string; confirmPassword: string }> {...compactFormProps} name="reset-account-password"
     title={`重置密码：${account.loginName}`} open width={480} modalProps={{ destroyOnHidden: true }}
     onValuesChange={() => setDirty(true, owner)} onOpenChange={(open) => { if (!open) onClose(); }}
     onFinish={async ({ newPassword }) => {

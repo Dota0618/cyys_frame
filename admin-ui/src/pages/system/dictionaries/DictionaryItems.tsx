@@ -4,7 +4,7 @@ import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Popconfirm } from 'antd';
 import { useEffect, useRef, useState } from 'react';
-import { CompactFields, compactModalProps } from '@/components/ManagementLayout';
+import { CompactFields, compactModalProps, compactFormProps } from '@/components/ManagementLayout';
 import {
   createDictionaryItem, deleteDictionaryItem, dictionaryItemDetail, listDictionaryItems, updateDictionaryItem,
 } from '@/services/system/dictionaries';
@@ -70,7 +70,7 @@ export default function DictionaryItems({ dictionary }: { dictionary: Dictionary
         }
       }}
       toolBarRender={() => !dictionary.systemBuiltin && access.canCreateDictionaries ? [
-        <ModalForm<CreateDictionaryItem> key="create" name="dictionary-item-create" title="新增字典项" width={720}
+        <ModalForm<CreateDictionaryItem> {...compactFormProps} key="create" name="dictionary-item-create" title="新增字典项" width={720}
           trigger={<Button type="primary" icon={<PlusOutlined />}>新增字典项</Button>}
           initialValues={{ sort: 0 }} modalProps={compactModalProps}
           onValuesChange={() => setDirty(true)}
@@ -89,7 +89,7 @@ export default function DictionaryItems({ dictionary }: { dictionary: Dictionary
         </ModalForm>,
       ] : []}
     />
-    <ModalForm<Omit<UpdateDictionaryItem, 'version'>> key={editing?.id || 'edit'}
+    <ModalForm<Omit<UpdateDictionaryItem, 'version'>> {...compactFormProps} key={editing?.id || 'edit'}
       name="dictionary-item-edit" title={editing ? `修改字典项：${editing.paramKey}` : '修改字典项'} width={720}
       open={!!editing && !dictionary.systemBuiltin} initialValues={editing && {
         paramValue: editing.paramValue, desp: editing.desp, sort: editing.sort,

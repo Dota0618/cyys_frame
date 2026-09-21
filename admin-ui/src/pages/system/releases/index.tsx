@@ -1,3 +1,4 @@
+import { compactFormProps, verticalFormItemProps } from '@/components/ManagementLayout';
 import { ModalForm, PageContainer, ProForm, ProFormDatePicker, ProFormText, ProFormTextArea, ProTable } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
@@ -65,7 +66,7 @@ export default function ReleasesPage() {
         catch (failure) { failed(failure); return { data: [], total: 0, success: false }; }
       }}
       toolBarRender={() => access.canCreateReleases ? [<Button key="create" type="primary" onClick={() => { void edit(); }}>新增版本</Button>] : []} />
-    {editor && <ModalForm<FormValue> name="release-editor" title={row ? '编辑版本' : '新增版本'} open
+    {editor && <ModalForm<FormValue> {...compactFormProps} name="release-editor" title={row ? '编辑版本' : '新增版本'} open
       initialValues={{ releaseNumber: row?.releaseNumber, dateUpdate: row?.dateUpdate, type: row?.type, content: row?.content, attachments: detail?.attachments || [] }}
       modalProps={{ destroyOnHidden: true }} onValuesChange={() => setDirty(true)}
       onOpenChange={(open) => { if (!open) { setEditor(undefined); setDirty(false); } }}
@@ -85,10 +86,10 @@ export default function ReleasesPage() {
         <DictionarySelect ariaLabel="版本类型" options={editor.options}
           historical={row ? { value: row.type, label: row.typeLabel || row.type } : undefined} />
       </ProForm.Item>
-      <ProFormTextArea name="content" label="更新说明" fieldProps={{ maxLength: 1000, showCount: true, rows: 6 }}
+      <ProFormTextArea formItemProps={verticalFormItemProps} name="content" label="更新说明" fieldProps={{ maxLength: 1000, showCount: true, rows: 6 }}
         rules={[{ required: true, whitespace: true, max: 1000, message: '请输入 1–1000 个字符的更新说明' }]} />
       <p>附件来自当前工作单位，发布后随版本共享给各单位。</p>
-      <ProForm.Item name="attachments" label="版本附件">
+      <ProForm.Item {...verticalFormItemProps} name="attachments" label="版本附件">
         <AttachmentField canSelect={access.canSelectReleaseFiles} canUpload={access.canSelectReleaseFiles && access.canUploadFiles}
           load={(page, size, search) => releaseFiles(row?.id, page, size, search)} />
       </ProForm.Item>

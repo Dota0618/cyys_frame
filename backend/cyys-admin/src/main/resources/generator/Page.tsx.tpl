@@ -3,7 +3,7 @@ import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
 import { Alert, Button, Popconfirm } from 'antd';
 import { useEffect, useRef, useState } from 'react';
-import ScopeSwitch from '@/components/ScopeSwitch';
+import { compactFormProps, compactModalProps, verticalFormItemProps } from '@/components/ManagementLayout';
 import DictionarySelect from '@/components/DictionarySelect';
 import { departmentTreeData } from '@/utils/departments';
 import { ApiError, StaleRequest } from '@/utils/request';
@@ -50,7 +50,6 @@ export default function @@CLASS@@Page() {
   ];
   const editing = editor?.row, options = editor?.options;
   return <PageContainer title=@@TITLE_HTML@@>
-    <ScopeSwitch />
     {error && <Alert type="error" title={error} showIcon />}
     {!allowed('read') ? <Alert type="warning" title="请选择有权访问的单位" /> : <ProTable<@@CLASS@@Row> rowKey="id" actionRef={action} columns={columns}
       search={@@TREE@@ ? false : undefined} pagination={@@TREE@@ ? false : { defaultPageSize: 20 }}
@@ -61,8 +60,8 @@ export default function @@CLASS@@Page() {
           const result = await service.list(params); return { data: result.records, total: result.total, success: true };
         } catch (error) { failed(error); return { data: [], success: false }; }
       }} />}
-    {editor && options && <ModalForm<@@CLASS@@Command & { departmentId?: string; parentId?: string | null }> title={editing ? '编辑' : '新增'} open omitNil={false}
-      initialValues={editing || {}} modalProps={{ destroyOnHidden: true }} onValuesChange={() => setDirty(true)}
+    {editor && options && <ModalForm<@@CLASS@@Command & { departmentId?: string; parentId?: string | null }> {...compactFormProps} title={editing ? '编辑' : '新增'} open omitNil={false}
+      initialValues={editing || {}} modalProps={compactModalProps} onValuesChange={() => setDirty(true)}
       onOpenChange={(open) => { if (!open) { setEditor(undefined); setDirty(false); } }}
       onFinish={async (values) => {
         const command: @@CLASS@@Command = {
@@ -74,7 +73,6 @@ export default function @@CLASS@@Page() {
           setEditor(undefined); setDirty(false); void action.current?.reload(); return true;
         } catch (error) { failed(error); return false; }
       }}>
-      <ScopeSwitch />
       {!editing && <><ProFormTreeSelect name="departmentId" label="所属部门" rules={[{ required: true }]}
         fieldProps={{ treeData: departmentTreeData(options.departments), treeDefaultExpandAll: true }} />
       @@PARENT_FORM@@</>}

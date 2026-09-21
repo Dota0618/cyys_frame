@@ -1,3 +1,4 @@
+import { compactFormProps } from '@/components/ManagementLayout';
 import { PlusOutlined } from '@ant-design/icons';
 import {
   ModalForm,
@@ -167,7 +168,7 @@ export default function DepartmentsPage() {
         toolBarRender={() =>
           access.canCreateDepartments
             ? [
-                <ModalForm<CreateDepartment>
+                <ModalForm<CreateDepartment> {...compactFormProps}
                   key="create"
                   name="department-create"
                   title="新增部门"
@@ -231,7 +232,7 @@ export default function DepartmentsPage() {
         }
       />
 
-      <ModalForm<EditDepartment>
+      <ModalForm<EditDepartment> {...compactFormProps}
         key={editing?.id || 'edit'}
         name="department-edit"
         title="修改部门"

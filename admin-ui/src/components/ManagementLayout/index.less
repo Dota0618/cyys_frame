@@ -4,5 +4,7 @@
 .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; }
 .compactModal :global(.ant-form-item) { margin-bottom: 14px; }
 .fields > * { min-width: 0; }
+.form :global(.ant-form-item) { margin-bottom: 14px; }
+.form :global(.ant-form-item-control) { min-width: 0; }
 @media (max-width: 900px) { .split { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 575px) { .fields { grid-template-columns: minmax(0, 1fr); } }

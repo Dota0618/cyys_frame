@@ -1,3 +1,4 @@
+import { compactFormProps, verticalFormItemProps } from '@/components/ManagementLayout';
 import { useAccess, useModel } from '@umijs/max';
 import {
   PageContainer,
@@ -270,7 +271,7 @@ function MemberTable() {
       {dataPermission && <DataPermissionForm {...dataPermission} onClose={() => setDataPermission(undefined)} onSaved={() => { void action.current?.reload(); }} />}
       {resetting && <ResetPasswordForm account={resetting} onClose={() => setResetting(undefined)} />}
 
-      <ModalForm<{ roleIds: string[] }>
+      <ModalForm<{ roleIds: string[] }> {...compactFormProps}
         name="member-roles"
         key={granting?.member.id || 'roles'}
         title="授予本单位角色"
@@ -298,7 +299,7 @@ function MemberTable() {
         <p>
           {granting?.member.displayName} · {granting?.member.loginName}
         </p>
-        <ProFormSelect
+        <ProFormSelect formItemProps={verticalFormItemProps}
           name="roleIds"
           label="单位角色"
           mode="multiple"

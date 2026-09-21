@@ -1,3 +1,4 @@
+import { compactFormProps, verticalFormItemProps } from '@/components/ManagementLayout';
 import { PageContainer, ProForm, ProFormDigit, ProFormList, ProFormSelect, ProFormSwitch, ProFormText } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Card, Form, Select, Space, Tabs, Typography, Upload } from 'antd';
@@ -74,9 +75,9 @@ export default function GeneratorPage() {
         } catch (failure) { failed(failure); }
         return Upload.LIST_IGNORE;
       }}><Button disabled={busy}>导入生成配置</Button></Upload>}>
-        <ProForm<GeneratorCommand> form={form} name="generator-config" initialValues={initial} disabled={busy}
+        <ProForm<GeneratorCommand> {...compactFormProps} form={form} name="generator-config" initialValues={initial} disabled={busy}
           onValuesChange={changed} onFinish={show} submitter={{ searchConfig: { submitText: '预览代码' }, resetButtonProps: false }}>
-          <ProFormSwitch name="existingTable" label="从已有业务表读取字段" />
+          <ProFormSwitch formItemProps={verticalFormItemProps} name="existingTable" label="从已有业务表读取字段" />
           {existing && <Form.Item label="选择业务表"><Select aria-label="选择业务表" showSearch={{ optionFilterProp: 'label' }}
             options={tables.map(table => ({ value: table.name, label: table.comment ? `${table.name} · ${table.comment}` : table.name }))}
             notFoundContent="当前没有 biz_ 业务表，可关闭此选项设计新表" onChange={(table) => { void loadTable(table); }} /></Form.Item>}
@@ -88,7 +89,7 @@ export default function GeneratorPage() {
             <ProFormSelect name="layout" label="页面类型" rules={[{ required: true }]} options={[{ value: 'LIST', label: '普通列表' }, { value: 'TREE', label: '树形列表' }]} />
           </ProForm.Group>
           <Typography.Paragraph type="secondary">第一个字段作为记录名称，须为必填短文本。树形记录创建后不移动父级。</Typography.Paragraph>
-          <ProFormList name="fields" label="业务字段" min={1} max={30} creatorRecord={{ column: '', label: '', type: 'TEXT', length: 100, required: false, inList: true, searchable: false }}
+          <ProFormList {...verticalFormItemProps} name="fields" label="业务字段" min={1} max={30} creatorRecord={{ column: '', label: '', type: 'TEXT', length: 100, required: false, inList: true, searchable: false }}
             copyIconProps={false} creatorButtonProps={{ creatorButtonText: '添加字段' }}>
             {(field) => <ProForm.Group>
               <ProFormText name="column" label="字段名" width="sm" rules={[{ required: true }, { pattern: /^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/, message: '使用小写字段名' }]} />

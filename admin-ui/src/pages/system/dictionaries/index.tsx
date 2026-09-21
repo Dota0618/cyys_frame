@@ -3,7 +3,7 @@ import { ModalForm, PageContainer, ProFormDigit, ProFormText } from '@ant-design
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Card, Empty, Input, Pagination, Popconfirm, Space, Spin, Tag, Tree, Typography } from 'antd';
 import { useEffect, useState } from 'react';
-import { CompactFields, compactModalProps, ManagementSplit } from '@/components/ManagementLayout';
+import { CompactFields, compactModalProps, ManagementSplit, compactFormProps } from '@/components/ManagementLayout';
 import { createDictionary, deleteDictionary, dictionaryDetail, listDictionaries, updateDictionary } from '@/services/system/dictionaries';
 import type { CreateDictionary, Dictionary } from '@/types/api';
 import { ApiError, StaleRequest } from '@/utils/request';
@@ -68,7 +68,7 @@ export default function DictionariesPage() {
         <DictionaryItems key={selected.id} dictionary={selected} />
       </> : <Card><Empty description="请在左侧选择或新增字典分类" /></Card>}
     </ManagementSplit>
-    {editor && <ModalForm<CreateDictionary> name="dictionary-editor" title={editor.dictionary ? '修改字典' : '新增字典'} width={720} open modalProps={compactModalProps}
+    {editor && <ModalForm<CreateDictionary> {...compactFormProps} name="dictionary-editor" title={editor.dictionary ? '修改字典' : '新增字典'} width={720} open modalProps={compactModalProps}
       initialValues={editor.dictionary || { sort: 0 }} onValuesChange={() => setDirty(true)}
       onOpenChange={open => { if (!open) { setEditor(undefined); setDirty(false); } }}
       onFinish={async ({ id, name, systemName, sort }) => {

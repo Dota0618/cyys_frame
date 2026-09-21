@@ -1,4 +1,4 @@
-import type { ModalProps } from 'antd';
+import type { FormItemProps, FormProps, ModalProps } from 'antd';
 import type { ReactNode } from 'react';
 import styles from './index.less';
 
@@ -9,6 +9,16 @@ export function ManagementSplit({ navigation, children }: { navigation: ReactNod
 export function CompactFields({ children }: { children: ReactNode }) {
   return <div className={styles.fields}>{children}</div>;
 }
+
+/** Shared edit-form layout; wide controls opt into verticalFormItemProps. */
+export const compactFormProps: Pick<FormProps, 'layout' | 'labelCol' | 'wrapperCol' | 'labelAlign' | 'labelWrap' | 'className'> = {
+  layout: 'horizontal', labelCol: { flex: '104px' }, wrapperCol: { flex: '1 1 0' },
+  labelAlign: 'left', labelWrap: true, className: styles.form,
+};
+
+export const verticalFormItemProps: Pick<FormItemProps, 'layout' | 'labelCol' | 'wrapperCol'> = {
+  layout: 'vertical', labelCol: { flex: 'none' }, wrapperCol: { flex: 'none' },
+};
 
 /** Keep the form body scrollable while its title and submit buttons stay visible. */
 export const compactModalProps: ModalProps = {

@@ -4,7 +4,7 @@ import { useAccess } from '@umijs/max';
 import { Alert, App, Button, Card, Popconfirm, Space, Tree, Typography } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import FileUpload from '@/components/FileUpload';
-import { compactModalProps, ManagementSplit } from '@/components/ManagementLayout';
+import { compactModalProps, ManagementSplit, compactFormProps } from '@/components/ManagementLayout';
 import { cancelUpload, cleanupUpload, downloadFile, listFiles, renameFile, trashFile, type ManagedFile } from '@/services/system/files';
 import { createDirectory, deleteDirectory, listDirectories, moveDirectoryOptions, moveFiles, renameDirectory, trashFiles, type FileDirectory } from '@/services/system/files';
 import { ApiError, StaleRequest } from '@/utils/request';
@@ -109,7 +109,7 @@ function FilesContent() {
       catch (failure) { if (!(failure instanceof StaleRequest)) setError('文件列表加载失败，请重试'); return { data: [], success: false }; }
     }} />
     </ManagementSplit>
-    <ModalForm<{ name: string }> name="file-rename" key={editing?.id || 'closed'} title="重命名文件" open={!!editing} initialValues={{ name: editing?.name }}
+    <ModalForm<{ name: string }> {...compactFormProps} name="file-rename" key={editing?.id || 'closed'} title="重命名文件" open={!!editing} initialValues={{ name: editing?.name }}
       onValuesChange={() => setDirty(true)}
       width={560} modalProps={{ ...compactModalProps, onCancel: () => { setEditing(undefined); setDirty(false); } }}
       onFinish={async (values) => {
@@ -119,7 +119,7 @@ function FilesContent() {
       }}>
       <ProFormText name="name" label="文件名" rules={[{ required: true, whitespace: true }, { max: 200 }, { pattern: /^[^/\\\x00-\x1f\x7f]+$/, message: '文件名不能包含路径或控制字符' }]} />
     </ModalForm>
-    <ModalForm<{ name: string }> name="file-directory-editor" key={directoryForm?.record?.id || String(!!directoryForm)}
+    <ModalForm<{ name: string }> {...compactFormProps} name="file-directory-editor" key={directoryForm?.record?.id || String(!!directoryForm)}
       title={directoryForm?.record ? '重命名目录' : '新增目录'} open={!!directoryForm} initialValues={{ name: directoryForm?.record?.name }}
       onValuesChange={() => setDirty(true)} width={560} modalProps={compactModalProps}
       onOpenChange={(open) => { if (!open) { setDirectoryForm(undefined); setDirty(false); } }}
@@ -131,7 +131,7 @@ function FilesContent() {
       }}>
       <ProFormText name="name" label="目录名称" rules={[{ required: true, whitespace: true, message: '请输入目录名称' }, { max: 100 }]} />
     </ModalForm>
-    <ModalForm<{ directory: string }> name="file-move" title="移动文件" open={!!moving} initialValues={{ directory: '__root__' }}
+    <ModalForm<{ directory: string }> {...compactFormProps} name="file-move" title="移动文件" open={!!moving} initialValues={{ directory: '__root__' }}
       width={560} modalProps={compactModalProps} onValuesChange={() => setDirty(true)}
       onOpenChange={(open) => { if (!open) { setMoving(undefined); setDirty(false); } }}
       onFinish={async ({ directory }) => {

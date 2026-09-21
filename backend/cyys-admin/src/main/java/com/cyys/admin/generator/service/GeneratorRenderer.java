@@ -175,7 +175,7 @@ public class GeneratorRenderer {
         String common="name="+quote(p)+" label={"+quote(f.label())+"} "+rules;
         return switch(f.type()) {
             case TEXT -> "<ProFormText "+common+" fieldProps={{ maxLength: "+f.length()+" }} />\n      ";
-            case TEXTAREA -> "<ProFormTextArea "+common+" fieldProps={{ maxLength: "+f.length()+", rows: 4 }} />\n      ";
+            case TEXTAREA -> "<ProFormTextArea formItemProps={verticalFormItemProps} "+common+" fieldProps={{ maxLength: "+f.length()+", rows: 4 }} />\n      ";
             case INTEGER -> "<ProFormDigit "+common+" fieldProps={{ precision: 0, min: -2147483648, max: 2147483647 }} />\n      ";
             case DECIMAL -> "<ProFormText name="+quote(p)+" label={"+quote(f.label())+"} rules={[{ required: "+f.required()+" }, { pattern: /^-?\\d{1,16}(\\.\\d{1,2})?$/, message: '最多 16 位整数、2 位小数' }]} />\n      ";
             case BOOLEAN -> "<ProFormSwitch name="+quote(p)+" label={"+quote(f.label())+"} initialValue={false} />\n      ";

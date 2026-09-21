@@ -1,3 +1,4 @@
+import { compactFormProps } from '@/components/ManagementLayout';
 import { ModalForm, PageContainer, ProFormDigit, ProFormText, ProTable } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
@@ -94,7 +95,7 @@ export default function RegionsPage() {
       ].filter(Boolean)} />
       </Col>
     </Row>
-    {editor && <ModalForm<RegionFields> name="region-editor" title={editor.detail ? '编辑地区' : '新增地区'} open
+    {editor && <ModalForm<RegionFields> {...compactFormProps} name="region-editor" title={editor.detail ? '编辑地区' : '新增地区'} open
       omitNil={false} initialValues={editor.detail || { sort: 0 }} modalProps={{ destroyOnHidden: true }}
       onValuesChange={() => setDirty(true)} onOpenChange={(open) => { if (!open) { setEditor(undefined); setDirty(false); } }}
       onFinish={async ({ cityCode, name, shortName, zipCode, longitude, latitude, sort }) => {

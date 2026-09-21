@@ -1,3 +1,4 @@
+import { compactFormProps } from '@/components/ManagementLayout';
 import { PlusOutlined } from '@ant-design/icons';
 import {
   ModalForm, PageContainer, ProFormDigit, ProFormSelect, ProFormText, ProTable,
@@ -79,7 +80,7 @@ export default function ConfigurationsPage() {
         }
       }}
       toolBarRender={() => access.canCreateConfigurations ? [
-        <ModalForm<CreateConfiguration> key="create" name="configuration-create" title="新增配置"
+        <ModalForm<CreateConfiguration> {...compactFormProps} key="create" name="configuration-create" title="新增配置"
           omitNil={false}
           trigger={<Button type="primary" icon={<PlusOutlined />}>新增配置</Button>}
           initialValues={{ type: 'SYSTEM', sort: 0, value: '' }}
@@ -100,7 +101,7 @@ export default function ConfigurationsPage() {
         </ModalForm>,
       ] : []}
     />
-    <ModalForm<Omit<UpdateConfiguration, 'version'>> key={editing?.id || 'edit'}
+    <ModalForm<Omit<UpdateConfiguration, 'version'>> {...compactFormProps} key={editing?.id || 'edit'}
       omitNil={false}
       name="configuration-edit" title={editing ? `修改配置：${editing.name}` : '修改配置'}
       open={!!editing} initialValues={editing && {

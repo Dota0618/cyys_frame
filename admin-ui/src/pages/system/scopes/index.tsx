@@ -1,3 +1,4 @@
+import { compactFormProps, verticalFormItemProps } from '@/components/ManagementLayout';
 import { ModalForm, PageContainer, ProFormDigit, ProFormSwitch, ProFormText, ProFormTextArea, ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
@@ -34,7 +35,7 @@ export default function ScopesPage() {
         catch (failure) { if (!(failure instanceof StaleRequest)) setError(failure instanceof ApiError ? failure.message : '单位加载失败'); return { data: [], success: false }; }
       }}
       toolBarRender={() => access.canCreateScopes ? [<Button key="create" type="primary" onClick={() => setEditor({})}>新增单位</Button>] : []} />
-    {editor && <ModalForm<CreateScope & UpdateScope> name="scope-editor" title={editor.row ? '修改单位' : '新增单位'} open
+    {editor && <ModalForm<CreateScope & UpdateScope> {...compactFormProps} name="scope-editor" title={editor.row ? '修改单位' : '新增单位'} open
       initialValues={editor.row || {}} modalProps={{ destroyOnHidden: true }} onValuesChange={() => setDirty(true)}
       onOpenChange={(open) => { if (!open) { setEditor(undefined); setDirty(false); } }}
       onFinish={async (values) => {
@@ -52,7 +53,7 @@ export default function ScopesPage() {
       <ProFormText name="contactPerson" label="联系人" fieldProps={{ maxLength: 50 }} />
       <ProFormText name="contactPhone" label="联系电话" fieldProps={{ maxLength: 20 }} />
       {editor.row && <><ProFormSwitch name="enabled" label="启用单位" /><ProFormDigit name="sort" label="排序" min={0} max={1000000} fieldProps={{ precision: 0 }} rules={[{ required: true }]} /></>}
-      <ProFormTextArea name="remark" label="备注" fieldProps={{ maxLength: 500, showCount: true }} />
+      <ProFormTextArea formItemProps={verticalFormItemProps} name="remark" label="备注" fieldProps={{ maxLength: 500, showCount: true }} />
     </ModalForm>}
   </PageContainer>;
 }

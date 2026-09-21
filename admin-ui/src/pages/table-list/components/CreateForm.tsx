@@ -8,7 +8,7 @@ import {
 import { useMutation } from '@tanstack/react-query';
 import { App, Button } from 'antd';
 import { useAccess } from '@umijs/max';
-import { CompactFields, compactModalProps } from '@/components/ManagementLayout';
+import { CompactFields, compactModalProps, compactFormProps } from '@/components/ManagementLayout';
 import DataPermissionFields from './DataPermissionFields';
 import NewPasswordFields from '@/components/NewPasswordFields';
 import { createMember } from '@/services/system/users';
@@ -33,7 +33,7 @@ export default function CreateForm({
     },
   });
   return (
-    <ModalForm<CreateMember & MemberDataPermissionInput>
+    <ModalForm<CreateMember & MemberDataPermissionInput> {...compactFormProps}
       name="member-create"
       title="新增成员"
       width={920}
