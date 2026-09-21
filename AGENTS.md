@@ -4,7 +4,7 @@
 
 - 项目目录：`F:\git\frame\cyys-framework`。
 - `F:\git\frame\cyys_monomer` 和 `F:\git\frame\docs` 只读。
-- 工具链遵循[工作区规则](../AGENTS.md)。
+- 本机工具链遵循上级工作区的 `AGENTS.md`。
 - 未经确认不新增项目顶层目录。
 - 不向项目根、`backend` 根或 `backend/.m2` 写临时文件。
 
@@ -24,6 +24,7 @@ mvn -s F:\git\frame\cyys-framework\backend\.m2\settings.xml -pl cyys-business sp
 
 ## 开发边界
 
+- 编码前按[规则索引](docs/development/README.md)读取本次涉及的规则。
 - admin 包使用 `com.cyys.admin.<功能>.<职责>`。
 - 业务包使用 `com.cyys.modules.<功能>.<职责>`。
 - 按需使用 controller、model、dto、service、mapper，不增加空层。
@@ -33,7 +34,6 @@ mvn -s F:\git\frame\cyys-framework\backend\.m2\settings.xml -pl cyys-business sp
 - 身份、机构和账号操作遵循[身份规则](docs/development/backend/identity-context.md)。
 - 缓存接入遵循[缓存规则与清单](docs/development/backend/cache-usage.md)。
 - 前端开发先读[前端入口](admin-ui/AGENTS.md)。
-- 其他任务按需查[规则索引](docs/development/README.md)，不预加载全部规则。
 - 新增规则或改变已批准范围前先确认。
 
 ## 当前范围
@@ -54,6 +54,9 @@ mvn -s F:\git\frame\cyys-framework\backend\.m2\settings.xml -pl cyys-business sp
 - 保留现有 MySQL 测试库数据，不为通过空库检查清库。
 - 使用同一数据库测试前停止本地 Docker API。
 - 未经再次明确授权，不部署或更新运行中的 Docker 服务。
-- 提交前检查差异，将验证结果和剩余工作写入[项目记录](docs/migration/final-acceptance.md)。
+- 完成后对照本次适用规则检查改动，说明未满足项。
+- 提交前检查差异，记录验证结果和剩余工作。
 - 使用本地 Git 提交保存，不另建源码快照。
-- 未经要求不推送，已忽略文档、配置、日志和构建产物继续排除。
+- 开发规则和必要的模板清单纳入版本管理。
+- 本机记录、配置、日志和构建产物继续排除。
+- 未经要求不推送。

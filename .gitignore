@@ -1,5 +1,9 @@
-# ==== Incomplete documentation (temporary) ====
-/docs/
+# ==== Development rules; other documentation stays local ====
+/docs/*
+!/docs/development/
+!/docs/migration/
+/docs/migration/*
+!/docs/migration/ant-design-pro-baseline.md
 /admin-ui/docs/
 
 # ==== Java / Maven ====
