@@ -5,10 +5,9 @@ import { session } from '@/utils/session';
 const root = '/api/admin/users';
 export const exportMembers = (name: string) => apiBlob(`${root}/export`, { method: 'POST', body: { name } });
 export const listMembers = (page: number, size: number, name?: string) => {
-  const all = session().allUnits;
   const query = new URLSearchParams({ page: String(page), size: String(size) });
-  if (name && !all) query.set('name', name);
-  return api<Page<Member>>(`${root}${all ? '/all' : ''}?${query}`);
+  if (name) query.set('name', name);
+  return api<Page<Member>>(`${root}?${query}`);
 };
 export const memberDetail = (id: string) => api<MemberDetail>(`${root}/${encodeURIComponent(id)}`);
 export const createMember = (body: CreateMember) => api<Member>(root, { method: 'POST', body });

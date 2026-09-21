@@ -22,7 +22,7 @@ public class AuditQueryService {
     public IPage<AuditView> page(AuditQuery query) {
         var identity = ScopeContext.get();
         String scope = identity.requireScopeId();
-        if (!authorization.hasPermission(identity.loginId(), scope, "audit:read")) {
+        if (!authorization.hasPermission(identity.loginId(), "audit:read")) {
             throw new ApiException(403, "没有当前单位的审计查看权限");
         }
         return mapper.page(new Page<>(query.page(), query.size()), scope,

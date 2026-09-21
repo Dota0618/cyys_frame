@@ -4,8 +4,10 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.cyys.admin.role.dto.RoleQuery;
 import com.cyys.admin.role.dto.CreateRoleCommand;
 import com.cyys.admin.role.dto.UpdateRoleCommand;
+import com.cyys.admin.role.dto.AssignRolesCommand;
 import com.cyys.admin.role.service.RoleService;
 import com.cyys.common.web.R;
+import com.cyys.common.web.PlatformControl;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @Validated
 @RequiredArgsConstructor
+@PlatformControl
 @RequestMapping("/api/admin/roles")
 public class RoleController {
     private final RoleService service;
@@ -31,11 +34,27 @@ public class RoleController {
 
     @GetMapping("/create-options")
     @SaCheckPermission("role:create")
-    public Object createOptions() { return R.ok(service.optionsForCreate()); }
+    public Object createOptions() { return R.ok(service.options("role:create")); }
 
     @GetMapping("/update-options")
     @SaCheckPermission("role:update")
-    public Object updateOptions() { return R.ok(service.optionsForUpdate()); }
+    public Object updateOptions() { return R.ok(service.options("role:update")); }
+
+    @GetMapping("/accounts")
+    @SaCheckPermission("role:grant")
+    public Object accounts(@RequestParam(defaultValue = "1") long page,
+                           @RequestParam(defaultValue = "20") long size,
+                           @RequestParam(required = false) String search) {
+        return R.ok(service.accounts(new RoleQuery(page, size, search)));
+    }
+
+    @PutMapping("/accounts/{userId}/roles")
+    @SaCheckPermission("role:grant")
+    public Object assign(@PathVariable @NotBlank @Size(max = 32) String userId,
+                         @Valid @RequestBody AssignRolesCommand command) {
+        service.assign(userId, command);
+        return R.ok();
+    }
 
     @GetMapping("/{id}")
     @SaCheckPermission("role:read")

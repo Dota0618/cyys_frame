@@ -17,7 +17,7 @@ public interface MemberAccountMapper {
     @Insert("insert into sys_user(id,login_name,password_hash,created_by,updated_by) values(#{id},#{login},#{hash},#{actor},#{actor})")
     int createAccount(@Param("id") String id,@Param("login") String login,@Param("hash") String hash,@Param("actor") String actor);
 
-    @Select("select role_id from sys_user_role where user_id=#{user} and scope_id=#{scope} and deleted=0 order by created_at desc,id")
-    List<String> roleIds(@Param("user") String user,@Param("scope") String scope);
+    @Select("select role_id from sys_user_role where user_id=#{user} and deleted=0 order by created_at desc,id")
+    List<String> roleIds(@Param("user") String user);
 
 }

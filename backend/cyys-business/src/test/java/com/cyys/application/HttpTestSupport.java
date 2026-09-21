@@ -90,22 +90,22 @@ abstract class HttpTestSupport {
     }
 
     void membership(String userId, String scopeId, boolean preferred) {
-        jdbc.update("insert into sys_user_scope(id,user_id,scope_id,default_flag) values(?,?,?,?)",
-                userId + "-" + scopeId, userId, scopeId, preferred ? 1 : 0);
+        jdbc.update("insert into sys_user_scope(id,user_id,scope_id) values(?,?,?)",
+                userId + "-" + scopeId, userId, scopeId);
     }
 
     void role(String id, String scopeId, String code) {
-        jdbc.update("insert into sys_role(id,scope_id,code,name) values(?,?,?,?)", id, scopeId, code, code);
+        jdbc.update("insert into sys_role(id,code,name) values(?,?,?)", id, code, code);
     }
 
     void grant(String userId, String roleId, String scopeId) {
-        jdbc.update("insert into sys_user_role(id,user_id,role_id,scope_id) values(?,?,?,?)",
-                userId + "-" + roleId, userId, roleId, scopeId);
+        jdbc.update("insert into sys_user_role(id,user_id,role_id) values(?,?,?)",
+                userId + "-" + roleId, userId, roleId);
     }
 
     void permission(String roleId, String id, String code, boolean platformOnly) {
-        jdbc.update("insert into sys_menu(id,code,name,type,platform_only) values(?,?,?,3,?)",
-                id, code, code, platformOnly ? 1 : 0);
+        jdbc.update("insert into sys_menu(id,code,name,type) values(?,?,?,3)",
+                id, code, code);
         jdbc.update("insert into sys_role_menu(id,role_id,menu_id) values(?,?,?)",
                 com.baomidou.mybatisplus.core.toolkit.IdWorker.getIdStr(), roleId, id);
     }

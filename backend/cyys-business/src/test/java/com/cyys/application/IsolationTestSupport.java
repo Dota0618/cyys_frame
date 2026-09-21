@@ -61,7 +61,7 @@ abstract class IsolationTestSupport extends HttpTestSupport {
     }
 
     void as(String user, String scope) {
-        ScopeContext.set(new RequestIdentity(user,scope,List.of(),List.of(),List.of()));
+        ScopeContext.set(new RequestIdentity(user,scope,List.of(),List.of()));
     }
 
     Reply call(String method, String path, String token, String scope, Object body) throws Exception {

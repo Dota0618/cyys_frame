@@ -21,6 +21,6 @@ export default function DataPermissionForm({ member, permission, onClose, onSave
         setDirty(false); onClose(); onSaved(); refreshIdentity(); return true;
       } catch { return false; }
     }}>
-    <DataPermissionFields departments={permission.departments} />
+    <DataPermissionFields departments={permission.departments} systemAccount={!member.scopeId} />
   </ModalForm>;
 }

@@ -25,7 +25,7 @@ class DictionaryProtectionServiceTest {
     private final DictionaryService service = new DictionaryService(mapper, security, audit);
 
     @BeforeEach void identity() {
-        ScopeContext.set(new RequestIdentity("actor", null, List.of("SUPER_ADMIN"), List.of(), List.of()));
+        ScopeContext.set(new RequestIdentity("actor", null, List.of("SUPER_ADMIN"), List.of()));
     }
     @AfterEach void clear() { ScopeContext.clear(); }
 

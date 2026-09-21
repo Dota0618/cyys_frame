@@ -3,71 +3,47 @@ import { session } from './utils/session';
 
 export default (initialState?: { user?: UserInfo }) => {
   const user = initialState?.user;
-  const selected = user?.mode === 'single' || !!session().scopeId;
-  const all = !!session().allUnits;
-  const platform = user?.platformPermissions || [];
-  const unitHas = (permission: string) =>
-    !!user?.unitPermissions.includes(permission);
-  const platformHas = (permission: string) =>
-    platform.includes('platform:scope:access') && platform.includes(permission);
-  const canUseGlobal =
-    platformHas('user:read') && platform.includes('platform:data:read-all');
-  const canWrite = (permission: string) =>
-    !all &&
-    selected &&
-    (unitHas(permission) ||
-      (platformHas(permission) && platform.includes('platform:data:operate')));
-  const canReadInSelectedUnit = (permission: string) =>
-    !all &&
-    selected &&
-    (unitHas(permission) ||
-      (platformHas(permission) &&
-        (platform.includes('platform:data:read-all') ||
-          platform.includes('platform:data:operate'))));
-  const canOpenUnitPage = (permission: string) =>
-    unitHas(permission) ||
-    (platformHas(permission) &&
-      (platform.includes('platform:data:read-all') || platform.includes('platform:data:operate')));
+  const selected = !!session().scopeId;
+  const has = (permission: string) => !!user?.permissions.includes(permission);
+  const canWrite = (permission: string) => selected && has(permission);
+  const canReadInSelectedUnit = (permission: string) => selected && has(permission);
+  const canOpenUnitPage = has;
+
+
   return {
-    canReadUsers: canUseGlobal || (!all && (canReadInSelectedUnit('user:read') ||
-      (platformHas('user:read') && platform.includes('platform:data:operate')))),
-    canReadScopes: platformHas('platform:scope:read'),
-    canCreateScopes: platformHas('platform:scope:create'),
-    canEditScopes: platformHas('platform:scope:update'),
+    canReadUsers: has('user:read'),
+    canReadScopes: has('platform:scope:read'),
+    canCreateScopes: has('platform:scope:create'),
+    canEditScopes: has('platform:scope:update'),
     canCreateUsers: canWrite('user:create'),
     canExportUsers: canWrite('user:export'),
     canEditUsers: canWrite('user:update'),
-    canResetAccountPasswords: platformHas('platform:account:reset-password'),
-    canGrantRoles: canWrite('role:grant'),
-    canManageMemberDataPermission: canWrite('user:data-permission'),
+    canResetAccountPasswords: user?.dataRange === 0 && has('platform:account:reset-password'),
+    canGrantRoles: [0, 1, 6].includes(user?.dataRange ?? -1) && canWrite('role:grant'),
+    canManageMemberDataPermission: [0, 1, 6].includes(user?.dataRange ?? -1) && canWrite('user:data-permission'),
     canReadDepartments: canReadInSelectedUnit('department:read'),
     canCreateDepartments: canWrite('department:create'),
     canEditDepartments: canWrite('department:update'),
     canDeleteDepartments: canWrite('department:delete'),
-    canReadRoles: canWrite('role:read'),
-    canCreateRoles: canWrite('role:create') && canWrite('role:grant'),
-    canEditRoles: canWrite('role:update') && canWrite('role:grant'),
-    canDeleteRoles: canWrite('role:delete') && canWrite('role:grant'),
-    canReadPlatformMenus: platformHas('menu:read'),
-    canCreatePlatformMenus: platformHas('menu:create'),
-    canEditPlatformMenus: platformHas('menu:update'),
-    canDeletePlatformMenus: platformHas('menu:delete'),
-    canReadPlatformRoles: platformHas('platform:role:read'),
-    canCreatePlatformRoles: platformHas('platform:role:create'),
-    canEditPlatformRoles: platformHas('platform:role:update'),
-    canDeletePlatformRoles: platformHas('platform:role:delete'),
-    canGrantPlatformRoles: platformHas('platform:role:grant'),
-    canReadConfigurations: platformHas('configuration:read'),
-    canCreateConfigurations: platformHas('configuration:create'),
-    canEditConfigurations: platformHas('configuration:update'),
-    canDeleteConfigurations: platformHas('configuration:delete'),
-    canReadDictionaries: platformHas('dictionary:read'),
-    canCreateDictionaries: platformHas('dictionary:create'),
-    canEditDictionaries: platformHas('dictionary:update'),
-    canDeleteDictionaries: platformHas('dictionary:delete'),
-    canReadAudits: !all && selected && unitHas('audit:read'),
-    canReadLoginAudits: !all && selected && unitHas('login-audit:read'),
-    canManageCaches: !all && selected && unitHas('cache:user:refresh'),
+    canReadRoles: has('role:read'),
+    canCreateRoles: has('role:create'),
+    canEditRoles: has('role:update'),
+    canDeleteRoles: has('role:delete'),
+    canReadPlatformMenus: has('menu:read'),
+    canCreatePlatformMenus: has('menu:create'),
+    canEditPlatformMenus: has('menu:update'),
+    canDeletePlatformMenus: has('menu:delete'),
+    canReadConfigurations: has('configuration:read'),
+    canCreateConfigurations: has('configuration:create'),
+    canEditConfigurations: has('configuration:update'),
+    canDeleteConfigurations: has('configuration:delete'),
+    canReadDictionaries: has('dictionary:read'),
+    canCreateDictionaries: has('dictionary:create'),
+    canEditDictionaries: has('dictionary:update'),
+    canDeleteDictionaries: has('dictionary:delete'),
+    canReadAudits: selected && has('audit:read'),
+    canReadLoginAudits: selected && has('login-audit:read'),
+    canManageCaches: selected && has('cache:user:refresh'),
     canReadFiles: canReadInSelectedUnit('file:read'),
     canOpenFiles: canOpenUnitPage('file:read'),
     canOpenFileRecycle: canOpenUnitPage('file:recycle:read'),
@@ -83,22 +59,22 @@ export default (initialState?: { user?: UserInfo }) => {
     canRestoreFiles: canWrite('file:restore'),
     canPurgeFiles: canWrite('file:purge'),
     canReadOrgNotices: canReadInSelectedUnit('org-notice:read'),
-    canReadSystemNotices: platformHas('system-notice:read'),
-    canReadReleases: platformHas('release:read'),
-    canReadRegions: platformHas('region:read'),
-    canReadGenerator: platformHas('generator:read'),
-    canGenerateCode: platformHas('generator:generate'),
-    canExportRegions: platformHas('region:export'),
-    canCreateRegions: platformHas('region:create'),
-    canEditRegions: platformHas('region:update'),
-    canDeleteRegions: platformHas('region:delete'),
-    canCreateReleases: platformHas('release:create'),
-    canEditReleases: platformHas('release:update'),
-    canDeleteReleases: platformHas('release:delete'),
-    canSelectReleaseFiles: !all && selected && platformHas('platform:data:operate'),
-    canCreateSystemNotices: platformHas('system-notice:create'),
-    canEditSystemNotices: platformHas('system-notice:update'),
-    canDeleteSystemNotices: platformHas('system-notice:delete'),
+    canReadSystemNotices: has('system-notice:read'),
+    canReadReleases: has('release:read'),
+    canReadRegions: has('region:read'),
+    canReadGenerator: false,
+    canGenerateCode: false,
+    canExportRegions: has('region:export'),
+    canCreateRegions: has('region:create'),
+    canEditRegions: has('region:update'),
+    canDeleteRegions: has('region:delete'),
+    canCreateReleases: has('release:create'),
+    canEditReleases: has('release:update'),
+    canDeleteReleases: has('release:delete'),
+    canSelectReleaseFiles: canReadInSelectedUnit('file:read') && canReadInSelectedUnit('file:content:read'),
+    canCreateSystemNotices: has('system-notice:create'),
+    canEditSystemNotices: has('system-notice:update'),
+    canDeleteSystemNotices: has('system-notice:delete'),
     canCreateOrgNotices: canWrite('org-notice:create'),
     canEditOrgNotices: canWrite('org-notice:update'),
     canDeleteOrgNotices: canWrite('org-notice:delete'),

@@ -45,7 +45,7 @@ public final class SerialNumberProcessWorker {
         }
     }
     private static String next(SerialNumberService service,String user,String scope,String code) {
-        ScopeContext.set(new RequestIdentity(user,scope,List.of(),List.of(),List.of()));
+        ScopeContext.set(new RequestIdentity(user,scope,List.of(),List.of()));
         DataPermissionContext.set("user:create",DataPolicyRegistry.View.CURRENT_SCOPE);
         try {return service.next(code);}
         finally {DataPermissionContext.clear(); ScopeContext.clear();}

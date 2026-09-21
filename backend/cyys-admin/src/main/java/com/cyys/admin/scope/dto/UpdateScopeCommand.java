@@ -10,4 +10,5 @@ public record UpdateScopeCommand(
         @Size(max=20) String contactPhone,
         @NotNull Boolean enabled,
         @Min(0) @Max(1000000) int sort,
-        @Size(max=500) String remark) {}
+        @Size(max=500) String remark,
+        @NotBlank @Size(max=32) String parentId) {}

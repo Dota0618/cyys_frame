@@ -2,7 +2,6 @@ package com.cyys.common.web;
 
 import cn.dev33.satoken.interceptor.SaInterceptor;
 import cn.dev33.satoken.stp.StpUtil;
-import com.cyys.common.satoken.DataIsolationProperties;
 import com.cyys.common.satoken.ScopeHandlerInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -12,7 +11,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 @RequiredArgsConstructor
-@EnableConfigurationProperties(DataIsolationProperties.class)
 public class WebMvcConfig implements WebMvcConfigurer {
     private static final String[] PUBLIC_PATHS = {
             "/api/auth/login", "/api/health", "/error", "/swagger-ui/**", "/v3/api-docs/**"

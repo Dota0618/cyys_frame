@@ -90,9 +90,9 @@ class MultiScopeIntegrationTest extends HttpTestSupport {
     void serviceRejectsRoleGrantsWithMismatchedScope() {
         permission("role-a", "g1-grant", "role:grant", false);
         com.cyys.common.satoken.ScopeContext.set(new com.cyys.common.satoken.RequestIdentity(
-                "u-alice", "scope-a", List.of(), List.of(), List.of()));
+                "u-alice", "scope-a", List.of(), List.of()));
         try {
-            assertThatThrownBy(() -> roleGrants.replaceUnitRoles("u-alice", List.of("role-b")))
+            assertThatThrownBy(() -> roleGrants.replaceRoles("u-alice", List.of("role-b")))
                     .isInstanceOf(com.cyys.common.web.ApiException.class);
         } finally {
             com.cyys.common.satoken.ScopeContext.clear();

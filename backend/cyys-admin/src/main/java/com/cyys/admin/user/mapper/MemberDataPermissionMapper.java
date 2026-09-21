@@ -9,11 +9,11 @@ import java.util.List;
 @Mapper
 @ManualDataScope
 public interface MemberDataPermissionMapper {
-    @Select("select * from sys_user_scope where id=#{id} and scope_id=#{scope} and deleted=0")
+    @Select("select * from sys_user_scope where id=#{id} and (scope_id=#{scope} or scope_id is null) and deleted=0")
     SysUserScope detail(@Param("id") String id, @Param("scope") String scope);
 
     // 固定顺序锁住操作者及目标成员，禁止并发收回管理范围时继续扩大他人范围。
-    @Select("select * from sys_user_scope where scope_id=#{scope} and deleted=0 "
+    @Select("select * from sys_user_scope where deleted=0 "
             + "and (id=#{id} or user_id=#{actor}) order by id for update")
     List<SysUserScope> lockMembers(@Param("id") String id, @Param("scope") String scope, @Param("actor") String actor);
 
@@ -28,7 +28,7 @@ public interface MemberDataPermissionMapper {
     List<String> lockDepartments(@Param("ids") List<String> ids, @Param("scope") String scope);
 
     @Update("update sys_user_scope set data_range=#{range},version=version+1,updated_by=#{actor},updated_at=CURRENT_TIMESTAMP "
-            + "where id=#{id} and scope_id=#{scope} and deleted=0 and version=#{version}")
+            + "where id=#{id} and scope_id <=> #{scope} and deleted=0 and version=#{version}")
     int update(@Param("id") String id, @Param("scope") String scope, @Param("version") int version,
                @Param("range") int range, @Param("actor") String actor);
 

@@ -9,7 +9,7 @@ export default [
   },
   {
     path: '/system/scopes',
-    name: '单位管理',
+    name: '机构管理',
     icon: 'BankOutlined',
     access: 'canReadScopes',
     component: './system/scopes',
@@ -37,17 +37,10 @@ export default [
   },
   {
     path: '/system/platform-menus',
-    name: '平台菜单',
+    name: '菜单管理',
     icon: 'MenuOutlined',
     access: 'canReadPlatformMenus',
     component: './system/platform-menus',
-  },
-  {
-    path: '/system/platform-roles',
-    name: '平台角色',
-    icon: 'CrownOutlined',
-    access: 'canReadPlatformRoles',
-    component: './system/platform-roles',
   },
   {
     path: '/system/configurations',
@@ -88,7 +81,6 @@ export default [
   { path: '/system/files', name: '文件管理', icon: 'FileOutlined', access: 'canOpenFiles', component: './system/files' },
   { path: '/system/file-recycle', name: '文件回收站', icon: 'DeleteOutlined', access: 'canOpenFileRecycle', component: './system/file-recycle' },
   { path: '/system/org-notices', name: '单位通知', icon: 'NotificationOutlined', access: 'canReadOrgNotices', component: './system/org-notices' },
-  { path: '/system/generator', name: '代码生成器', icon: 'CodeOutlined', access: 'canReadGenerator', component: './system/generator' },
   { path: '/system/system-notices', name: '系统通知', icon: 'NotificationOutlined', access: 'canReadSystemNotices', component: './system/system-notices' },
   { path: '/system/releases', name: '版本更新', icon: 'HistoryOutlined', access: 'canReadReleases', component: './system/releases' },
   { path: '/system/regions', name: '地区参数', icon: 'GlobalOutlined', access: 'canReadRegions', component: './system/regions' },

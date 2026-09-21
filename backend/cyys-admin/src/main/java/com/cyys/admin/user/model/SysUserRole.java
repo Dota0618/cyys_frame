@@ -23,8 +23,6 @@ public class SysUserRole implements Serializable {
 
     private String roleId;
 
-    /** Scope context of this grant, used to distinguish global and unit roles. / 该授权所属的单位上下文，用于区分平台角色和单位角色。 */
-    private String scopeId;
 
     @TableField(fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NEVER)
     private String createdBy;

@@ -16,13 +16,13 @@ const authorizationKey = (user?: UserInfo) =>
   user &&
   JSON.stringify({
     id: user.id,
-    mode: user.mode,
     scope: user.currentScopeId,
     scopes: user.scopes,
+    homeScopeId: user.homeScopeId,
+    orgId: user.orgId,
+    dataRange: user.dataRange,
     roles: [...user.roles].sort(),
     permissions: [...user.permissions].sort(),
-    platformPermissions: [...user.platformPermissions].sort(),
-    unitPermissions: [...user.unitPermissions].sort(),
     navigation: user.navigation,
   });
 
@@ -106,7 +106,6 @@ function IdentityContent({ children }: PropsWithChildren) {
     '/system/generator': access.canReadGenerator,
     '/system/roles': access.canReadRoles,
     '/system/platform-menus': access.canReadPlatformMenus,
-    '/system/platform-roles': access.canReadPlatformRoles,
     '/system/configurations': access.canReadConfigurations,
     '/system/dictionaries': access.canReadDictionaries,
     '/system/audits': access.canReadAudits,
@@ -125,7 +124,7 @@ function IdentityContent({ children }: PropsWithChildren) {
   if (initialState?.switching)
     return (
       <div className="page-loading">
-        <Spin description="正在切换工作空间" size="large">
+        <Spin description="正在更新机构筛选" size="large">
           <div />
         </Spin>
       </div>

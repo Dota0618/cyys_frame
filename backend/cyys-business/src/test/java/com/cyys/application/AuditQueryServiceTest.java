@@ -30,10 +30,10 @@ class AuditQueryServiceTest {
     void pageUsesCurrentScopeAndNormalizesBlankFilters() {
         DataAuditMapper mapper = mock(DataAuditMapper.class);
         DataAuthorizationMapper authorization = mock(DataAuthorizationMapper.class);
-        when(authorization.hasPermission("actor", "scope-a", "audit:read")).thenReturn(true);
+        when(authorization.hasPermission("actor", "audit:read")).thenReturn(true);
         Page<AuditView> expected = new Page<>(1, 20);
         when(mapper.page(any(), eq("scope-a"), isNull(), eq("CREATE"))).thenReturn(expected);
-        ScopeContext.set(new RequestIdentity("actor", "scope-a", List.of(), List.of(), List.of()));
+        ScopeContext.set(new RequestIdentity("actor", "scope-a", List.of(), List.of()));
 
         var actual = new AuditQueryService(mapper, authorization)
                 .page(new AuditQuery(1, 20, " ", "CREATE"));
@@ -46,7 +46,7 @@ class AuditQueryServiceTest {
     void pageFailsClosedWithoutPermission() {
         DataAuditMapper mapper = mock(DataAuditMapper.class);
         DataAuthorizationMapper authorization = mock(DataAuthorizationMapper.class);
-        ScopeContext.set(new RequestIdentity("actor", "scope-a", List.of(), List.of(), List.of()));
+        ScopeContext.set(new RequestIdentity("actor", "scope-a", List.of(), List.of()));
 
         assertThatThrownBy(() -> new AuditQueryService(mapper, authorization)
                 .page(new AuditQuery(1, 20, null, null)))

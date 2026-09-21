@@ -29,12 +29,12 @@ class LoginAuditServiceTest {
     void recordsOnlyExplicitAuthenticationFieldsAndPagesCurrentScope() {
         LoginAuditMapper mapper = mock(LoginAuditMapper.class);
         DataAuthorizationMapper authorization = mock(DataAuthorizationMapper.class);
-        when(authorization.hasPermission("actor", "scope-a", "login-audit:read")).thenReturn(true);
+        when(authorization.hasPermission("actor", "login-audit:read")).thenReturn(true);
         when(mapper.insert(anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any()))
                 .thenReturn(1);
         Page<LoginAuditView> expected = new Page<>(1, 20);
         when(mapper.page(any(), eq("scope-a"), isNull(), eq("FAILURE"))).thenReturn(expected);
-        ScopeContext.set(new RequestIdentity("actor", "scope-a", List.of(), List.of(), List.of()));
+        ScopeContext.set(new RequestIdentity("actor", "scope-a", List.of(), List.of()));
 
         LoginAuditService service = new LoginAuditService(mapper, authorization);
         service.record("alice", "u-alice", "scope-a", "127.0.0.1", "SUCCESS", null);
@@ -49,7 +49,7 @@ class LoginAuditServiceTest {
     void pageFailsClosedWithoutPermission() {
         LoginAuditMapper mapper = mock(LoginAuditMapper.class);
         DataAuthorizationMapper authorization = mock(DataAuthorizationMapper.class);
-        ScopeContext.set(new RequestIdentity("actor", "scope-a", List.of(), List.of(), List.of()));
+        ScopeContext.set(new RequestIdentity("actor", "scope-a", List.of(), List.of()));
 
         assertThatThrownBy(() -> new LoginAuditService(mapper, authorization)
                 .page(new LoginAuditQuery(1, 20, null, null)))

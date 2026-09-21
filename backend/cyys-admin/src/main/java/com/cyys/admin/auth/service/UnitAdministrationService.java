@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Set;
 
-/** 角色与人员授权的统一管理边界；平台保持真实操作者，单位管理员须有本单位全部范围。 */
+/** 用户授权须同时满足功能权限和可管理的机构范围。 */
 @Service
 @RequiredArgsConstructor
 public class UnitAdministrationService {
@@ -22,14 +22,21 @@ public class UnitAdministrationService {
         var identity = ScopeContext.get();
         String scope = identity.requireScopeId();
         DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);
-        var platform = Set.copyOf(roles.selectPermissionCodes(identity.loginId(), List.of("GLOBAL")));
-        if (platform.containsAll(List.of("platform:scope:access", "platform:data:operate", permission))
-                && (!grantRoles || platform.contains("role:grant"))) return platform;
-        if (!authorization.hasPermission(identity.loginId(), scope, permission))
-            throw new ApiException(403, "没有当前单位的授权管理权限");
-        var unit = Set.copyOf(roles.selectUnitWidePermissionCodes(identity.loginId(), List.of(scope)));
-        if (!unit.contains(permission) || (grantRoles && !unit.contains("role:grant")))
-            throw new ApiException(403, "授权管理需要本单位全部数据范围及对应操作权限");
-        return unit;
+        var permissions = Set.copyOf(roles.selectPermissionCodes(identity.loginId()));
+        if (!permissions.contains(permission) || (grantRoles && !permissions.contains("role:grant")))
+            throw new ApiException(403, "没有此操作的授权管理权限");
+        if (!authorization.hasInstitutionWideRange(identity.loginId(), scope))
+            throw new ApiException(403, "授权管理需要所选机构的完整数据范围");
+        return permissions;
+    }
+    public void requireAssignableRange(com.cyys.admin.user.model.SysUserScope target, int range) {
+        var actor = authorization.activeProfile(ScopeContext.get().loginId());
+        if (actor == null) throw new ApiException(403, "操作者资料已失效");
+        if (range != 0 && target.getScopeId() == null) throw new ApiException(400, "未归属机构的系统账号只能使用全系统数据范围");
+        if (actor.getDataRange() == 0) return;
+        if (target.getScopeId() == null || !authorization.hasInstitutionWideRange(actor.getUserId(), target.getScopeId())
+                || target.getDataRange() == 0 || range == 0
+                || ((target.getDataRange() == 6 || range == 6) && actor.getDataRange() != 6))
+            throw new ApiException(403, "不能管理或授予超出本人数据范围的权限");
     }
 }

@@ -1,25 +1,20 @@
 package com.cyys.admin.user.mapper;
 
 import com.cyys.common.mybatis.ManualDataScope;
-
+import com.cyys.admin.auth.mapper.DataAuthorizationMapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.cyys.admin.auth.dto.LoginVO.ScopeInfo;
 import com.cyys.admin.user.model.SysUserScope;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.*;
 import java.util.List;
 
 @Mapper
 @ManualDataScope
 public interface SysUserScopeMapper extends BaseMapper<SysUserScope> {
-    @Select("""
-            select s.id, s.code, s.name, us.default_flag, us.member_role
-            from sys_user_scope us
-            join sys_scope s on s.id = us.scope_id and s.status = 1 and s.deleted = 0
-            where us.user_id = #{userId} and us.status = 1 and us.deleted = 0
-              and (us.expire_at is null or us.expire_at > CURRENT_TIMESTAMP)
-            order by s.sort, s.id
-            """)
-    List<ScopeInfo> selectAvailableScopes(@Param("userId") String userId);
+    @Select("select s.id,s.code,s.name,coalesce(s.id=p.scope_id,0) as default_flag,s.parent_id "
+            + DataAuthorizationMapper.AVAILABLE_INSTITUTIONS + " order by s.sort,s.id")
+    List<ScopeInfo> selectAvailableScopes(@Param("actor") String actor);
+
+    @Select("select * from sys_user_scope where user_id=#{userId} and status=1 and deleted=0")
+    SysUserScope profile(String userId);
 }

@@ -31,9 +31,6 @@ public class DataAuditService {
     @Transactional(propagation = Propagation.MANDATORY)
     public void platformSuccess(String resource, String record, String operation) {
         var identity = ScopeContext.get();
-        if (!identity.platformPermissions().contains("platform:scope:access")) {
-            throw new IllegalStateException("平台控制审计缺少平台身份");
-        }
         if (mapper.insertPlatformSuccess(IdWorker.getIdStr(), identity.loginId(), resource, record, operation) != 1) {
             throw new IllegalStateException("平台控制审计写入失败");
         }

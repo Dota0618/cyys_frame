@@ -41,17 +41,16 @@ public class MenuService {
         return MenuView.from(requireMenu(mapper.detail(id)));
     }
 
-    @Transactional
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public MenuView create(@Valid CreateMenuCommand command) {
         security.authorize("menu:create");
-        validatePlatformFlag(command.code(), command.platformOnly());
         validateParent(command.parentId(), null, command.type());
         var menu = new SysMenu();
         menu.setId(IdWorker.getIdStr());
         menu.setCode(command.code());
         menu.setType(command.type());
         apply(menu, command.parentId(), command.name(), command.path(), command.component(), command.redirect(),
-                command.icon(), command.sort(), command.visible(), command.status(), command.platformOnly(),
+                command.icon(), command.sort(), command.visible(), command.status(),
                 command.keepAlive(), command.alwaysShow());
         try {
             requireOne(mapper.create(menu, actor()));
@@ -62,36 +61,33 @@ public class MenuService {
         return MenuView.from(menu);
     }
 
-    @Transactional
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public MenuView edit(@Valid UpdateMenuCommand command) {
+        security.lockAdministratorGuard();
         security.authorize("menu:update");
         SysMenu menu = requireMenu(mapper.lock(command.id()));
         if (!Objects.equals(menu.getVersion(), command.version())) throw new ApiException(409, "菜单版本已变更");
-        validatePlatformFlag(menu.getCode(), command.platformOnly());
         validateParent(command.parentId(), menu.getId(), menu.getType());
-        boolean guarded = PlatformSecurityService.PLATFORM_ACCESS.equals(menu.getCode());
-        if (guarded) security.lockAdministratorGuard();
         apply(menu, command.parentId(), command.name(), command.path(), command.component(), command.redirect(),
-                command.icon(), command.sort(), command.visible(), command.status(), command.platformOnly(),
+                command.icon(), command.sort(), command.visible(), command.status(),
                 command.keepAlive(), command.alwaysShow());
         requireOne(mapper.updateMenu(menu, actor()));
-        if (guarded) security.requireUsableAdministrator();
+        security.requireUsableAdministrator();
         menu.setVersion(menu.getVersion() + 1);
         audit.platformSuccess("menu", menu.getId(), "UPDATE");
         return MenuView.from(menu);
     }
 
-    @Transactional
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public void delete(String id, int version) {
+        security.lockAdministratorGuard();
         security.authorize("menu:delete");
         SysMenu menu = requireMenu(mapper.lock(id));
         if (!Objects.equals(menu.getVersion(), version)) throw new ApiException(409, "菜单版本已变更");
         if (mapper.hasChildren(id)) throw new ApiException(409, "菜单仍有子节点，不能删除");
         if (mapper.hasRoleReference(id)) throw new ApiException(409, "菜单仍被角色引用，不能删除");
-        boolean guarded = PlatformSecurityService.PLATFORM_ACCESS.equals(menu.getCode());
-        if (guarded) security.lockAdministratorGuard();
         requireOne(mapper.softDelete(id, version, actor()));
-        if (guarded) security.requireUsableAdministrator();
+        security.requireUsableAdministrator();
         audit.platformSuccess("menu", id, "DELETE");
     }
 
@@ -109,14 +105,9 @@ public class MenuService {
         }
     }
 
-    private static void validatePlatformFlag(String code, int platformOnly) {
-        if (code.startsWith("platform:") && platformOnly != 1) {
-            throw new ApiException(400, "平台权限必须标记为仅平台可用");
-        }
-    }
 
     private static void apply(SysMenu menu, String parentId, String name, String path, String component,
-                              String redirect, String icon, int sort, int visible, int status, int platformOnly,
+                              String redirect, String icon, int sort, int visible, int status,
                               int keepAlive, int alwaysShow) {
         menu.setParentId(parentId);
         menu.setName(name);
@@ -127,7 +118,7 @@ public class MenuService {
         menu.setSort(sort);
         menu.setVisible(visible);
         menu.setStatus(status);
-        menu.setPlatformOnly(platformOnly);
+
         menu.setKeepAlive(keepAlive);
         menu.setAlwaysShow(alwaysShow);
     }

@@ -1,7 +1,5 @@
 package com.cyys.admin.role.service;
 
-import com.baomidou.mybatisplus.core.toolkit.IdWorker;
-import com.cyys.admin.audit.service.DataAuditService;
 import com.cyys.admin.auth.service.UnitAdministrationService;
 import com.cyys.admin.role.mapper.RoleGrantMapper;
 import com.cyys.common.mybatis.DataPolicyRegistry;
@@ -24,43 +22,38 @@ import java.util.Set;
 public class RoleGrantService {
     private final RoleGrantMapper mapper;
     private final UnitAdministrationService administration;
-    private final DataAuditService audit;
+    private final RoleService roles;
+    private final com.cyys.admin.auth.service.PlatformSecurityService security;
 
     @Transactional(readOnly = true)
     public List<RoleGrantMapper.RoleOption> grantableRoleOptions() {
         var identity = ScopeContext.get();
-        String scope = identity.requireScopeId();
+        identity.requireScopeId();
         DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);
         Set<String> ceiling = administration.authorize("role:grant", true);
-        List<RoleGrantMapper.RoleOption> candidates = mapper.activeUnitRoles(scope);
+        List<RoleGrantMapper.RoleOption> candidates = mapper.activeRoles();
         if (candidates.isEmpty()) return candidates;
         Set<String> rejected = mapper.permissions(candidates.stream().map(RoleGrantMapper.RoleOption::value).toList()).stream()
-                .filter(permission -> permission.platformOnly() || !ceiling.contains(permission.code()))
+                .filter(permission -> !ceiling.contains(permission.code()))
                 .map(RoleGrantMapper.GrantPermission::roleId).collect(java.util.stream.Collectors.toSet());
         return candidates.stream().filter(role -> !rejected.contains(role.value())).toList();
     }
 
-    @Transactional
-    public void replaceUnitRoles(@NotBlank @Size(max=32) String userId,
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    public void replaceRoles(@NotBlank @Size(max=32) String userId,
                                  @NotNull @Size(max=100) List<@NotBlank String> roleIds) {
         var identity = ScopeContext.get();
         String scope = identity.requireScopeId();
         DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);
         Set<String> ceiling = administration.authorize("role:grant", true);
         if (Set.copyOf(roleIds).size() != roleIds.size()) throw new ApiException(400, "角色不能重复");
-        if (mapper.lockMembership(userId, scope) == null) throw new ApiException(403, "目标成员不可操作");
-        if (!roleIds.isEmpty()) {
-            if (mapper.lockUnitRoles(roleIds, scope).size() != roleIds.size()) throw new ApiException(403, "不能授予平台、其他单位或无效角色");
-            if (mapper.permissions(roleIds).stream().anyMatch(permission -> permission.platformOnly() || !ceiling.contains(permission.code()))) {
-                throw new ApiException(403, "角色权限超出当前操作者的授予上限");
-            }
-        }
-        mapper.removeUnitGrants(userId, scope);
-        for (String role : roleIds) {
-            if (mapper.addUnitGrant(IdWorker.getIdStr(), userId, role, scope, identity.loginId()) != 1) {
-                throw new ApiException(409, "角色授予冲突");
-            }
-        }
-        audit.success("role_grant", userId, "REPLACE");
+        security.lockAdministratorGuard();
+        var target = mapper.lockProfile(userId);
+        if (target == null) throw new ApiException(403, "目标用户不可操作");
+        ceiling = administration.authorize("role:grant", true);
+        security.requireDataRangeCeiling(target.getDataRange());
+        if (target.getScopeId() == null || target.getDataRange() == 0) security.requireAllDataRange();
+        if (target.getScopeId() != null && !scope.equals(target.getScopeId())) throw new ApiException(403, "目标用户不属于所选机构");
+        roles.assignAuthorized(userId, roleIds, ceiling);
     }
 }

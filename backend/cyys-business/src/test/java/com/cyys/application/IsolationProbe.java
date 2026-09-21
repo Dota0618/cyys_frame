@@ -76,7 +76,7 @@ public class IsolationProbe {
         });
     }
     @PostMapping("/roles/{user}")
-    Object grant(@PathVariable String user, @RequestBody List<String> roles) { grants.replaceUnitRoles(user,roles); return R.ok(); }
+    Object grant(@PathVariable String user, @RequestBody List<String> roles) { grants.replaceRoles(user,roles); return R.ok(); }
     @GetMapping("/user-names")
     Object names(@RequestParam List<String> ids) { return R.ok(users.names(ids)); }
     @PostMapping("/user-cache-refresh")

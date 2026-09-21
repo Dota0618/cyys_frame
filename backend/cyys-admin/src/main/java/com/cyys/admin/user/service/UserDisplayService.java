@@ -60,7 +60,7 @@ public class UserDisplayService {
     private void require(String permission) {
         var identity = ScopeContext.get();
         DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);
-        if (!authorization.hasPermission(identity.loginId(), identity.requireScopeId(), permission)) {
+        if (!authorization.hasPermission(identity.loginId(), permission)) {
             throw new ApiException(403, "没有当前单位的缓存数据访问权限");
         }
     }

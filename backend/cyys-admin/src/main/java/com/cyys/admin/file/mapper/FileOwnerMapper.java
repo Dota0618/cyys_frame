@@ -9,6 +9,6 @@ import org.apache.ibatis.annotations.*;
 public interface FileOwnerMapper {
     @Select("select us.org_id from sys_user_scope us join sys_org org on org.id=us.org_id and org.scope_id=us.scope_id "
             + "and org.status=1 and org.deleted=0 where us.user_id=#{actor} and us.scope_id=#{scope} "
-            + "and us.status=1 and us.deleted=0 and (us.expire_at is null or us.expire_at>CURRENT_TIMESTAMP) for update")
+            + "and us.status=1 and us.deleted=0  for update")
     String department(@Param("actor") String actor, @Param("scope") String scope);
 }

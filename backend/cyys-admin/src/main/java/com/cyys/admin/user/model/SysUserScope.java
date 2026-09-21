@@ -11,10 +11,10 @@ import java.time.LocalDateTime;
 @TableName("sys_user_scope")
 @DataResourceDefinition(name = "user", scopeColumn = "scope_id",
         departmentColumn = "org_id", actorColumn = "user_id", versionColumn = "version",
-        immutableColumns = {"user_id", "member_role", "default_flag", "expire_at", "data_range"})
+        immutableColumns = {"user_id", "data_range"})
 /**
- * Membership relation between a global account and a business scope.
- * 全局账号与业务单位之间的成员关系。
+ * One home institution and data range per user.
+ * 用户唯一的所属机构、部门和数据范围。
  */
 public class SysUserScope implements Serializable {
 
@@ -40,19 +40,9 @@ public class SysUserScope implements Serializable {
     @Version
     private Integer version = 0;
 
-    /** Member role inside the scope, such as OWNER or MEMBER. / 成员在单位内的角色标识，例如 OWNER 或 MEMBER。 */
-    @TableField(updateStrategy = FieldStrategy.NEVER)
-    private String memberRole;
-
-    /** Whether this scope is the user's default working scope. / 是否为用户默认工作单位。 */
-    @TableField(updateStrategy = FieldStrategy.NEVER)
-    private Integer defaultFlag;
 
     private Integer status;
 
-    /** Optional membership expiry; null means long-term valid. / 可选的成员关系失效时间，null 表示长期有效。 */
-    @TableField(updateStrategy = FieldStrategy.NEVER)
-    private LocalDateTime expireAt;
 
     @TableField(fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NEVER)
     private String createdBy;

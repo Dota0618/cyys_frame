@@ -304,7 +304,7 @@ class FileIntegrationTest extends IsolationTestSupport {
         } finally { Files.deleteIfExists(broken); }
     }
 
-    @Test void crashedDirectUploadIsCleanedWithSingleScopeCeilingAndBoundedBatches() throws Exception {
+    @Test void crashedDirectUploadIsCleanedWithBoundedBatches() throws Exception {
         String alice=token("alice"),bob=token("bob");
         String a=multipart("POST",BASE_FILE,alice,"scope-a","crash-a.bin",data(10)).body().at("/data/id").asText();
         String a2=multipart("POST",BASE_FILE,alice,"scope-a","crash-a2.bin",data(11)).body().at("/data/id").asText();
@@ -312,11 +312,10 @@ class FileIntegrationTest extends IsolationTestSupport {
         jdbc.update("update sys_file_entry set state='UPLOADING',expires_at=DATE_SUB(CURRENT_TIMESTAMP,INTERVAL 1 DAY) where id in (?,?,?)",a,a2,b);
         cleanupSettings.setBatchSize(1);
         var single=new FileCleanupService(cleanupMapper,temporaryCleaner,fileAudit,
-                new DataIsolationProperties(DataIsolationProperties.Mode.SINGLE,"scope-a"),cleanupSettings,transactionManager);
+                cleanupSettings,transactionManager);
         single.runBatch();
-        assertThat(count("select count(*) from sys_file_entry where scope_id='scope-a' and temporary_cleaned_at is not null")).isEqualTo(1);
-        assertThat(state(b)).isEqualTo("UPLOADING");
-        single.runBatch(); assertThat(state(b)).isEqualTo("UPLOADING");
+        assertThat(count("select count(*) from sys_file_entry where temporary_cleaned_at is not null")).isEqualTo(1);
+        single.runBatch();
         cleanup.runBatch(); assertThat(state(b)).isEqualTo("FAILED");
         try(var objects=Files.list(root)) { assertThat(objects.count()).isZero(); }
         assertThat(count("select count(*) from sys_data_audit where scope_id='scope-b' and actor_id='system:file-cleanup' and operation='CLEAN_UPLOAD'")).isEqualTo(1);

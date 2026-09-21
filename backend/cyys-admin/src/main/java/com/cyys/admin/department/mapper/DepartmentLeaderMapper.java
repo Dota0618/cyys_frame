@@ -15,7 +15,7 @@ import java.util.List;
 public interface DepartmentLeaderMapper {
     String LABEL = "coalesce(nullif(us.display_name,''),nullif(u.nickname,''),nullif(u.real_name,''),u.login_name)";
     String ACTIVE = "u.status=1 and u.deleted=0 and us.status=1 and us.deleted=0 "
-            + "and (us.expire_at is null or us.expire_at>CURRENT_TIMESTAMP)";
+            + "";
 
     @Select("<script>select us.user_id as value," + LABEL + " as label,false as disabled "
             + "from sys_user_scope us join sys_user u on u.id=us.user_id "

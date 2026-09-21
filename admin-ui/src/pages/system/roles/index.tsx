@@ -14,7 +14,7 @@ import { useAccess } from '@umijs/max';
 import { Alert, App, Button, Popconfirm, Tag } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import CheckedTree from '@/components/CheckedTree';
-import { compactModalProps, verticalFormItemProps, compactFormProps } from '@/components/ManagementLayout';
+import { compactModalProps, ManagementSplit, verticalFormItemProps, compactFormProps } from '@/components/ManagementLayout';
 import {
   createRole,
   deleteRole,
@@ -37,47 +37,24 @@ import { setDirty } from '@/utils/session';
 
 const emptyOptions: RoleOptions = { menus: [] };
 function RoleFields({ options, editing }: { options: RoleOptions; editing?: boolean }) {
-  const menuTree = useMemo(
-    () =>
-      roleTreeData(
-        options.menus.map((menu) => ({
-          ...menu,
-          name: menu.name,
-        })),
-      ),
-    [options.menus],
-  );
+  const tree = useMemo(() => roleTreeData(options.menus.map((menu) => ({
+    ...menu, name: menu.name,
+  }))), [options.menus]);
   return (
-    <>
-      {!editing && (
-        <ProFormText
-          name="code"
-          label="角色编码"
-          fieldProps={{ maxLength: 64 }}
-          rules={[{ required: true, whitespace: true }]}
-        />
-      )}
-      <ProFormText
-        name="name"
-        label="角色名称"
-        fieldProps={{ maxLength: 50 }}
-        rules={[{ required: true, whitespace: true }]}
-      />
-      <ProForm.Item {...verticalFormItemProps}
-        name="menuIds"
-        label="菜单与操作权限"
-      >
-        <CheckedTree treeData={menuTree} label="菜单与操作权限" menuSelection />
-      </ProForm.Item>
-      <ProFormRadio.Group
-        name="status"
-        label="状态"
-        options={[{ value: 1, label: '启用' }, { value: 0, label: '停用' }]}
-        rules={[{ required: true }]}
-      />
+    <ManagementSplit navigation={<div>
+      {!editing && <ProFormText name="code" label="角色编码" fieldProps={{ maxLength: 64 }}
+        rules={[{ required: true, whitespace: true }]} />}
+      <ProFormText name="name" label="角色名称" fieldProps={{ maxLength: 50 }}
+        rules={[{ required: true, whitespace: true }]} />
+      <ProFormRadio.Group name="status" label="状态"
+        options={[{ value: 1, label: '启用' }, { value: 0, label: '停用' }]} rules={[{ required: true }]} />
       <ProFormDigit name="sort" label="排序" fieldProps={{ precision: 0 }} rules={[{ required: true }]} />
       <ProFormTextArea formItemProps={verticalFormItemProps} name="remark" label="备注" fieldProps={{ maxLength: 500, showCount: true }} />
-    </>
+    </div>}>
+      <ProForm.Item {...verticalFormItemProps} name="menuIds" label="菜单与操作权限">
+        <CheckedTree treeData={tree} label="菜单与操作权限" menuSelection />
+      </ProForm.Item>
+    </ManagementSplit>
   );
 }
 
@@ -135,7 +112,7 @@ export default function RolesPage() {
   return (
     <PageContainer
       title="角色管理"
-      subTitle="维护当前单位的角色及菜单权限；数据权限在用户管理中单独配置。权限候选与保存均受当前操作者授予上限约束。"
+      subTitle="角色统一管理；用户的数据范围在用户管理中配置。"
     >
       {loadError && <Alert type="error" showIcon title={loadError} style={{ marginBottom: 20 }} />}
       <ProTable<Role>
@@ -164,7 +141,7 @@ export default function RolesPage() {
             key="create"
             name="role-create"
             title="新增角色"
-            width={680}
+            width={920}
             trigger={<Button type="primary" icon={<PlusOutlined />}>新增角色</Button>}
             initialValues={{ status: 1, sort: 0, menuIds: [] }}
             modalProps={compactModalProps}
@@ -189,7 +166,7 @@ export default function RolesPage() {
         key={editing?.role.id || 'edit'}
         name="role-edit"
         title="修改角色"
-        width={680}
+        width={920}
         open={!!editing}
         initialValues={editing ? { ...editing.role, menuIds: editing.menuIds } : undefined}
         modalProps={compactModalProps}

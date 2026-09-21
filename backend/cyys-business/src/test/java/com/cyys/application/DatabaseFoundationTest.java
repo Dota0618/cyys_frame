@@ -3,8 +3,6 @@ package com.cyys.application;
 import com.cyys.admin.department.mapper.SysOrgMapper;
 import com.cyys.admin.department.model.SysOrg;
 import com.cyys.admin.scope.mapper.SysScopeMapper;
-import com.cyys.admin.scope.service.ScopeConfigurationValidator;
-import com.cyys.common.satoken.DataIsolationProperties;
 import com.cyys.common.satoken.RequestIdentity;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.mybatis.DataPermissionContext;
@@ -60,7 +58,7 @@ class DatabaseFoundationTest extends HttpTestSupport {
         org.setName("审计验证");
         org.setCreatedBy("forged");
         org.setUpdatedBy("forged");
-        ScopeContext.set(new RequestIdentity("u-alice", "scope-a", List.of(), List.of(), List.of()));
+        ScopeContext.set(new RequestIdentity("u-alice", "scope-a", List.of(), List.of()));
         DataPermissionContext.set("department:create", DataPolicyRegistry.View.CURRENT_SCOPE);
         try {
             assertThat(orgMapper.insert(org)).isEqualTo(1);
@@ -72,7 +70,7 @@ class DatabaseFoundationTest extends HttpTestSupport {
                 .isEqualTo("u-alice");
         org.setName("已修改");
         org.setCreatedBy("forged-again");
-        ScopeContext.set(new RequestIdentity("u-bob", "scope-a", List.of(), List.of(), List.of()));
+        ScopeContext.set(new RequestIdentity("u-bob", "scope-a", List.of(), List.of()));
         DataPermissionContext.set("department:update", DataPolicyRegistry.View.CURRENT_SCOPE);
         try {
             assertThat(orgMapper.updateById(org)).isEqualTo(1);
@@ -84,13 +82,6 @@ class DatabaseFoundationTest extends HttpTestSupport {
         assertThat(jdbc.queryForObject("select updated_by from sys_org where id='audit-org'", String.class)).isEqualTo("u-bob");
     }
 
-    @Test
-    void missingFixedScopeFailsDatabaseBackedStartupValidation() {
-        var validator = new ScopeConfigurationValidator(
-                new DataIsolationProperties(DataIsolationProperties.Mode.SINGLE, "missing-scope"), scopeMapper);
-        assertThatThrownBy(() -> validator.run(new DefaultApplicationArguments()))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("sys_scope.id");
-    }
 
     @Test
     void flywayMigratesEmptySchemaOnceAndMenuTypeIsConstrained() {

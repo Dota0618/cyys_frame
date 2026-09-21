@@ -45,8 +45,6 @@ public class SysMenu implements Serializable {
 
     private Integer status;
 
-    /** Whether this menu is visible only to platform-level roles. / 是否仅平台角色可见。 */
-    private Integer platformOnly;
 
     /** Frontend route cache hint for Ant Design Pro style pages. / 前端路由缓存提示。 */
     private Integer keepAlive;

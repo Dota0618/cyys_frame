@@ -9,11 +9,13 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 @RestController
+@ConditionalOnProperty(name="cyys.generator.enabled", havingValue="true")
 @Validated
 @PlatformControl
 @RequiredArgsConstructor

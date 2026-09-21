@@ -39,14 +39,14 @@ public interface SysMenuMapper extends BaseMapper<SysMenu> {
     boolean hasRoleReference(@Param("id") String id);
 
     @Insert("insert into sys_menu(id,parent_id,name,code,path,component,redirect,icon,type,sort,visible,status,"
-            + "platform_only,keep_alive,always_show,created_by,updated_by) values(#{menu.id},#{menu.parentId},"
+            + "keep_alive,always_show,created_by,updated_by) values(#{menu.id},#{menu.parentId},"
             + "#{menu.name},#{menu.code},#{menu.path},#{menu.component},#{menu.redirect},#{menu.icon},#{menu.type},"
-            + "#{menu.sort},#{menu.visible},#{menu.status},#{menu.platformOnly},#{menu.keepAlive},#{menu.alwaysShow},#{actor},#{actor})")
+            + "#{menu.sort},#{menu.visible},#{menu.status},#{menu.keepAlive},#{menu.alwaysShow},#{actor},#{actor})")
     int create(@Param("menu") SysMenu menu, @Param("actor") String actor);
 
     @Update("update sys_menu set parent_id=#{menu.parentId},name=#{menu.name},path=#{menu.path},component=#{menu.component},"
             + "redirect=#{menu.redirect},icon=#{menu.icon},sort=#{menu.sort},visible=#{menu.visible},status=#{menu.status},"
-            + "platform_only=#{menu.platformOnly},keep_alive=#{menu.keepAlive},always_show=#{menu.alwaysShow},"
+            + "keep_alive=#{menu.keepAlive},always_show=#{menu.alwaysShow},"
             + "version=version+1,updated_by=#{actor},updated_at=CURRENT_TIMESTAMP "
             + "where id=#{menu.id} and version=#{menu.version} and deleted=0")
     int updateMenu(@Param("menu") SysMenu menu, @Param("actor") String actor);

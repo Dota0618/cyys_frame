@@ -15,9 +15,7 @@ public class AuditMetaObjectHandler implements MetaObjectHandler {
         if (metaObject.hasSetter("scopeId")) {
             Object supplied = getFieldValByName("scopeId", metaObject);
             if ("GLOBAL".equals(supplied)) {
-                if (!identity.platformPermissions().contains("platform:scope:access")) {
-                    throw DataPolicyRegistry.denied("新增平台记录需要平台控制权限");
-                }
+                throw DataPolicyRegistry.denied("业务记录必须归属真实机构");
             } else {
                 String scope = identity.requireScopeId();
                 if (supplied != null && !scope.equals(supplied)) throw DataPolicyRegistry.denied("新增不能指定其他单位归属");

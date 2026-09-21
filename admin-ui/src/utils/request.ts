@@ -4,7 +4,7 @@ export class StaleRequest extends Error {}
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
-export interface Options { method?: string; body?: unknown; quiet?: boolean; anonymous?: boolean; signal?: AbortSignal; revision?: number }
+export interface Options { method?: string; body?: unknown; quiet?: boolean; anonymous?: boolean; omitScope?: boolean; signal?: AbortSignal; revision?: number }
 
 /** 唯一请求入口：R 在此解包，调用者只取得 data。上下文变化后不交付旧响应。 */
 export async function api<T>(path: string, options: Options = {}): Promise<T> {
@@ -21,7 +21,7 @@ async function request<T>(path: string, options: Options, binary: boolean): Prom
   const multipart = options.body instanceof FormData;
   const headers: Record<string, string> = {};
   if (!options.anonymous && captured.token) headers.Authorization = `Bearer ${captured.token}`;
-  if (!options.anonymous && captured.scopeId && !captured.allUnits) headers['X-Cyys-Scope-Id'] = captured.scopeId;
+  if (!options.anonymous && !options.omitScope && captured.scopeId) headers['X-Cyys-Scope-Id'] = captured.scopeId;
   if (options.body !== undefined && !multipart) headers['Content-Type'] = 'application/json';
   try {
     const response = await fetch(path, {

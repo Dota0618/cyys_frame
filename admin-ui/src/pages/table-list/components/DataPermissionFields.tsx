@@ -1,3 +1,4 @@
+import { useModel } from '@umijs/max';
 import { verticalFormItemProps } from '@/components/ManagementLayout';
 import { ProForm, ProFormDependency, ProFormRadio } from '@ant-design/pro-components';
 import { Alert } from 'antd';
@@ -8,18 +9,21 @@ import { roleTreeData } from '@/utils/roles';
 export const dataRanges = [
   { value: 5, label: '本人' }, { value: 3, label: '本部门' },
   { value: 4, label: '本部门及下级' }, { value: 2, label: '自定义部门' },
-  { value: 1, label: '本单位全部' },
+  { value: 1, label: '本机构' }, { value: 6, label: '本机构及下级' }, { value: 0, label: '全系统' },
 ];
 
-export default function DataPermissionFields({ departments, editable = true, currentRange = 5 }: {
-  departments: DepartmentOption[]; editable?: boolean; currentRange?: number;
+export default function DataPermissionFields({ departments, editable = true, currentRange = 5, systemAccount = false }: {
+  departments: DepartmentOption[]; editable?: boolean; currentRange?: number; systemAccount?: boolean;
 }) {
+  const { initialState } = useModel('@@initialState');
+  const actorRange = initialState?.user?.dataRange;
+  const options = dataRanges.filter(range => (!systemAccount || range.value === 0)
+    && (range.value === 0 ? actorRange === 0 : range.value !== 6 || actorRange === 0 || actorRange === 6));
   if (!editable) return <Alert type="info" showIcon title={`数据范围：${dataRanges.find(row => row.value === currentRange)?.label || '未配置'}`}
     description="需要“配置数据权限”授权才能修改。" />;
   const tree = roleTreeData(departments.map(row => ({ id: row.value, name: row.label, parentId: row.parentId })));
   return <>
-    <Alert type="info" showIcon title="数据范围统一适用于当前单位，菜单和操作权限由角色分配。" style={{ marginBottom: 14 }} />
-    <ProFormRadio.Group formItemProps={verticalFormItemProps} name="dataRange" label="数据范围" options={dataRanges} rules={[{ required: true }]}
+    <ProFormRadio.Group formItemProps={verticalFormItemProps} name="dataRange" label="数据范围" options={options} rules={[{ required: true }]}
       fieldProps={{ style: { display: 'flex', flexWrap: 'wrap', gap: 8 } }} />
     <ProFormDependency name={['dataRange']}>
       {({ dataRange }) => dataRange === 2 ? <ProForm.Item {...verticalFormItemProps} name="orgIds" label="可访问部门"

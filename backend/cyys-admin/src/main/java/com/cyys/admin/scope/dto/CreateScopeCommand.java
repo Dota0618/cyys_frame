@@ -8,4 +8,5 @@ public record CreateScopeCommand(
         @Size(max=50) String shortName,
         @Size(max=50) String contactPerson,
         @Size(max=20) String contactPhone,
-        @Size(max=500) String remark) {}
+        @Size(max=500) String remark,
+        @NotBlank @Size(max=32) String parentId) {}

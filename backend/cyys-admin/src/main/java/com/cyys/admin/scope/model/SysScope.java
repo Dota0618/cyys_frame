@@ -23,6 +23,10 @@ public class SysScope implements Serializable {
 
     private String name;
 
+    private String parentId;
+
+    private String ancestors;
+
     private String shortName;
 
     private Integer status;

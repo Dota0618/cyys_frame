@@ -19,8 +19,6 @@ public class SysRole implements Serializable {
     @TableId(type = IdType.ASSIGN_ID)
     private String id;
 
-    /** GLOBAL for platform roles, concrete scope id for unit roles. / GLOBAL 表示平台角色，其他值表示单位角色。 */
-    private String scopeId;
 
     private String code;
 

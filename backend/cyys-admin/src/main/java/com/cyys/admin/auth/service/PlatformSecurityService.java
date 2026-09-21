@@ -12,29 +12,39 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class PlatformSecurityService {
     public static final String GLOBAL = "GLOBAL";
-    public static final String PLATFORM_ACCESS = "platform:scope:access";
 
     private final DataAuthorizationMapper authorization;
     private final PlatformSecurityMapper mapper;
 
     public Set<String> authorize(String permission) {
         var identity = ScopeContext.get();
-        if (!authorization.hasPermission(identity.loginId(), GLOBAL, PLATFORM_ACCESS)
-                || !authorization.hasPermission(identity.loginId(), GLOBAL, permission)) {
-            throw new ApiException(403, "没有平台控制权限");
+        var permissions = Set.copyOf(authorization.permissions(identity.loginId()));
+        if (!permissions.contains(permission)) {
+            throw new ApiException(403, "没有此管理操作的权限");
         }
-        return Set.copyOf(identity.platformPermissions());
+        return permissions;
     }
 
     public void lockAdministratorGuard() {
         if (mapper.lockAdministratorPermission() == null) {
-            throw new ApiException(409, "平台管理员关键权限不存在");
+            throw new ApiException(409, "系统管理员关键权限不存在");
         }
     }
 
     public void requireUsableAdministrator() {
         if (mapper.usableAdministrators().isEmpty()) {
-            throw new ApiException(409, "不能移除最后一个可用平台管理员");
+            throw new ApiException(409, "不能移除最后一个可用系统管理员");
         }
+    }
+    public void requireAllDataRange() {
+        if (!authorization.hasAllDataRange(ScopeContext.get().loginId()))
+            throw new ApiException(403, "此操作需要全系统数据管理范围");
+    }
+
+    public void requireDataRangeCeiling(int targetRange) {
+        var actor = authorization.activeProfile(ScopeContext.get().loginId());
+        if (actor == null || (targetRange == 0 && actor.getDataRange() != 0)
+                || (targetRange == 6 && actor.getDataRange() != 0 && actor.getDataRange() != 6))
+            throw new ApiException(403, "不能管理数据范围高于本人的用户");
     }
 }

@@ -26,17 +26,19 @@ class GeneratorServiceTest {
             new GeneratorRenderer(JsonMapper.builder().build()),audit);
 
     private void identity() {
-        ScopeContext.set(new RequestIdentity("actor","unit-a",List.of(),List.of("generator:read","generator:generate"),List.of()));
+        ScopeContext.set(new RequestIdentity("actor","unit-a",List.of(),List.of("generator:read","generator:generate")));
     }
+    private final Set<String> granted = new HashSet<>();
     private void grant(String permission) {
-        when(authorization.hasPermission("actor","GLOBAL","platform:scope:access")).thenReturn(true);
-        when(authorization.hasPermission("actor","GLOBAL",permission)).thenReturn(true);
+        granted.add(permission);
+        when(authorization.permissions("actor")).thenAnswer(call -> List.copyOf(granted));
+        when(authorization.hasPermission("actor", "platform:scope:access")).thenReturn(true);
+        when(authorization.hasPermission("actor", permission)).thenReturn(true);
     }
     @AfterEach void clear() { ScopeContext.clear(); }
 
-    @Test void unitGrantsCannotReadPlatformMetadataOrGenerate() {
+    @Test void missingOperationGrantCannotReadMetadataOrGenerate() {
         identity();
-        when(authorization.hasPermission("actor","unit-a","generator:read")).thenReturn(true);
         assertThatThrownBy(service::tables).isInstanceOf(ApiException.class);
         assertThatThrownBy(()->service.download(GeneratorRendererTest.sample(GeneratorLayout.LIST))).isInstanceOf(ApiException.class);
         verifyNoInteractions(metadata,audit);
@@ -49,7 +51,7 @@ class GeneratorServiceTest {
         assertThat(service.preview(command).files()).isNotEmpty();
         assertThatThrownBy(()->service.download(command)).isInstanceOf(ApiException.class);
         grant("generator:generate");
-        when(authorization.hasPermission("actor","GLOBAL","generator:generate")).thenReturn(true,false);
+        when(authorization.permissions("actor")).thenReturn(List.of("generator:generate"), List.of());
         assertThatThrownBy(()->service.download(command)).isInstanceOf(ApiException.class);
         verifyNoInteractions(audit);
     }

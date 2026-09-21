@@ -27,13 +27,13 @@ class CacheRefreshFailureTest {
 
     @Test
     void explicitRefreshReportsUnavailableRedisAndNeverRecordsFalseSuccess() {
-        ScopeContext.set(new RequestIdentity("actor", "scope-a", List.of(), List.of(), List.of()));
+        ScopeContext.set(new RequestIdentity("actor", "scope-a", List.of(), List.of()));
         var redis = mock(StringRedisTemplate.class);
         var keys = new CacheKeys("test", "local");
         when(redis.delete(keys.unit("user-display"))).thenThrow(new RedisConnectionFailureException("offline"));
         var cache = new ScopedHashCache(redis, keys);
         var authorization = mock(DataAuthorizationMapper.class);
-        when(authorization.hasPermission("actor", "scope-a", "cache:user:refresh")).thenReturn(true);
+        when(authorization.hasPermission("actor", "cache:user:refresh")).thenReturn(true);
         var users = new UserDisplayService(mock(UserDisplayMapper.class), authorization, cache);
         var audit = mock(DataAuditService.class);
         var transactions = mock(TransactionTemplate.class);

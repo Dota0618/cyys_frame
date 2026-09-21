@@ -14,25 +14,41 @@ class UnitAdministrationServiceTest {
     private final DataAuthorizationMapper authorization = mock(DataAuthorizationMapper.class);
     private final SysUserRoleMapper roles = mock(SysUserRoleMapper.class);
     private final UnitAdministrationService service = new UnitAdministrationService(authorization, roles);
-    @BeforeEach void context() { ScopeContext.set(new RequestIdentity("actor", "unit-a", List.of(), List.of(), List.of())); }
+    @BeforeEach void context() { ScopeContext.set(new RequestIdentity("actor", "unit-a", List.of(), List.of())); }
     @AfterEach void clear() { ScopeContext.clear(); }
 
-    @Test void platformAdministratorUsesExplicitPermissionsWithoutUnitMembership() {
-        when(roles.selectPermissionCodes("actor", List.of("GLOBAL"))).thenReturn(
-                List.of("platform:scope:access", "platform:data:operate", "role:create", "role:grant"));
+    @Test void administrationRequiresBothOperationAndInstitutionRange() {
+        when(roles.selectPermissionCodes("actor")).thenReturn(
+                List.of("role:create", "role:grant"));
+        when(authorization.hasInstitutionWideRange("actor", "unit-a")).thenReturn(true);
         assertThat(service.authorize("role:create", true)).contains("role:create", "role:grant");
-        verify(roles, never()).selectUnitWidePermissionCodes(any(), any());
+        verify(authorization).hasInstitutionWideRange("actor", "unit-a");
     }
-    @Test void platformReadOnlyCannotManageUnitAuthorization() {
-        when(roles.selectPermissionCodes("actor", List.of("GLOBAL"))).thenReturn(
-                List.of("platform:scope:access", "platform:data:read-all", "user:data-permission"));
+    @Test void operationAloneCannotManageInstitutionAuthorization() {
+        when(roles.selectPermissionCodes("actor")).thenReturn(
+                List.of("user:data-permission"));
         assertThatThrownBy(() -> service.authorize("user:data-permission", false)).isInstanceOf(ApiException.class);
     }
     @Test void operationPermissionAloneDoesNotAllowSelfElevation() {
-        when(authorization.hasPermission("actor", "unit-a", "user:data-permission")).thenReturn(true);
-        when(roles.selectUnitWidePermissionCodes("actor", List.of("unit-a"))).thenReturn(List.of());
+        when(roles.selectPermissionCodes("actor")).thenReturn(List.of("user:data-permission"));
+        when(authorization.hasInstitutionWideRange("actor", "unit-a")).thenReturn(false);
         assertThatThrownBy(() -> service.authorize("user:data-permission", false)).isInstanceOf(ApiException.class);
-        when(roles.selectUnitWidePermissionCodes("actor", List.of("unit-a"))).thenReturn(List.of("user:data-permission"));
+        when(authorization.hasInstitutionWideRange("actor", "unit-a")).thenReturn(true);
         assertThat(service.authorize("user:data-permission", false)).containsExactly("user:data-permission");
+    }
+    @Test void institutionAdministratorCannotGrantGlobalOrDescendantRange() {
+        var actor = new com.cyys.admin.user.model.SysUserScope();
+        actor.setUserId("actor"); actor.setScopeId("unit-a"); actor.setDataRange(1);
+        var target = new com.cyys.admin.user.model.SysUserScope();
+        target.setScopeId("unit-a"); target.setDataRange(5);
+        when(authorization.activeProfile("actor")).thenReturn(actor);
+        when(authorization.hasInstitutionWideRange("actor", "unit-a")).thenReturn(true);
+        assertThatThrownBy(() -> service.requireAssignableRange(target, 0)).isInstanceOf(ApiException.class);
+        assertThatThrownBy(() -> service.requireAssignableRange(target, 6)).isInstanceOf(ApiException.class);
+        service.requireAssignableRange(target, 1);
+        actor.setDataRange(6);
+        service.requireAssignableRange(target, 6);
+        actor.setDataRange(0);
+        service.requireAssignableRange(target, 0);
     }
 }

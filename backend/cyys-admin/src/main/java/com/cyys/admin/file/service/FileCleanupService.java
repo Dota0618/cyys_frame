@@ -23,24 +23,21 @@ public class FileCleanupService {
     private final FileCleanupMapper files;
     private final TemporaryFileCleaner cleaner;
     private final DataAuditService audit;
-    private final DataIsolationProperties isolation;
     private final FileCleanupProperties settings;
     private final TransactionTemplate transactions;
 
     public FileCleanupService(FileCleanupMapper files,TemporaryFileCleaner cleaner,DataAuditService audit,
-                              DataIsolationProperties isolation,FileCleanupProperties settings,PlatformTransactionManager manager) {
-        this.files=files; this.cleaner=cleaner; this.audit=audit; this.isolation=isolation; this.settings=settings;
+                              FileCleanupProperties settings,PlatformTransactionManager manager) {
+        this.files=files; this.cleaner=cleaner; this.audit=audit; this.settings=settings;
         transactions=new TransactionTemplate(manager);
     }
 
     @Transactional(propagation=Propagation.NEVER)
     public void runBatch() {
         if(ScopeContext.current().isPresent()) throw new IllegalStateException("文件维护任务不能复用请求身份");
-        String ceiling=isolation.mode()==DataIsolationProperties.Mode.SINGLE ? isolation.singleScopeId() : null;
-        for(var candidate:files.candidates(ceiling,LocalDateTime.now(),settings.getBatchSize())) {
-            if(candidate.scopeId()==null || "GLOBAL".equals(candidate.scopeId())
-                    || (ceiling!=null && !ceiling.equals(candidate.scopeId()))) throw new IllegalStateException("文件维护单位无效");
-            ScopeContext.set(new RequestIdentity(ACTOR,candidate.scopeId(),List.of(),List.of(),List.of()));
+        for(var candidate:files.candidates(null,LocalDateTime.now(),settings.getBatchSize())) {
+            if(candidate.scopeId()==null || "GLOBAL".equals(candidate.scopeId())) throw new IllegalStateException("文件维护机构无效");
+            ScopeContext.set(new RequestIdentity(ACTOR,candidate.scopeId(),List.of(),List.of()));
             try {
                 // 先提交过期状态，再进行任何物理删除；删除失败不能使任务重新变为可续传。
                 transactions.executeWithoutResult(status -> {

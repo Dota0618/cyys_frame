@@ -26,8 +26,6 @@ services:
       CYYS_REDIS_HOST: ${CYYS_REDIS_HOST:?Set the existing Redis host}
       CYYS_REDIS_PORT: ${CYYS_REDIS_PORT:-6379}
       CYYS_REDIS_DATABASE: ${CYYS_REDIS_DATABASE:-0}
-      CYYS_ISOLATION_MODE: ${CYYS_ISOLATION_MODE:?Choose single or multi explicitly}
-      CYYS_SINGLE_SCOPE_ID: ${CYYS_SINGLE_SCOPE_ID:-}
       CYYS_PORT: 8080
       CYYS_API_DOCS_ENABLED: "false"
     secrets:

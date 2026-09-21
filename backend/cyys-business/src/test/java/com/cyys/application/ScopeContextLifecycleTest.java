@@ -40,7 +40,7 @@ class ScopeContextLifecycleTest {
     @Test
     void identityCannotBeChangedOrMutatedAndIsNotInheritedByWorkers() throws Exception {
         var permissions = new ArrayList<>(List.of("read"));
-        ScopeContext.set(new RequestIdentity("actor", "scope-a", List.of(), permissions, List.of()));
+        ScopeContext.set(new RequestIdentity("actor", "scope-a", List.of(), permissions));
         permissions.add("write");
         assertThat(ScopeContext.get().permissions()).containsExactly("read");
         assertThatThrownBy(() -> ScopeContext.get().permissions().add("write")).isInstanceOf(UnsupportedOperationException.class);
@@ -53,6 +53,6 @@ class ScopeContextLifecycleTest {
     }
 
     private RequestIdentity identity(String actor) {
-        return new RequestIdentity(actor, "scope-a", List.of(), List.of(), List.of());
+        return new RequestIdentity(actor, "scope-a", List.of(), List.of());
     }
 }

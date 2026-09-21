@@ -48,7 +48,6 @@ function MenuFields({ menus, editing }: { menus: PlatformMenu[]; editing?: Platf
     </ProFormDependency>
     <ProFormDigit name="sort" label="排序" fieldProps={{ precision: 0 }} rules={[{ required: true }]} />
     <ProFormRadio.Group name="status" label="状态" options={enabled} rules={[{ required: true }]} />
-    <ProFormRadio.Group name="platformOnly" label="仅平台角色" options={yesNo} rules={[{ required: true }]} />
     <ProFormRadio.Group name="keepAlive" label="页面缓存提示" options={yesNo} rules={[{ required: true }]} />
     <ProFormRadio.Group name="alwaysShow" label="始终展开" options={yesNo} rules={[{ required: true }]} />
     <ProFormDependency name={['type']}>
@@ -119,7 +118,7 @@ export default function PlatformMenusPage() {
         ].filter(Boolean)} />
     </ManagementSplit>
     {creating && <ModalForm<CreatePlatformMenu> {...compactFormProps} name="platform-menu-create" title={selected ? `新增下级 · ${selected.name}` : '新增菜单'} width={800} open
-      modalProps={compactModalProps} initialValues={{ parentId: selectedId, type: selected?.type === 2 ? 3 : selected ? 2 : 1, sort: 0, visible: 1, status: 1, platformOnly: selected?.platformOnly || 0, keepAlive: 0, alwaysShow: 0 }}
+      modalProps={compactModalProps} initialValues={{ parentId: selectedId, type: selected?.type === 2 ? 3 : selected ? 2 : 1, sort: 0, visible: 1, status: 1, keepAlive: 0, alwaysShow: 0 }}
       onValuesChange={() => setDirty(true)} onOpenChange={open => { if (!open) { setCreating(false); setDirty(false); } }}
       onFinish={async values => { try { await createPlatformMenu(values); setDirty(false); setCreating(false); await reload(); void message.success('菜单已新增'); return true; } catch { return false; } }}>
       <MenuFields menus={menus} />

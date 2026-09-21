@@ -55,7 +55,8 @@ public class ReleaseService {
     @Transactional(readOnly=true)
     public IPage<FileOption> fileOptions(String id,long page,long size,String search) {
         authorizeEdit(id);
-        security.authorize("platform:data:operate");
+        security.authorize("file:read");
+        security.authorize("file:content:read");
         ScopeContext.get().requireScopeId();
         return attachments.options(page,size,search);
     }

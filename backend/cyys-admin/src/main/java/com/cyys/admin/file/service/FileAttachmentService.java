@@ -49,7 +49,8 @@ public class FileAttachmentService {
         if(wanted.size()>10 || new HashSet<>(wanted).size()!=wanted.size()) throw new ApiException(400,"附件最多10个，且不能重复");
         var existing=bindings.ids(scope,resource,record);
         if(shared && wanted.stream().anyMatch(id -> !existing.contains(id))) {
-            platform.authorize("platform:data:operate");
+            platform.authorize("file:read");
+            platform.authorize("file:content:read");
             ScopeContext.get().requireScopeId();
         }
         Map<String,String> fileScopes=new HashMap<>();

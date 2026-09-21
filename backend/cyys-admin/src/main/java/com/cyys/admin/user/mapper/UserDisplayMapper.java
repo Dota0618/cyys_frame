@@ -13,7 +13,7 @@ public interface UserDisplayMapper {
             + "join sys_user u on u.id=us.user_id and u.status=1 and u.deleted=0 "
             + "join sys_scope s on s.id=us.scope_id and s.status=1 and s.deleted=0 "
             + "where us.scope_id=#{scope} and us.status=1 and us.deleted=0 "
-            + "and (us.expire_at is null or us.expire_at>CURRENT_TIMESTAMP) and us.user_id in "
+            + " and us.user_id in "
             + "<foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach></script>")
     List<String> visibleMembers(@Param("scope") String scope, @Param("ids") List<String> ids);
 

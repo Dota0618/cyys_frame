@@ -51,14 +51,17 @@ public class PasswordService {
     @Transactional(propagation=Propagation.NEVER)
     public void reset(String target,ResetPasswordCommand command) {
         platform.authorize("platform:account:reset-password");
+        platform.requireAllDataRange();
         PasswordPolicy.validateNew(command.newPassword());
         String actor=ScopeContext.get().loginId();
         String stamp=currentStamp();
         ApiException rejected=transactions.execute(status -> {
+            platform.lockAdministratorGuard();
             // 两名管理员互相重置时仍按同一 ID 顺序加锁，避免相反锁顺序。
             var locked=new HashMap<String,SysUser>();
             for(String id:List.of(actor,target).stream().distinct().sorted().toList()) locked.put(id,require(id));
             platform.authorize("platform:account:reset-password");
+            platform.requireAllDataRange();
             ApiException failure=verifySession(locked.get(actor),stamp);
             if(failure!=null) return failure;
             replace(locked.get(target),command.newPassword(),actor,"RESET_PASSWORD");

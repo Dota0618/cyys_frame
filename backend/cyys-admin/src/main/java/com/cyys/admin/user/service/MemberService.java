@@ -53,6 +53,7 @@ public class MemberService {
     private final DataAuditService audit;
     private final UserDisplayService cache;
     private final MemberDataPermissionService dataPermissions;
+    private final com.cyys.admin.auth.service.PlatformSecurityService security;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public byte[] export(@Valid ExportMembersCommand command) {
@@ -108,7 +109,7 @@ public class MemberService {
     public MemberDetail detail(String id) {
         var member=mapper.selectById(id);
         if(member==null) throw new ApiException(404,"成员不存在或不可访问");
-        return new MemberDetail(view(member,names(List.of(member))),accounts.roleIds(member.getUserId(),member.getScopeId()));
+        return new MemberDetail(view(member,names(List.of(member))),accounts.roleIds(member.getUserId()));
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -120,7 +121,6 @@ public class MemberService {
         var member=new SysUserScope();
         member.setId(IdWorker.getIdStr()); member.setUserId(IdWorker.getIdStr()); member.setScopeId(scope);
         member.setDisplayName(command.displayName()); member.setOrgId(command.orgId()); member.setStatus(1);
-        member.setMemberRole("MEMBER"); member.setDefaultFlag(1);
         try {
             accounts.createAccount(member.getUserId(),command.loginName(),PasswordPolicy.hash(command.password()),ScopeContext.get().loginId());
             if(mapper.insert(member)!=1) throw new ApiException(409,"新增成员失败");
@@ -132,23 +132,28 @@ public class MemberService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public MemberView edit(String id,@Valid UpdateMemberCommand command) {
+        security.lockAdministratorGuard();
         if (command.dataPermission() != null) dataPermissions.lockForUpdate(id, command.version());
         var member=mapper.lockForEdit(id);
         if(member==null||!member.getVersion().equals(command.version())) throw new ApiException(409,"成员不可修改或已变更");
+        security.requireDataRangeCeiling(member.getDataRange());
         if(command.orgId()!=null&&departments.forEdit(command.orgId())==null) throw new ApiException(403,"关联部门不可用");
+        if (member.getScopeId() == null && command.orgId() != null) throw new ApiException(400,"系统账号尚未设置所属机构，不能关联部门");
         member.setDisplayName(command.displayName()); member.setOrgId(command.orgId()); member.setStatus(command.status());
         if(mapper.updateById(member)!=1) throw new ApiException(409,"成员已变更");
         saveDataPermission(member, command.dataPermission());
+        security.requireUsableAdministrator();
         audit.success("user",id,"UPDATE");
         cache.invalidateAfterCommit();
         return view(member,names(List.of(member)));
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void grantRoles(String id,List<String> roles) {
+        security.lockAdministratorGuard();
         var member=mapper.lockForGrant(id);
         if(member==null) throw new ApiException(403,"成员不可操作");
-        grants.replaceUnitRoles(member.getUserId(),roles);
+        grants.replaceRoles(member.getUserId(),roles);
     }
 
     public List<MemberDepartmentOption> departments() {

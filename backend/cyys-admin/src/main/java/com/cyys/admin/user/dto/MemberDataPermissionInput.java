@@ -4,5 +4,5 @@ import jakarta.validation.constraints.*;
 import java.util.List;
 
 /** Optional data permission included in an atomic member create/edit. */
-public record MemberDataPermissionInput(@NotNull @Min(1) @Max(5) Integer dataRange,
+public record MemberDataPermissionInput(@NotNull @Min(0) @Max(6) Integer dataRange,
         @NotNull @Size(max = 500) List<@NotBlank @Size(max = 32) String> orgIds) {}

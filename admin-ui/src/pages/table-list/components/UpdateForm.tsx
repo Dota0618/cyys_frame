@@ -31,7 +31,7 @@ export default function UpdateForm({
   return (
     <ModalForm<EditMember & MemberDataPermissionInput> {...compactFormProps}
       name="member-edit"
-      title="修改成员"
+      title="修改用户"
       width={920}
       open
       initialValues={{ ...values, orgIds: permission?.orgIds || [] }}
@@ -54,7 +54,7 @@ export default function UpdateForm({
               dataRange: form.dataRange, orgIds: form.dataRange === 2 ? form.orgIds || [] : [],
             } } : {}),
           });
-          void message.success('成员资料已更新');
+          void message.success('用户资料已更新');
           void reload?.();
           if (permission) refreshIdentity();
           return true;
@@ -74,11 +74,11 @@ export default function UpdateForm({
       />
       <ProFormText
         name="displayName"
-        label="本单位姓名"
+        label="姓名"
         fieldProps={{ maxLength: 100 }}
         rules={[{ required: true, whitespace: true }]}
       />
-      <ProFormTreeSelect
+      {values.scopeId && <ProFormTreeSelect
         name="orgId"
         label="部门"
         fieldProps={{
@@ -88,10 +88,10 @@ export default function UpdateForm({
           treeDefaultExpandAll: true,
           treeNodeFilterProp: 'title',
         }}
-      />
+      />}
       <ProFormSelect
         name="status"
-        label="成员状态"
+        label="用户状态"
         options={[
           { value: 1, label: '启用' },
           { value: 0, label: '停用' },
@@ -99,7 +99,7 @@ export default function UpdateForm({
         rules={[{ required: true }]}
       />
       </div><div><DataPermissionFields departments={permission?.departments || departments}
-        editable={!!permission} currentRange={values.dataRange} /></div></CompactFields>
+        editable={!!permission} currentRange={values.dataRange} systemAccount={!values.scopeId} /></div></CompactFields>
     </ModalForm>
   );
 }

@@ -77,9 +77,6 @@ cyys:
   auth:
     login-max-error-count: 5
     lock-minutes: 15
-  data-isolation:
-    mode: ${CYYS_ISOLATION_MODE:single}
-    single-scope-id: ${CYYS_SINGLE_SCOPE_ID:}
 
 springdoc:
   api-docs:

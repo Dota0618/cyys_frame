@@ -32,7 +32,7 @@ public class LoginAuditService {
     public IPage<LoginAuditView> page(LoginAuditQuery query) {
         var identity = ScopeContext.get();
         String scope = identity.requireScopeId();
-        if (!authorization.hasPermission(identity.loginId(), scope, "login-audit:read")) {
+        if (!authorization.hasPermission(identity.loginId(), "login-audit:read")) {
             throw new ApiException(403, "没有当前单位的登录记录查看权限");
         }
         return mapper.page(new Page<>(query.page(), query.size()), scope,

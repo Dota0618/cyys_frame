@@ -13,6 +13,5 @@ public record CreateMenuCommand(@NotBlank @Size(max = 32) String parentId,
                      @NotNull Integer sort,
                      @NotNull @Min(0) @Max(1) Integer visible,
                      @NotNull @Min(0) @Max(1) Integer status,
-                     @NotNull @Min(0) @Max(1) Integer platformOnly,
                      @NotNull @Min(0) @Max(1) Integer keepAlive,
                      @NotNull @Min(0) @Max(1) Integer alwaysShow) {}

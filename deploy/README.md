@@ -1,4 +1,15 @@
 # Linux / Docker / Nginx 部署准备
+## 当前机构模型版本（2026-09-21）
+
+当前本机地址仍为 https://localhost/，API 镜像为 `organization-20260921`，Web 为 `organization-20260921-2`，Flyway V25。使用统一账号和角色、机构树、单一用户资料及数据范围；右上角是机构筛选。生成器暂停，旧平台角色与跨单位权限入口退出。下方按日期保留的 single/multi、平台角色和旧镜像记录是历史验收，不是当前部署配置。
+
+本次先停止旧 API，保存数据库 `backend/cyys-business/target/docker-local/before-organization-20260921.sql`、旧环境 `.env.before-organization-20260921`，再把备份恢复到独立 `cyys_org_upgrade_20260921`。通过应用 Flyway 升级副本，22 组业务表/稳定字段摘要保持一致，原 master 转为无机构归属、全系统范围的用户资料；已有 test 用户及机构/部门保留。副本验证后本机正式升级，同样通过摘要核对。文件对象没有迁移或改写。
+
+本轮后端采用 `scripts/verify-organization.ps1 -TestDatabaseUrl '<独立空验收库 JDBC URL>'` 的 23 项机构专项/服务/架构检查范围；凭据通过已有环境变量提供。实际验证日志为 `organization-acceptance.log`（20 项服务通过）及 `organization-final-check.log`（真实接口及 2 项架构通过）。前端类型/生产构建、Ant 基线检查通过；已有 35 条未启用模板告警无新增。部署后的现有账号登录及机构/用户/角色/菜单/文件/字典/通知接口通过。
+
+旧 `verify-release.ps1`、single/multi 集成场景及 `rehearse-local-deployment.ps1` 尚未整体改写成机构模型，本次没有运行，也不宣称全量回归通过。不要在保留业务数据的 cyys_frame 上执行空库测试。内置浏览器因本机自签名证书拒绝打开页面，因此本轮不声明页面操作回归通过。
+
+本次删除旧结构列，不能只切回旧 API/Web。回滚必须停写，恢复升级前数据库、外部配置及匹配镜像；备份和独立副本保留在本机，不提交或打入镜像。
 
 用户于 2026-09-20 确认该部署方式，并指定本机 Docker 演练。已在 Docker Desktop Linux 引擎构建并启动 api/web、连接现有 MySQL/Redis，通过 HTTPS/静态路由/未登录拒绝/413 JSON 和 API 停机重建检查；仅绑定本机地址，没有连接生产主机、新建数据库或执行上线。专属 A/B 单位样本与附件的停写备份恢复、多/单单位来回切换已通过；这不等于真实旧库生产切换。用户本轮选择的基础数据已导入现有测试库并核对，见 [迁移记录](../docs/migration/legacy-basic-data.md)；生产切换另需真实环境和维护窗口。
 
@@ -24,12 +35,12 @@ Ant 检查仍扫描全部 `src`。保留但未启用的官方示例页当前有 
 
 ## 外部输入
 
-将 `.env.example` 复制到仓库之外，例如 `/etc/cyys/release.env`，权限限部署账号，填写已确认的数据库地址、单位模式、文件根目录和镜像版本。不会自动创建 MySQL 或 Redis。数据库需要支持当前正式迁移；Flyway 仍是应用启动时唯一的迁移执行者，禁止另设一套手工重复跑 SQL 的初始化容器。
+将 `.env.example` 复制到仓库之外，例如 `/etc/cyys/release.env`，权限限部署账号，填写已确认的数据库地址、文件根目录和镜像版本。不会自动创建 MySQL 或 Redis。数据库需要支持当前正式迁移；Flyway 仍是应用启动时唯一的迁移执行者，禁止另设一套手工重复跑 SQL 的初始化容器。
 
 - 数据库/Redis 密码是独立文件；TLS 提供实际域名的完整证书链和私钥。文件通过 Compose secrets 挂载，Spring 使用 `configtree:/run/secrets/` 加载密码。密码不写进环境文件、镜像参数或前端。
 - 普通 Compose 对文件型 secrets 使用宿主机 bind mount，不依赖 `uid/gid/mode` 字段改变宿主机权限。容器运行 UID/GID 均为 `10001:10001`；密码/私钥文件须由该 UID 可读且对无关用户不可读（例如相应所有者及 `0400`），目录和证书按实际主机权限安排。不要为了启动将密钥改成全局可读。
 - `CYYS_FILE_ROOT` 必须是事先建立的绝对、非链接私有目录，UID 10001 可写；Compose 拒绝自动创建缺失目录。该目录只挂载给 api，Nginx 容器不能看到它。迁移旧附件必须先核对历史 profile 名及存储对象，不能将旧 profile 悄悄指向新目录。
-- `single` 必须填写真实 `CYYS_SINGLE_SCOPE_ID`；切换 `multi` 不改写任何历史归属。`CYYS_ENV` 是稳定环境命名空间，不随每次发布变化；改变它需要独立缓存切换记录。
+- 不再配置 `CYYS_ISOLATION_MODE` 或 `CYYS_SINGLE_SCOPE_ID`。`CYYS_ENV` 是稳定环境命名空间，不随每次发布变化；改变它需要独立缓存切换记录。
 - 当前 Sa-Token 会话保存在进程内，因此只运行一个 api 实例；重启后旧会话失效。未完成分布式会话验收前不能扩容多个 api。Redis 仍只承担已接入的展示缓存。
 
 Compose 的 api 不发布宿主机端口，只允许 Nginx 从容器网络访问。不要给未信任容器加入同一网络或另行发布 api 端口；外部身份头由 Nginx 覆盖，运行配置才开启代理头解析。Nginx 的 80 端口跳转 HTTPS，443 提供静态页面和 API；证书更新后需要重新加载或重建 web 容器。
@@ -52,7 +63,7 @@ docker compose --env-file /etc/cyys/release.env -f deploy/compose.yml ps
 docker compose --env-file /etc/cyys/release.env -f deploy/compose.yml logs --tail=100 api web
 ```
 
-启动会执行未执行的正式 Flyway 迁移。`depends_on` 仅控制启动顺序，不证明应用或数据库就绪；`/api/health` 只证明应用可响应，不能代替登录、权限、数据库及文件检查。开放访问前核对迁移历史、普通成员/单位管理员/平台管理员、单/多单位限制、旧附件读取和当前导出；保存实际结果。
+启动会执行未执行的正式 Flyway 迁移。`depends_on` 仅控制启动顺序，不证明应用或数据库就绪；`/api/health` 只证明应用可响应，不能代替登录、权限、数据库及文件检查。开放访问前核对迁移历史、普通用户/机构管理员/系统管理员、机构树范围限制、旧附件读取和当前导出；保存实际结果。
 
 静态路由对业务路径刷新回到 `index.html`，缺失 JS/CSS 返回 404；`/api/` 始终走后端，不回退成前端 HTML。Nginx 自身的代理故障和请求过大返回 JSON；后端错误保留原状态和响应。文件仍由后端授权传输，本版本不启用公开 alias 或 X-Accel-Redirect。需要实测 HTTPS、深层路径刷新、404/401/403/413/502、分片与下载、API 重建后的 DNS 解析；未完成这些检查前不得标记部署验收通过。
 

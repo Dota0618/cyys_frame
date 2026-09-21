@@ -21,9 +21,7 @@ export default function Workplace() {
   const access = useAccess();
   const user = initialState?.user;
   if (!user) return <Skeleton active />;
-  const scope = session().allUnits
-    ? '全部单位 · 只读'
-    : user.scopes.find((item) => item.id === user.currentScopeId)?.name;
+  const scope = user.scopes.find((item) => item.id === user.currentScopeId)?.name;
   const links = access.canReadUsers
     ? [{ title: '用户管理', href: '/system/users' }]
     : [];
@@ -43,7 +41,7 @@ export default function Workplace() {
       extraContent={
         <div className={styles.extraContent}>
           <div className={styles.statItem}>
-            <Statistic title="可访问单位" value={user.scopes.length} />
+            <Statistic title="可访问机构" value={user.scopes.length} />
           </div>
         </div>
       }
@@ -63,7 +61,7 @@ export default function Workplace() {
                 { key: 'name', label: '姓名', children: user.displayName },
                 {
                   key: 'scope',
-                  label: '工作单位',
+                  label: '当前机构',
                   children: scope || '未选择',
                 },
               ]}

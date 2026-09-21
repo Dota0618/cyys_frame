@@ -1,4 +1,4 @@
-interface StoredSession { token?: string; scopeId?: string; allUnits?: boolean }
+interface StoredSession { token?: string; scopeId?: string }
 const KEY = 'cyys.session';
 export const CONTEXT_CHANGED = 'cyys:context-changed';
 let stored: StoredSession;

@@ -17,9 +17,9 @@ class MemberDataPermissionServiceTest {
     private final MemberDataPermissionMapper mapper = mock(MemberDataPermissionMapper.class);
     private final UnitAdministrationService administration = mock(UnitAdministrationService.class);
     private final DataAuditService audit = mock(DataAuditService.class);
-    private final MemberDataPermissionService service = new MemberDataPermissionService(mapper, administration, audit);
+    private final MemberDataPermissionService service = new MemberDataPermissionService(mapper, administration, audit, mock(com.cyys.admin.auth.service.PlatformSecurityService.class));
     @BeforeEach void context() {
-        ScopeContext.set(new RequestIdentity("actor", "unit-a", List.of(), List.of(), List.of()));
+        ScopeContext.set(new RequestIdentity("actor", "unit-a", List.of(), List.of()));
         var member = new SysUserScope(); member.setId("member"); member.setUserId("target"); member.setScopeId("unit-a");
         when(mapper.lockMembers("member", "unit-a", "actor")).thenReturn(List.of(member));
     }

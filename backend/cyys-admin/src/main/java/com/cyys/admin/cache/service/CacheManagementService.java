@@ -41,7 +41,7 @@ public class CacheManagementService {
 
     private void requirePermission() {
         var identity = ScopeContext.get();
-        if (!authorization.hasPermission(identity.loginId(), identity.requireScopeId(), "cache:user:refresh")) {
+        if (!authorization.hasPermission(identity.loginId(), "cache:user:refresh")) {
             throw new ApiException(403, "没有当前单位的缓存管理权限");
         }
     }

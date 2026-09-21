@@ -28,19 +28,19 @@ export default function CreateForm({
   const { mutateAsync: run, isPending: loading } = useMutation({
     mutationFn: createMember,
     onSuccess: () => {
-      void message.success('成员已新增');
+      void message.success('用户已新增');
       void reload?.();
     },
   });
   return (
     <ModalForm<CreateMember & MemberDataPermissionInput> {...compactFormProps}
       name="member-create"
-      title="新增成员"
+      title="新增用户"
       width={920}
       initialValues={{ dataRange: 5, orgIds: [] }}
       trigger={
         <Button type="primary" icon={<PlusOutlined />}>
-          新增成员
+          新增用户
         </Button>
       }
       modalProps={{ ...compactModalProps, okButtonProps: { loading } }}
@@ -79,7 +79,7 @@ export default function CreateForm({
       <NewPasswordFields name="password" label="初始密码" confirm={false} />
       <ProFormText
         name="displayName"
-        label="本单位姓名"
+        label="姓名"
         fieldProps={{ maxLength: 100 }}
         rules={[{ required: true, whitespace: true }]}
       />
