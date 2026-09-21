@@ -1,4 +1,4 @@
-import { useAccess, useModel } from '@umijs/max';
+import { Link, useAccess, useModel } from '@umijs/max';
 import {
   PageContainer,
   ProTable,
@@ -27,6 +27,24 @@ import UpdateForm from './components/UpdateForm';
 import ResetPasswordForm from './components/ResetPasswordForm';
 
 export default function TableList() {
+  const access = useAccess();
+  const { initialState } = useModel('@@initialState');
+  const state = session();
+  if (initialState?.user?.mode !== 'single' && !state.scopeId && !state.allUnits) {
+    const canReadAll = initialState?.user?.platformPermissions.includes('platform:data:read-all');
+    return <PageContainer title="用户管理">
+      <Alert type="info" showIcon title="选择工作单位后管理用户" description={initialState?.user?.scopes.length ? '请在下方选择需要管理的单位。' : '还没有单位，请先在单位管理中新增单位。'} />
+      <div style={{ marginTop: 20 }}><ScopeSwitch /></div>
+      <div style={{ marginTop: 20 }}>
+        {access.canReadScopes && <Link to="/system/scopes"><Button type="primary">前往单位管理</Button></Link>}
+        {canReadAll && <Button onClick={() => updateSession({ token: state.token, allUnits: true })}>查看全部单位用户</Button>}
+      </div>
+    </PageContainer>;
+  }
+  return <MemberTable />;
+}
+
+function MemberTable() {
   const access = useAccess();
   const { initialState } = useModel('@@initialState');
   const { message } = App.useApp();

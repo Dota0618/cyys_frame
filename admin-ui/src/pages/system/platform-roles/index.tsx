@@ -42,7 +42,7 @@ const emptyOptions: PlatformRoleOptions = { menus: [] };
 
 function RoleFields({ options, editing }: { options: PlatformRoleOptions; editing?: boolean }) {
   const tree = useMemo(() => roleTreeData(options.menus.map((menu) => ({
-    ...menu, name: menu.type === 3 ? `${menu.name}（${menu.code}）` : menu.name,
+    ...menu, name: menu.name,
   }))), [options.menus]);
   return (
     <>
@@ -51,7 +51,7 @@ function RoleFields({ options, editing }: { options: PlatformRoleOptions; editin
       <ProFormText name="name" label="角色名称" fieldProps={{ maxLength: 50 }}
         rules={[{ required: true, whitespace: true }]} />
       <ProForm.Item name="menuIds" label="平台菜单与操作权限">
-        <CheckedTree treeData={tree} label="平台菜单与操作权限" />
+        <CheckedTree treeData={tree} label="平台菜单与操作权限" menuSelection />
       </ProForm.Item>
       <ProFormRadio.Group name="status" label="状态"
         options={[{ value: 1, label: '启用' }, { value: 0, label: '停用' }]} rules={[{ required: true }]} />
@@ -212,7 +212,7 @@ export default function PlatformRolesPage() {
     { key: 'roles', label: '角色定义', children: <RoleTable /> },
     access.canGrantPlatformRoles && { key: 'accounts', label: '账号授权', children: <AccountTable /> },
   ].filter(Boolean) as { key: string; label: string; children: React.ReactNode }[];
-  return <PageContainer title="平台角色" subTitle="GLOBAL 平台角色与账号授权；系统始终保留至少一名可用平台管理员。">
+  return <PageContainer title="平台角色" subTitle="勾选目录、菜单及其下属按钮权限；可单独取消不需要的按钮。">
     <Tabs items={items} destroyOnHidden />
   </PageContainer>;
 }

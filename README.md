@@ -119,6 +119,7 @@ java -jar "F:\git\frame\cyys-framework\backend\cyys-business\target\cyys-busines
 | GET /api/admin/users/departments、/roles | 受权限约束的本单位选项 |
 | GET/POST/PUT/DELETE /api/admin/departments | 当前单位部门分页、详情及受版本保护的写入；父部门与负责人候选按新增/修改操作约束，保存时重新校验 |
 | GET/POST/PUT/DELETE /api/admin/roles | 当前单位角色、菜单权限及数据范围管理；写入受授予上限约束 |
+| GET/POST /api/admin/platform/scopes，PUT /{id} | 单位查询、新增、修改和启停；独立平台权限、版本冲突保护，不删除历史单位归属 |
 | GET/POST/PUT/DELETE /api/admin/platform/menus | GLOBAL 平台控制的共享菜单和操作权限定义；编码、类型不可变，组件字段不动态执行 |
 | GET/POST/PUT/DELETE /api/admin/platform/roles | GLOBAL 平台角色、权限树和账号平台授权；账号授权只替换 GLOBAL 关系 |
 | GET/POST /api/admin/platform/configurations，GET/PUT/DELETE /{id} | 全局通用配置分页及管理；保留空值，修改/删除带版本，后端运行测试及真实浏览器验收通过 |
@@ -129,6 +130,10 @@ java -jar "F:\git\frame\cyys-framework\backend\cyys-business\target\cyys-busines
 | GET /api/admin/caches，POST /api/admin/caches/{action}/refresh | 登记的业务缓存动作，当前仅 user-display；按 cache:user:refresh 授权，只刷新当前单位，失败返回错误 |
 
 平台菜单和平台角色入口允许不选择业务单位，但每次操作仍实时验证 `platform:scope:access` 及对应 GLOBAL 操作权限。停用关键权限、停用或改权平台角色、替换账号 GLOBAL 授权时使用同一数据库锁串行检查，拒绝移除最后一名可用平台管理员。
+
+后台导航按“目录 → 菜单”显示中文树；菜单维护使用树形表格，角色使用“目录 → 菜单 → 按钮权限”的复选框树。按钮可以单独取消，保存后不会因父菜单被选中而重新勾上。侧栏只展示已授予且可见的菜单，并匹配本地登记的路由及操作权限；不执行下发的组件代码。初次目录数据见 `migrations/dev-data/menu-tree.sql`。
+
+单位和用户入口位于“组织管理”。未选择单位时，用户管理提示选择或创建单位；有跨单位只读权限时可查看全部单位成员。地区管理使用左侧按需加载的地区树与右侧当前层级列表，新增、编辑和删除后刷新树与列表。
 
 Token 仅从 `Authorization: Bearer <token>` 请求头读取，不读 Cookie 或查询/表单参数。默认有效期 2 小时、空闲超时 30 分钟，允许并发登录且各 Token 不共享。当前使用 Sa-Token 进程内会话，重启会失效；多实例会话存储尚未接入，不能直接按多实例部署验收。
 

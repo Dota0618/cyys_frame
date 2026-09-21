@@ -4,7 +4,7 @@ Template version: 2026-09-21.1. Feature: `@@FEATURE@@`; table: `@@TABLE@@`.
 
 1. Review the generated files and compare against the current project before copying. The generator never writes into the running application's source tree or executes generated SQL.
 2. For a new table, rename `PENDING__@@FEATURE@@.sql` to the next unused Flyway version in `migrations/business/`. Use the existing database charset/collation. Do not run a separate schema engine. Existing-table mode emits no table DDL and verifies all configured fields against current metadata.
-3. Review `permissions.sql.review`, register its operation permissions through the existing platform menu/role process, and explicitly grant permitted unit roles and data ranges. No generated permission grants everyone access. No default accounts are created.
+3. Review `permissions.sql.review`: it creates a named page menu with its button permissions underneath. Select the intended parent directory through menu management, and explicitly grant the directory, page menu and permitted buttons through the role checkbox tree. Navigation also requires the registered local route and read permission. No generated permission grants everyone access. No default accounts are created.
 4. Copy Java sources into cyys-business, frontend service/page into admin-ui. Register this route in `config/routes.ts`:
 
 ```ts

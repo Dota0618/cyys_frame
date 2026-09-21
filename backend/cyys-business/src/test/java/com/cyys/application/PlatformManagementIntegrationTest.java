@@ -28,6 +28,8 @@ class PlatformManagementIntegrationTest extends HttpTestSupport {
         platformUser();
         jdbc.update("delete from sys_role_menu where id='platform-read'");
         for (String permission : MANAGEMENT) allowPlatform(permission);
+        jdbc.update("insert into sys_menu(id,code,name,type,platform_only) values('g1-guard-menu','g1:guard-menu','平台管理',2,1)");
+        jdbc.update("update sys_menu set parent_id='g1-guard-menu' where id='platform-access'");
     }
 
     @AfterEach
@@ -47,7 +49,11 @@ class PlatformManagementIntegrationTest extends HttpTestSupport {
         assertThat(parent.status()).as(parent.raw()).isEqualTo(200);
         String parentId = parent.body().at("/data/id").asText();
 
-        var child = request("POST", MENUS, token, null, JSON.writeValueAsString(menu(parentId, "平台测试操作", "g4p:action", 3, 1)));
+        assertThat(request("POST", MENUS, token, null, JSON.writeValueAsString(menu(parentId,"错误按钮","g4p:invalid",3,1))).status()).isEqualTo(400);
+        var page = request("POST", MENUS, token, null, JSON.writeValueAsString(menu(parentId,"平台测试菜单","g4p:page",2,1)));
+        assertThat(page.status()).as(page.raw()).isEqualTo(200);
+        String pageId=page.body().at("/data/id").asText();
+        var child = request("POST", MENUS, token, null, JSON.writeValueAsString(menu(pageId, "平台测试操作", "g4p:action", 3, 1)));
         assertThat(child.status()).as(child.raw()).isEqualTo(200);
         String childId = child.body().at("/data/id").asText();
         assertThat(request("DELETE", MENUS + "/" + parentId + "?version=0", token, null, null).status()).isEqualTo(409);
@@ -61,6 +67,7 @@ class PlatformManagementIntegrationTest extends HttpTestSupport {
         assertThat(request("PUT", MENUS, token, null, JSON.writeValueAsString(edit)).status()).isEqualTo(400);
 
         assertThat(request("DELETE", MENUS + "/" + childId + "?version=0", token, null, null).status()).isEqualTo(200);
+        assertThat(request("DELETE", MENUS + "/" + pageId + "?version=0", token, null, null).status()).isEqualTo(200);
         assertThat(request("DELETE", MENUS + "/" + parentId + "?version=0", token, null, null).status()).isEqualTo(200);
         assertThat(request("GET", MENUS, token, null, null).raw()).doesNotContain("g4p:directory", "g4p:action");
 
@@ -96,7 +103,7 @@ class PlatformManagementIntegrationTest extends HttpTestSupport {
     void finalAdministratorGuardRollsBackMenuRoleAndAccountChanges() throws Exception {
         String token = token("platform");
         var criticalEdit = Map.ofEntries(
-                Map.entry("id", "platform-access"), Map.entry("version", 0), Map.entry("parentId", "0"),
+                Map.entry("id", "platform-access"), Map.entry("version", 0), Map.entry("parentId", "g1-guard-menu"),
                 Map.entry("name", "platform:scope:access"), Map.entry("path", ""), Map.entry("component", ""),
                 Map.entry("redirect", ""), Map.entry("icon", ""), Map.entry("sort", 0),
                 Map.entry("visible", 1), Map.entry("status", 0), Map.entry("platformOnly", 1),

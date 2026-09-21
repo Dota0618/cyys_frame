@@ -142,7 +142,8 @@ public class IdentityService implements IdentityResolver {
                 user.getNickname(), user.getAvatar(), user.getPhone(), user.getEmail(), user.getStatus(),
                 user.getLastLoginTime(), isolation.mode().name().toLowerCase(java.util.Locale.ROOT),
                 snapshot.scopes(), defaultScope, identity.scopeId(), identity.roles(),
-                identity.permissions(), identity.platformPermissions(), snapshot.unitPermissions());
+                identity.permissions(), identity.platformPermissions(), snapshot.unitPermissions(),
+                roleMapper.selectNavigation(user.getId(),identity.scopeId()==null?List.of(GLOBAL):List.of(GLOBAL,identity.scopeId())));
     }
 
     static String credentialStamp(SysUser user) {

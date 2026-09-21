@@ -8,6 +8,13 @@ export default [
     component: './dashboard/workplace',
   },
   {
+    path: '/system/scopes',
+    name: '单位管理',
+    icon: 'BankOutlined',
+    access: 'canReadScopes',
+    component: './system/scopes',
+  },
+  {
     path: '/system/users',
     name: '用户管理',
     icon: 'TeamOutlined',

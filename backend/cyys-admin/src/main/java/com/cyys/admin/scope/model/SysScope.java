@@ -37,6 +37,9 @@ public class SysScope implements Serializable {
 
     private String remark;
 
+    @Version
+    private Integer version;
+
     @TableField(fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NEVER)
     private String createdBy;
 

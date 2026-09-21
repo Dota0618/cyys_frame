@@ -51,7 +51,7 @@ function RoleFields({ options, editing }: { options: RoleOptions; editing?: bool
       roleTreeData(
         options.menus.map((menu) => ({
           ...menu,
-          name: menu.type === 3 ? `${menu.name}（${menu.code}）` : menu.name,
+          name: menu.name,
         })),
       ),
     [options.menus],
@@ -100,7 +100,7 @@ function RoleFields({ options, editing }: { options: RoleOptions; editing?: bool
         name="menuIds"
         label="菜单与操作权限"
       >
-        <CheckedTree treeData={menuTree} label="菜单与操作权限" />
+        <CheckedTree treeData={menuTree} label="菜单与操作权限" menuSelection />
       </ProForm.Item>
       <ProFormRadio.Group
         name="status"

@@ -26,14 +26,14 @@ public interface PlatformRoleMapper {
     SysRole lock(@Param("id") String id);
 
     @Select("select m.id,m.parent_id as parentId,m.name,m.code,m.type from sys_menu m "
-            + "where m.status=1 and m.deleted=0 and m.platform_only=1 order by m.sort,m.id")
+            + "where m.status=1 and m.deleted=0 order by m.sort,m.id")
     List<PlatformRoleMenuOption> menus();
 
     @Select("select menu_id from sys_role_menu where role_id=#{role} and deleted=0 order by menu_id")
     List<String> menuIds(@Param("role") String role);
 
     @Select("<script>select m.id,m.parent_id as parentId,m.name,m.code,m.type from sys_menu m "
-            + "where m.status=1 and m.deleted=0 and m.platform_only=1 and m.id in "
+            + "where m.status=1 and m.deleted=0 and m.id in "
             + "<foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach> for update</script>")
     List<PlatformRoleMenuOption> lockMenus(@Param("ids") List<String> ids);
 

@@ -152,12 +152,22 @@ public class GeneratorRenderer {
         return c.fields().stream().filter(f->f.type()==GeneratorFieldType.DICTIONARY).map(f->"result.put("+quote(property(f.column()))+",dictionaries.options("+quote(f.dictionary())+"));").collect(java.util.stream.Collectors.joining("\n        "));
     }
     private String permissions(GenerateCodeCommand c) {
-        var result=new StringBuilder("-- Review and run through the project's single migration sequence. No roles are granted here.\n");
+        var result=new StringBuilder("-- Review before applying. Register the local route, select a parent directory, then grant menu and button nodes explicitly.\n");
+        String menuCode="nav:menu:"+c.feature();
+        result.append("INSERT INTO sys_menu(id,code,name,parent_id,type,path,platform_only,created_by) VALUES(REPLACE(UUID(),'-',''),'")
+                .append(menuCode).append("',").append(sqlText(c.title())).append(",'0',2,'/business/")
+                .append(c.feature()).append("',0,'generator');\n");
+        var labels=Map.of("read","查看","create","新增","update","修改","delete","删除");
         for(String action:List.of("read","create","update","delete")) {
             String code=c.feature()+":"+action;
-            result.append("INSERT INTO sys_menu(id,code,name,type,platform_only,created_by) VALUES(REPLACE(UUID(),'-',''),'").append(code).append("','").append(code).append("',3,0,'generator');\n");
+            result.append("INSERT INTO sys_menu(id,code,name,parent_id,type,platform_only,created_by) SELECT REPLACE(UUID(),'-',''),'")
+                    .append(code).append("',").append(sqlText(labels.get(action)+c.title()))
+                    .append(",id,3,0,'generator' FROM sys_menu WHERE code='").append(menuCode).append("';\n");
         }
         return result.toString();
+    }
+    private static String sqlText(String value) {
+        return "CONVERT(0x"+java.util.HexFormat.of().formatHex(value.getBytes(StandardCharsets.UTF_8))+" USING utf8mb4)";
     }
     private String formField(GeneratorField f) {
         String p=property(f.column());

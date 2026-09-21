@@ -25,13 +25,11 @@ export default (initialState?: { user?: UserInfo }) => {
         (platform.includes('platform:data:read-all') ||
           platform.includes('platform:data:operate'))));
   return {
-    canReadUsers: all
-      ? canUseGlobal
-      : selected &&
-        (unitHas('user:read') ||
-          canUseGlobal ||
-          (platformHas('user:read') &&
-            platform.includes('platform:data:operate'))),
+    canReadUsers: canUseGlobal || (!all && (canReadInSelectedUnit('user:read') ||
+      (platformHas('user:read') && platform.includes('platform:data:operate')))),
+    canReadScopes: platformHas('platform:scope:read'),
+    canCreateScopes: platformHas('platform:scope:create'),
+    canEditScopes: platformHas('platform:scope:update'),
     canCreateUsers: canWrite('user:create'),
     canExportUsers: canWrite('user:export'),
     canEditUsers: canWrite('user:update'),

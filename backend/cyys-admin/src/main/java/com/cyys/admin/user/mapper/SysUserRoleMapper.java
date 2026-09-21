@@ -4,6 +4,7 @@ import com.cyys.common.mybatis.ManualDataScope;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.cyys.admin.user.model.SysUserRole;
+import com.cyys.admin.menu.dto.NavigationMenu;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -45,6 +46,12 @@ public interface SysUserRoleMapper extends BaseMapper<SysUserRole> {
             </script>
             """)
     List<String> selectPermissionCodes(@Param("userId") String userId, @Param("scopeIds") List<String> scopeIds);
+
+    @Select("<script>select distinct m.id,m.parent_id,m.name,m.path,m.type,m.sort " + VALID_GRANT
+            + "join sys_role_menu rm on rm.role_id=r.id and rm.deleted=0 "
+            + "join sys_menu m on m.id=rm.menu_id and m.deleted=0 and m.status=1 and m.visible=1 and m.type in (1,2) "
+            + GRANT_SCOPE + " and (r.scope_id='GLOBAL' or m.platform_only=0) order by m.sort,m.id</script>")
+    List<NavigationMenu> selectNavigation(@Param("userId") String userId,@Param("scopeIds") List<String> scopeIds);
 
     /** 角色授予只使用本单位全部数据范围的权限作为上限，暂不开放局部范围委派。 */
     @Select("""

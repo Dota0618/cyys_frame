@@ -105,6 +105,7 @@ class BrowserAcceptance extends IsolationTestSupport {
         jdbc.update("insert into param_basic(id,system_name,name) values('98411','VERSION_TYPE','版本类型')");
         jdbc.update("insert into param_basic_type(id,basic_id,param_key,param_value) values('98412','98411','normal','常规更新')");
 
+        registerNavigation();
         Path frontend=Path.of("..","..","admin-ui").toAbsolutePath().normalize();
         String logPrefix = System.getProperty("cyys.browser.log-prefix", "phase4");
         if (!logPrefix.matches("[a-zA-Z0-9_-]+")) throw new IllegalArgumentException("Invalid browser log prefix");
@@ -129,6 +130,26 @@ class BrowserAcceptance extends IsolationTestSupport {
         } finally {
             process.descendants().forEach(child -> child.destroyForcibly());
             if(process.isAlive()) process.destroyForcibly();
+        }
+    }
+
+    /** Browser fixtures explicitly grant page nodes, as real role assignments do. */
+    private void registerNavigation() {
+        String[][] pages = {
+                {"users","用户管理","user:read"}, {"departments","部门管理","department:read"},
+                {"roles","角色管理","role:read"}, {"platform-menus","平台菜单","menu:read"},
+                {"platform-roles","平台角色","platform:role:read"}, {"configurations","通用配置","configuration:read"},
+                {"dictionaries","数据字典","dictionary:read"}, {"audits","操作审计","audit:read"},
+                {"login-audits","登录记录","login-audit:read"}, {"caches","缓存管理","cache:user:refresh"},
+                {"files","文件管理","file:read"}, {"file-recycle","文件回收站","file:recycle:read"},
+                {"org-notices","单位通知","org-notice:read"}, {"system-notices","系统通知","system-notice:read"},
+                {"releases","版本更新","release:read"}, {"regions","地区参数","region:read"}
+        };
+        for (String[] page : pages) {
+            String id="g1-nav-"+page[0];
+            jdbc.update("insert into sys_menu(id,code,name,type,path) values(?,?,?,2,?)",id,"nav:"+page[0],page[1],"/system/"+page[0]);
+            for (String role : jdbc.queryForList("select distinct rm.role_id from sys_role_menu rm join sys_menu m on m.id=rm.menu_id where m.code=? and rm.deleted=0",String.class,page[2]))
+                jdbc.update("insert into sys_role_menu(id,role_id,menu_id) values(?,?,?)",java.util.UUID.randomUUID().toString().replace("-",""),role,id);
         }
     }
 }

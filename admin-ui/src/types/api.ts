@@ -1,8 +1,10 @@
 export interface ScopeInfo { id: string; code: string; name: string; defaultFlag: boolean; memberRole?: string }
+export interface NavigationMenu { id: string; parentId: string; name: string; path?: string; type: number; sort: number }
 export interface UserInfo {
   id: string; loginName: string; displayName: string; mode: 'single' | 'multi';
   scopes: ScopeInfo[]; currentScopeId?: string; defaultScope?: ScopeInfo;
   roles: string[]; permissions: string[]; platformPermissions: string[]; unitPermissions: string[];
+  navigation?: NavigationMenu[];
 }
 export interface LoginResult { token: string; userInfo: UserInfo }
 export type ConfigurationType = 'SYSTEM' | 'THIRD_PARTY';

@@ -23,6 +23,8 @@ import ScopeSwitch from '@/components/ScopeSwitch';
 import type { UserInfo } from '@/types/api';
 import { clearSession, session } from '@/utils/session';
 import defaultSettings from '../config/defaultSettings';
+import createAccess from '@/access';
+import { navigationTree } from '@/utils/menus';
 
 const loginPath = '/user/login';
 
@@ -55,6 +57,7 @@ export const layout: RunTimeLayoutConfig = ({
   setInitialState,
 }) => {
   return {
+    menuDataRender: (items) => navigationTree(initialState?.user?.navigation || [], items, createAccess(initialState)),
     menuItemRender: (item, dom) => {
       if (item.path) {
         return (

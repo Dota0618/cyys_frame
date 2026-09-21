@@ -55,6 +55,8 @@ class GeneratorRendererTest {
             assertThat(zipped).hasSize(preview.files().size());
             for(var file:preview.files()) assertThat(zipped.get(file.path())).isEqualTo(file.content());
             assertThat(zipped.get("generator-config.json")).doesNotContain("password","token");
+            assertThat(zipped.get("permissions.sql.review")).contains("'nav:menu:sample'", "'/business/sample'", "parent_id", "CONVERT(0x")
+                    .contains("FROM sys_menu WHERE code='nav:menu:sample'").doesNotContain("示例\"内容</script>");
         }
     }
 

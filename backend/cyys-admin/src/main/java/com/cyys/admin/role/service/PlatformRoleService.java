@@ -156,7 +156,7 @@ public class PlatformRoleService {
     private boolean withinCeiling(List<String> roleIds, Set<String> ceiling) {
         if (roleIds.isEmpty()) return true;
         return mapper.permissions(roleIds).stream()
-                .noneMatch(permission -> !permission.platformOnly() || !ceiling.contains(permission.code()));
+                .noneMatch(permission -> !ceiling.contains(permission.code()));
     }
 
     private void requireWithinCeiling(String roleId, Set<String> ceiling) {

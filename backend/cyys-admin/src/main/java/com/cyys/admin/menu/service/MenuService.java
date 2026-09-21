@@ -45,7 +45,7 @@ public class MenuService {
     public MenuView create(@Valid CreateMenuCommand command) {
         security.authorize("menu:create");
         validatePlatformFlag(command.code(), command.platformOnly());
-        validateParent(command.parentId(), null);
+        validateParent(command.parentId(), null, command.type());
         var menu = new SysMenu();
         menu.setId(IdWorker.getIdStr());
         menu.setCode(command.code());
@@ -68,7 +68,7 @@ public class MenuService {
         SysMenu menu = requireMenu(mapper.lock(command.id()));
         if (!Objects.equals(menu.getVersion(), command.version())) throw new ApiException(409, "菜单版本已变更");
         validatePlatformFlag(menu.getCode(), command.platformOnly());
-        validateParent(command.parentId(), menu.getId());
+        validateParent(command.parentId(), menu.getId(), menu.getType());
         boolean guarded = PlatformSecurityService.PLATFORM_ACCESS.equals(menu.getCode());
         if (guarded) security.lockAdministratorGuard();
         apply(menu, command.parentId(), command.name(), command.path(), command.component(), command.redirect(),
@@ -95,10 +95,15 @@ public class MenuService {
         audit.platformSuccess("menu", id, "DELETE");
     }
 
-    private void validateParent(String parentId, String currentId) {
-        if (ROOT.equals(parentId)) return;
+    private void validateParent(String parentId, String currentId, int type) {
+        if (ROOT.equals(parentId)) {
+            if(type==3) throw new ApiException(400,"按钮权限必须放在所属菜单下");
+            return;
+        }
         if (Objects.equals(parentId, currentId)) throw new ApiException(400, "菜单不能以自身为父节点");
-        if (mapper.lockParent(parentId) == null) throw new ApiException(400, "父菜单不存在或不能挂在操作权限下");
+        var parent=mapper.lockParent(parentId);
+        if (parent == null) throw new ApiException(400, "父菜单不存在或不能挂在操作权限下");
+        if(type==3 && parent.getType()!=2) throw new ApiException(400,"按钮权限必须放在所属菜单下");
         if (currentId != null && mapper.isDescendant(currentId, parentId)) {
             throw new ApiException(400, "父菜单不能选择当前菜单的后代");
         }

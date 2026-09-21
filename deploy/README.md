@@ -69,3 +69,5 @@ docker compose --env-file /etc/cyys/release.env -f deploy/compose.yml logs --tai
 技术依据：[Docker Compose secrets](https://docs.docker.com/compose/how-tos/use-secrets/)、[Spring 外部配置与 configtree](https://docs.spring.io/spring-boot/reference/features/external-config.html)、[Nginx 路由与 try_files](https://nginx.org/en/docs/http/ngx_http_core_module.html#try_files)。
 
 2026-09-20 17:02：本机 API 在基础数据导入后重新启动，健康 200、Flyway 校验 V18。现在测试库有保留数据，以上要求空库的全量测试及样本恢复脚本会拒绝；不要为执行它们删除导入数据。普通日常登录需要另行受控初始化身份，交付不含默认管理员。
+
+2026-09-21：本机 `cyys-local-acceptance` 已更新为 `cyys-framework-api:menu-tree-20260921` / `cyys-framework-web:menu-tree-20260921-2`，地址 `https://localhost/`。使用用户另行授权建立的本机账号，镜像和源码不内置账号密码。正式迁移推进到 V19；中文菜单目录通过 `migrations/dev-data/menu-tree.sql` 单事务初始化，已有权限主键及用户授权保留。单位表没有预置假单位，首次进入“组织管理 → 单位管理”按实际需要创建。升级前数据库备份、上一版 `.env` 和旧镜像保留在本机受控位置；本次未新增源码快照。Nginx 对外禁止 actuator，应用启动与真实登录/API 请求用于本次可用性核对。

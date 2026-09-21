@@ -23,6 +23,7 @@ const authorizationKey = (user?: UserInfo) =>
     permissions: [...user.permissions].sort(),
     platformPermissions: [...user.platformPermissions].sort(),
     unitPermissions: [...user.unitPermissions].sort(),
+    navigation: user.navigation,
   });
 
 function IdentityContent({ children }: PropsWithChildren) {
@@ -93,6 +94,7 @@ function IdentityContent({ children }: PropsWithChildren) {
   }, [setInitialState, message]);
 
   const routeAccess: Record<string, boolean> = {
+    '/system/scopes': access.canReadScopes,
     '/system/users': access.canReadUsers,
     '/system/departments': access.canReadDepartments,
     '/system/files': access.canReadFiles,
