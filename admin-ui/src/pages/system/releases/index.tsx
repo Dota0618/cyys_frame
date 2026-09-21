@@ -42,7 +42,7 @@ export default function ReleasesPage() {
     { title: '版本号', dataIndex: 'releaseNumber', fieldProps: { maxLength: 10 } },
     { title: '更新日期', dataIndex: 'dateUpdate', valueType: 'date', search: false },
     { title: '版本类型', dataIndex: 'typeLabel', search: false,
-      render: (_, row) => `${row.typeLabel || row.type}${row.typeDisabled ? '（已失效）' : ''}` },
+      render: (_, row) => row.typeLabel ? `${row.typeLabel}${row.typeDisabled ? '（已失效）' : ''}` : '—' },
     { title: '更新说明', dataIndex: 'content', search: false, ellipsis: true },
     { title: '创建时间', dataIndex: 'createdAt', valueType: 'dateTime', search: false },
     { title: '操作', valueType: 'option', render: (_, row) => [

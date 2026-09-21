@@ -34,6 +34,7 @@ export interface Page<T> { records: T[]; total: number; current: number; size: n
 export interface Member {
   id: string; userId: string; scopeId?: string; loginName: string; displayName: string;
   orgId?: string; status: number; version: number; dataRange: number; createdAt: string;
+  scopeName?: string; orgName?: string;
 }
 export interface MemberDataPermissionInput { dataRange: number; orgIds: string[] }
 export interface UpdateMemberDataPermission extends MemberDataPermissionInput { version: number }

@@ -55,15 +55,12 @@ function MemberTable() {
   const [loadError, setLoadError] = useState('');
   const [exportName, setExportName] = useState<string>();
   const [exporting, setExporting] = useState(false);
-  const scopes = initialState?.user?.scopes || [];
   const canManageRange = (row: Member) => row.dataRange === 0 ? initialState?.user?.dataRange === 0
     : row.dataRange !== 6 || [0, 6].includes(initialState?.user?.dataRange ?? -1);
-  const departmentName = (id?: string) =>
-    departments.find((item) => item.value === id)?.label || '未设置';
 
   useEffect(() => {
     {
-      void departmentOptions()
+      if (access.canCreateUsers || access.canEditUsers) void departmentOptions()
         .then(setDepartments)
         .catch(() => {});
       if (access.canGrantRoles)
@@ -72,7 +69,7 @@ function MemberTable() {
           .catch(() => {});
     }
     return () => setDirty(false);
-  }, [access.canGrantRoles]);
+  }, [access.canGrantRoles, access.canCreateUsers, access.canEditUsers]);
 
   async function open(member: Member, kind: 'detail' | 'edit' | 'roles') {
     try {
@@ -99,9 +96,8 @@ function MemberTable() {
       render: (_, row) => <a onClick={() => open(row, 'detail')}>{row.displayName}</a>,
     },
     { title: '登录账号', dataIndex: 'loginName', search: false },
-    { title: '所属机构', dataIndex: 'scopeId', search: false,
-      render: (_, row) => row.scopeId ? scopes.find(scope => scope.id === row.scopeId)?.name || '机构已失效' : '系统账号' },
-    { title: '部门', dataIndex: 'orgId', search: false, render: (_, row) => departmentName(row.orgId) },
+    { title: '所属机构', dataIndex: 'scopeName', search: false },
+    { title: '部门', dataIndex: 'orgName', search: false },
     {
       title: '数据范围', dataIndex: 'dataRange', search: false,
       renderText: value => dataRanges.find(range => range.value === value)?.label || '未配置',
@@ -284,7 +280,8 @@ function MemberTable() {
           columns={[
             { title: '姓名', dataIndex: 'displayName' },
             { title: '登录账号', dataIndex: 'loginName' },
-            { title: '部门', dataIndex: 'orgId', renderText: departmentName },
+            { title: '所属机构', dataIndex: 'scopeName' },
+            { title: '部门', dataIndex: 'orgName' },
             {
               title: '状态',
               dataIndex: 'status',

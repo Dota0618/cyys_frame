@@ -44,6 +44,15 @@ class DataScopePolicyTest {
         verify(provider).predicate(argThat(p -> p.resource().table().equals("sys_org")), any(), eq("d"));
     }
 
+    @Test void invalidResourceDoesNotBlockOtherMappersAndItsOwnQueryIsRejected() {
+        configuration.addMapper(UnknownResourceProbeMapper.class);
+        assertThat(rewrite("select * from sys_org_notice")).contains("scope_id = 'a'");
+        var invalid = new MappedStatement.Builder(configuration, UnknownResourceProbeMapper.class.getName() + ".rows",
+                new StaticSqlSource(configuration, "select * from sys_org"), SqlCommandType.SELECT).build();
+        assertThatThrownBy(() -> registry.policy(invalid)).isInstanceOf(ApiException.class)
+                .hasMessageContaining("数据资源模型缺少定义或表名");
+    }
+
     @Test void countAndUnionAreFilteredAndMissingContextFailsClosed() {
         assertThat(rewrite("select count(*) from sys_org_notice n")).contains("n.scope_id = 'a'");
         assertThat(rewrite("select n.id from sys_org_notice n union all select m.id from sys_org_notice m"))

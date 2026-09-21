@@ -23,7 +23,8 @@ public final class DataPolicyRegistry {
         if (initialized.contains(configuration)) return;
         for (Class<?> mapper : configuration.getMapperRegistry().getMappers()) {
             ProtectedMapper definition = mapper.getAnnotation(ProtectedMapper.class);
-            if (definition != null) resource(definition.value());
+            if (definition != null && definition.value().isAnnotationPresent(DataResourceDefinition.class)
+                    && definition.value().isAnnotationPresent(TableName.class)) resource(definition.value());
         }
         initialized.add(configuration);
     }

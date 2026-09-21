@@ -45,7 +45,7 @@ export default function OrgNoticesPage() {
   const columns: ProColumns<OrgNotice>[] = [
     { title: '通知标题', dataIndex: 'title' },
     { title: '所属部门', dataIndex: 'departmentName', search: false },
-    { title: '通知类型', dataIndex: 'typeLabel', search: false, render: (_, row) => row.type ? `${row.typeLabel || row.type}${row.typeDisabled ? '（已失效）' : ''}` : '—' },
+    { title: '通知类型', dataIndex: 'typeLabel', search: false, render: (_, row) => row.typeLabel ? `${row.typeLabel}${row.typeDisabled ? '（已失效）' : ''}` : '—' },
     { title: '阅读人数', dataIndex: 'readCount', search: false },
     { title: '我的阅读', dataIndex: 'read', search: false, renderText: (read) => read ? '已读' : '未读' },
     { title: '创建时间', dataIndex: 'createdAt', valueType: 'dateTime', search: false },

@@ -24,23 +24,24 @@ import com.cyys.admin.user.model.SysUserScope;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.export.BoundedXlsx;
 import com.cyys.common.web.ApiException;
-import jakarta.validation.Valid;
+import com.cyys.common.cache.CachedResponseValues;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Isolation;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import java.util.List;
 import java.util.Arrays;
-import java.util.Objects;
+import java.util.ArrayList;
 import java.util.Map;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.stream.Collectors;
 
 @Service
-@Validated
 @RequiredArgsConstructor
 public class MemberService {
     private final MemberMapper mapper;
@@ -51,6 +52,8 @@ public class MemberService {
     private final com.cyys.common.cache.CacheGroupService cache;
     private final MemberDataPermissionService dataPermissions;
     private final com.cyys.admin.auth.service.PlatformSecurityService security;
+    private final CachedResponseValues cachedValues;
+    private final TransactionTemplate transactions;
 
     @Transactional(readOnly = true)
     public com.cyys.admin.user.dto.MemberDataPermissionView dataPermission(String id) {
@@ -62,39 +65,45 @@ public class MemberService {
         return dataPermissions.update(id, command);
     }
 
-    @Transactional(isolation = Isolation.READ_COMMITTED)
-    public byte[] export(@Valid ExportMembersCommand command) {
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public byte[] export(ExportMembersCommand command) {
         String name = command.name() == null || command.name().isBlank() ? null : command.name();
-        var members = mapper.export(name, BoundedXlsx.MAX_ROWS + 1);
-        if (members.size() > BoundedXlsx.MAX_ROWS) throw new ApiException(422, "最多导出 5000 条，请缩小姓名筛选范围");
-        var logins = names(members);
-        var departmentIds = members.stream().map(SysUserScope::getOrgId).filter(Objects::nonNull).distinct().toList();
-        var visibleDepartments = departmentIds.isEmpty() ? List.<MemberDepartmentOption>of() : departments.exportOptions(departmentIds);
-        var departmentNames = visibleDepartments.stream().collect(Collectors.toMap(MemberDepartmentOption::value, MemberDepartmentOption::label));
+        var read = new TransactionTemplate(transactions.getTransactionManager());
+        read.setReadOnly(true);
+        read.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
+        var members = read.execute(status -> exportViews(name));
         byte[] result;
         try {
             result = BoundedXlsx.write("单位成员", List.of("成员姓名", "登录账号", "部门", "成员状态", "创建时间"),
-                    members.stream().map(member -> {
-                        String login = logins.get(member.getUserId());
-                        return Arrays.asList(member.getDisplayName() == null ? login : member.getDisplayName(), login,
-                                member.getOrgId() == null ? "未设置" : departmentNames.getOrDefault(member.getOrgId(), "不可见或已失效"),
-                                member.getStatus() == 1 ? "启用" : "停用",
-                                member.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                    }).toList());
+                    members.stream().map(member -> Arrays.asList(member.displayName(), member.loginName(),
+                            member.orgName(), member.status() == 1 ? "启用" : "停用",
+                            member.createdAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))).toList());
         } catch (IOException failure) { throw new ApiException(503, "导出文件生成失败，请稍后重试"); }
-        // 权限仍存在不代表范围仍相同；重新通过受保护查询检查每个实际导出的成员和部门。
-        if (!members.isEmpty() && mapper.selectCount(new QueryWrapper<SysUserScope>().in("id", members.stream().map(SysUserScope::getId).toList())) != members.size()) {
-            throw new ApiException(409, "成员或导出范围已变化，请重新导出");
+        transactions.executeWithoutResult(status -> {
+            if (!members.isEmpty() && mapper.selectCount(new QueryWrapper<SysUserScope>().in("id", members.stream().map(MemberView::id).toList())) != members.size()) {
+                throw new ApiException(409, "成员或导出范围已变化，请重新导出");
+            }
+            audit.success("user", IdWorker.getIdStr(), "EXPORT_GENERATED");
+        });
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<MemberView> exportViews(String name) {
+        var members = mapper.export(name, BoundedXlsx.MAX_ROWS + 1);
+        if (members.size() > BoundedXlsx.MAX_ROWS) throw new ApiException(422, "最多导出 5000 条，请缩小姓名筛选范围");
+        var logins = names(members);
+        List<MemberView> result = new ArrayList<>(members.size());
+        for (int start = 0; start < members.size(); start += 200) {
+            var batch = members.subList(start, Math.min(start + 200, members.size())).stream()
+                    .map(member -> view(member, logins)).toList();
+            result.addAll((List<MemberView>) cachedValues.enrich(batch));
         }
-        if (!visibleDepartments.isEmpty() && departments.exportOptions(visibleDepartments.stream().map(MemberDepartmentOption::value).toList()).size() != visibleDepartments.size()) {
-            throw new ApiException(409, "部门可见范围已变化，请重新导出");
-        }
-        audit.success("user", IdWorker.getIdStr(), "EXPORT_GENERATED");
         return result;
     }
 
     @Transactional(readOnly=true)
-    public IPage<MemberView> page(@Valid MemberQuery query) {
+    public IPage<MemberView> page(MemberQuery query) {
         var page = new Page<SysUserScope>(query.page(), query.size());
         page.setOptimizeCountSql(false);
         var filter = new QueryWrapper<SysUserScope>().like(query.name()!=null&&!query.name().isBlank(),"display_name",query.name())
@@ -103,7 +112,7 @@ public class MemberService {
     }
 
     @Transactional(readOnly=true)
-    public IPage<MemberView> all(@Valid MemberQuery query) {
+    public IPage<MemberView> all(MemberQuery query) {
         var page = new Page<SysUserScope>(query.page(),query.size());
         page.setOptimizeCountSql(false);
         page.setRecords(mapper.acrossScopes(page));
@@ -118,7 +127,7 @@ public class MemberService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public MemberView create(@Valid CreateMemberCommand command) {
+    public MemberView create(CreateMemberCommand command) {
         String scope=ScopeContext.get().requireScopeId();
         PasswordPolicy.validateNew(command.password());
         if(command.orgId()!=null&&departments.forCreate(command.orgId())==null) throw new ApiException(403,"关联部门不可用");
@@ -136,7 +145,7 @@ public class MemberService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public MemberView edit(String id,@Valid UpdateMemberCommand command) {
+    public MemberView edit(String id,UpdateMemberCommand command) {
         security.lockAdministratorGuard();
         if (command.dataPermission() != null) dataPermissions.lockForUpdate(id, command.version());
         var member=mapper.lockForEdit(id);
@@ -188,6 +197,6 @@ public class MemberService {
     private MemberView view(SysUserScope member,Map<String,String> names) {
         String login=names.get(member.getUserId());
         return new MemberView(member.getId(),member.getUserId(),member.getScopeId(),login,
-                member.getDisplayName()==null?login:member.getDisplayName(),member.getOrgId(),member.getStatus(),member.getVersion(),member.getCreatedAt(),member.getDataRange());
+                member.getDisplayName()==null?login:member.getDisplayName(),member.getOrgId(),member.getStatus(),member.getVersion(),member.getCreatedAt(),member.getDataRange(),null,null);
     }
 }

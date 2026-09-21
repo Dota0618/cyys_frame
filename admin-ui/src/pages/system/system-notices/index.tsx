@@ -33,7 +33,7 @@ export default function SystemNoticesPage() {
   const columns: ProColumns<SystemNotice>[] = [
     { title: '通知标题', dataIndex: 'title', fieldProps: { maxLength: 100 } },
     { title: '通知类型', dataIndex: 'typeLabel', search: false,
-      render: (_, row) => `${row.typeLabel || row.type}${row.typeDisabled ? '（已失效）' : ''}` },
+      render: (_, row) => row.typeLabel ? `${row.typeLabel}${row.typeDisabled ? '（已失效）' : ''}` : '—' },
     { title: '是否显示', dataIndex: 'visible', search: false, renderText: (visible) => visible ? '显示' : '隐藏' },
     { title: '创建时间', dataIndex: 'createdAt', valueType: 'dateTime', search: false },
     { title: '操作', valueType: 'option', render: (_, row) => [

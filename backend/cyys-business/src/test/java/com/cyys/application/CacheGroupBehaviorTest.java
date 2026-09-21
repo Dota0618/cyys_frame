@@ -226,7 +226,8 @@ class CacheGroupBehaviorTest {
         when(mapper.lockForEdit("m")).thenReturn(row); when(mapper.updateById(any(SysUserScope.class))).thenReturn(1);
         when(accounts.accountNames(anyList())).thenReturn(List.of(new MemberOption("u", "login")));
         var service = new MemberService(mapper, accounts, mock(MemberDepartmentMapper.class), mock(com.cyys.admin.role.service.RoleGrantService.class), mock(DataAuditService.class),
-                groups, mock(MemberDataPermissionService.class), mock(PlatformSecurityService.class));
+                groups, mock(MemberDataPermissionService.class), mock(PlatformSecurityService.class),
+                mock(com.cyys.common.cache.CachedResponseValues.class), tx);
         for (boolean rollback : List.of(true, false)) {
             seed();
             tx.executeWithoutResult(status -> {
