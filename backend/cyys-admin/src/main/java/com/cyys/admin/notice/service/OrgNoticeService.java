@@ -49,7 +49,7 @@ public class OrgNoticeService {
     @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public OrgNoticeOptions options(String id) {
         if(id!=null) require(id,false);
-        return new OrgNoticeOptions(id==null?departments.parentOptionsForCreate():List.of(),dictionaries.options(TYPES));
+        return new OrgNoticeOptions(id==null?departments.parentOptionsForCreate():List.of(),null);
     }
 
     @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
@@ -128,14 +128,11 @@ public class OrgNoticeService {
         if(rows.isEmpty()) return Map.of();
         var identity=ScopeContext.get(); String scope=identity.requireScopeId();
         var counts=reads.counts(scope,rows.stream().map(OrgNotice::getId).toList(),identity.loginId()).stream().collect(Collectors.toMap(OrgNoticeReadMapper.Count::id,Function.identity()));
-        var names=reads.departments(scope,rows.stream().map(OrgNotice::getOrgId).distinct().toList()).stream().collect(Collectors.toMap(OrgNoticeReadMapper.DepartmentName::id,OrgNoticeReadMapper.DepartmentName::name));
-        var codes=rows.stream().map(OrgNotice::getType).filter(Objects::nonNull).distinct().toList();
-        Map<String,DictionaryOption> types=codes.isEmpty()?Map.of():dictionaries.labels(TYPES,codes).stream().collect(Collectors.toMap(DictionaryOption::value,Function.identity()));
         Map<String,OrgNoticeView> result=new HashMap<>();
         for(var row:rows) {
-            var count=counts.get(row.getId()); var type=row.getType()==null?null:types.get(row.getType());
-            result.put(row.getId(),new OrgNoticeView(row.getId(),row.getOrgId(),names.getOrDefault(row.getOrgId(),row.getOrgId()),
-                    row.getTitle(),row.getType(),type==null?row.getTypeLabel():type.label(),row.getType()!=null&&(type==null||type.disabled()),row.getVersion(),
+            var count=counts.get(row.getId());
+            result.put(row.getId(),new OrgNoticeView(row.getId(),row.getOrgId(),null,
+                    row.getTitle(),row.getType(),null,null,row.getVersion(),
                     count==null?0:count.total(),count!=null&&count.seen(),row.getCreatedAt()));
         }
         return result;

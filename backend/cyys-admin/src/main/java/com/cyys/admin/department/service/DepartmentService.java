@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
+import com.cyys.admin.cache.service.BusinessCacheGroups;
+import com.cyys.common.cache.CacheGroupService;
 import com.cyys.admin.department.dto.UpdateDepartmentCommand;
 import com.cyys.admin.department.dto.DepartmentQuery;
 import com.cyys.admin.department.dto.DepartmentOption;
@@ -31,8 +33,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /** 受保护的单位部门资源；查询和写入均由 Mapper 数据策略限定。 */
 @Service
@@ -45,6 +45,7 @@ public class DepartmentService {
     private final RowPolicyProvider policy;
     private final DataPolicyRegistry registry;
     private final DataAuditService audit;
+    private final CacheGroupService caches;
 
     @Transactional(readOnly = true)
     public IPage<DepartmentView> page(@Valid DepartmentQuery query) {
@@ -53,15 +54,14 @@ public class DepartmentService {
         var wrapper = new QueryWrapper<SysOrg>().like(query.search() != null && !query.search().isBlank(), "name", query.search())
                 .orderByAsc("sort", "id");
         IPage<SysOrg> result = mapper.selectPage(page, wrapper);
-        Map<String, DepartmentLeaderOption> labels = leaderLabels(ScopeContext.get().requireScopeId(), result.getRecords());
-        return result.convert(org -> DepartmentView.from(org, label(labels, org.getLeaderId())));
+        return result.convert(DepartmentView::from);
     }
 
     @Transactional(readOnly = true)
     public DepartmentView detail(String id) {
         SysOrg org = mapper.selectById(id);
         if (org == null) throw new ApiException(404, "记录不存在或不可访问");
-        return view(org);
+        return DepartmentView.from(org);
     }
 
     @Transactional(readOnly = true)
@@ -97,12 +97,7 @@ public class DepartmentService {
 
     @Transactional(readOnly = true)
     public List<DepartmentView> acrossAuthorizedScopes() {
-        List<SysOrg> records = mapper.selectAcrossAuthorizedScopes();
-        Map<String, DepartmentLeaderOption> labels = new HashMap<>();
-        records.stream().collect(Collectors.groupingBy(SysOrg::getScopeId)).forEach((scope, scoped) ->
-                leaderLabels(scope, scoped).forEach((id, label) -> labels.put(scope + "\u0000" + id, label)));
-        return records.stream().map(org -> DepartmentView.from(org,
-                labels.get(org.getScopeId() + "\u0000" + org.getLeaderId()))).toList();
+        return mapper.selectAcrossAuthorizedScopes().stream().map(DepartmentView::from).toList();
     }
 
     @Transactional
@@ -138,7 +133,8 @@ public class DepartmentService {
             throw new ApiException(409, "部门编码或关联约束冲突");
         }
         audit.success("department", org.getId(), "CREATE");
-        return view(org);
+        caches.invalidateAfterCommit(BusinessCacheGroups.DEPARTMENTS);
+        return DepartmentView.from(org);
     }
 
     @Transactional
@@ -152,7 +148,8 @@ public class DepartmentService {
         org.setLeaderId(command.leaderId());
         requireOne(mapper.updateById(org));
         audit.success("department", org.getId(), "UPDATE");
-        return view(org);
+        caches.invalidateAfterCommit(BusinessCacheGroups.DEPARTMENTS);
+        return DepartmentView.from(org);
     }
 
     @Transactional
@@ -169,6 +166,7 @@ public class DepartmentService {
             requireOne(mapper.softDelete(command.id(), command.version(), ScopeContext.get().loginId()));
             audit.success("department", command.id(), "DELETE");
         }
+        caches.invalidateAfterCommit(BusinessCacheGroups.DEPARTMENTS);
     }
 
     private static void requireOne(int count) {
@@ -179,17 +177,6 @@ public class DepartmentService {
         if (leaders.eligibleForShare(scope, leaderId) == null) throw new ApiException(403, "负责人不是当前单位的有效成员");
     }
 
-    private DepartmentView view(SysOrg org) {
-        return DepartmentView.from(org, label(leaderLabels(org.getScopeId(), List.of(org)), org.getLeaderId()));
-    }
-
-    private Map<String, DepartmentLeaderOption> leaderLabels(String scope, List<SysOrg> records) {
-        List<String> ids = records.stream().map(SysOrg::getLeaderId).filter(Objects::nonNull).distinct().toList();
-        if (ids.isEmpty()) return Map.of();
-        return leaders.labels(scope, ids).stream()
-                .collect(Collectors.toMap(DepartmentLeaderOption::value, Function.identity(), (left, right) -> left));
-    }
-
     private void authorize(String permission, DataPolicyRegistry.Access access) {
         var identity = ScopeContext.get();
         DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);
@@ -197,7 +184,4 @@ public class DepartmentService {
                 DataPolicyRegistry.View.CURRENT_SCOPE), identity);
     }
 
-    private static DepartmentLeaderOption label(Map<String, DepartmentLeaderOption> labels, String id) {
-        return id == null ? null : labels.get(id);
-    }
 }

@@ -127,7 +127,7 @@ public class MemberService {
         } catch(DataIntegrityViolationException error) { throw new ApiException(409,"登录账号不可使用"); }
         saveDataPermission(member, command.dataPermission());
         audit.success("user",member.getId(),"CREATE");
-        cache.invalidateAfterCommit(com.cyys.admin.cache.service.BusinessCacheGroups.USERS);
+        cache.invalidateEntriesAfterCommit(com.cyys.admin.cache.service.BusinessCacheGroups.USERS, List.of(member.getUserId()));
         return view(member,Map.of(member.getUserId(),command.loginName()));
     }
 
@@ -145,7 +145,7 @@ public class MemberService {
         saveDataPermission(member, command.dataPermission());
         security.requireUsableAdministrator();
         audit.success("user",id,"UPDATE");
-        cache.invalidateAfterCommit(com.cyys.admin.cache.service.BusinessCacheGroups.USERS);
+        cache.invalidateEntriesAfterCommit(com.cyys.admin.cache.service.BusinessCacheGroups.USERS, List.of(member.getUserId()));
         return view(member,names(List.of(member)));
     }
 

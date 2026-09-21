@@ -38,11 +38,4 @@ public interface DepartmentLeaderMapper {
     DepartmentLeaderOption historicalOption(@Param("scope") String scope,
                                                  @Param("userId") String userId);
 
-    @Select("<script>select us.user_id as value," + LABEL + " as label,not(" + ACTIVE + ") as disabled "
-            + "from sys_user_scope us join sys_user u on u.id=us.user_id "
-            + "where us.scope_id=#{scope} and us.user_id in "
-            + "<foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach> "
-            + "order by us.user_id</script>")
-    List<DepartmentLeaderOption> labels(@Param("scope") String scope,
-                                            @Param("ids") List<String> ids);
 }

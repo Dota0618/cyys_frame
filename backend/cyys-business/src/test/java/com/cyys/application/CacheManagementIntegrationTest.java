@@ -26,23 +26,25 @@ class CacheManagementIntegrationTest extends IsolationTestSupport {
     }
 
     @Test
-    void registeredRefreshOnlyEvictsCurrentUnitAndWritesAuditAfterRedisSuccess() throws Exception {
+    void registeredRefreshEvictsSharedUserRecordsAndKeepsOtherGroups() throws Exception {
         String alice = token("alice"), bob = token("bob");
         ok("GET", "/user-names?ids=u-alice", alice, "scope-a", null);
         ok("GET", "/user-names?ids=u-bob", bob, "scope-b", null);
-        as("u-alice", "scope-a"); String a = keys.unit("user-display");
+        as("u-alice", "scope-a"); String a = keys.platform("user-records");
         com.cyys.common.satoken.ScopeContext.clear();
-        as("u-bob", "scope-b"); String b = keys.unit("user-display");
+        as("u-bob", "scope-b"); String b = keys.unit("department-records");
         com.cyys.common.satoken.ScopeContext.clear();
         String platformKey = keys.platform("g4-cache-control-fixture");
         String sessionKey = keys.sessionPrefix() + "g4-cache-control-fixture";
         try {
+            redis.opsForValue().set(b, "department-sentinel", Duration.ofMinutes(2));
             redis.opsForValue().set(platformKey, "platform-sentinel", Duration.ofMinutes(2));
             redis.opsForValue().set(sessionKey, "session-sentinel", Duration.ofMinutes(2));
             Reply actions = request("GET", PATH, alice, "scope-a", null);
             assertThat(actions.status()).as(actions.raw()).isEqualTo(200);
-            assertThat(actions.body().at("/data").size()).isEqualTo(1);
+            assertThat(actions.body().at("/data").size()).isEqualTo(2);
             assertThat(actions.body().at("/data/0/id").asText()).isEqualTo("user-display");
+            assertThat(actions.body().at("/data/1/id").asText()).isEqualTo("department");
             assertThat(actions.raw()).doesNotContain("redis", "methodName", "java.lang", "USER_MAP_FULL");
             Reply refresh = request("POST", PATH + "/user-display/refresh", alice, "scope-a", null);
             assertThat(refresh.status()).as(refresh.raw()).isEqualTo(200);
@@ -52,12 +54,12 @@ class CacheManagementIntegrationTest extends IsolationTestSupport {
             assertThat(redis.opsForValue().get(sessionKey)).isEqualTo("session-sentinel");
             assertThat(request("GET", "/api/auth/me", alice, "scope-a", null).status()).isEqualTo(200);
             assertThat(count("select count(*) from sys_data_audit where resource='cache' and record_id='user-display' "
-                    + "and operation='REFRESH' and scope_id='scope-a' and actor_id='u-alice'"))
+                    + "and operation='REFRESH' and scope_id='GLOBAL' and actor_id='u-alice'"))
                     .isEqualTo(1);
             assertThat(ok("GET", "/user-names?ids=u-alice", alice, "scope-a", null).raw()).contains("alice");
             assertThat(redis.hasKey(a)).isTrue();
             assertThat(redis.getExpire(a)).isBetween(1L, 600L);
-        } finally { redis.delete(List.of(platformKey, sessionKey)); }
+        } finally { redis.delete(List.of(platformKey, sessionKey, b)); }
     }
 
     @Test

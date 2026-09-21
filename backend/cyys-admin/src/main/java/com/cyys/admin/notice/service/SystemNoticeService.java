@@ -16,10 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,8 +31,7 @@ public class SystemNoticeService {
     public IPage<SystemNoticeView> page(long page, long size, String title) {
         security.authorize("system-notice:read");
         var result = notices.page(new Page<SystemNotice>(page, size), title);
-        var labels = labels(result.getRecords());
-        return result.convert(row -> view(row, labels));
+        return result.convert(this::view);
     }
 
     @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
@@ -103,18 +99,9 @@ public class SystemNoticeService {
         row.setTypeLabel(option.label());
     }
 
-    private Map<String, DictionaryOption> labels(List<SystemNotice> rows) {
-        if (rows.isEmpty()) return Map.of();
-        return dictionaries.labels(TYPES, rows.stream().map(SystemNotice::getType).distinct().toList())
-                .stream().collect(Collectors.toMap(DictionaryOption::value, Function.identity()));
-    }
-
-    private SystemNoticeView view(SystemNotice row) { return view(row, labels(List.of(row))); }
-
-    private SystemNoticeView view(SystemNotice row, Map<String, DictionaryOption> labels) {
-        var type = labels.get(row.getType());
+    private SystemNoticeView view(SystemNotice row) {
         return new SystemNoticeView(row.getId(), row.getTitle(), row.getType(),
-                type == null ? row.getTypeLabel() : type.label(), type == null || type.disabled(),
+                null, null,
                 row.getContent(), row.isVisible(), row.getVersion(), row.getCreatedAt());
     }
 

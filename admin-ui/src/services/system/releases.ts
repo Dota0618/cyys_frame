@@ -7,8 +7,8 @@ export interface ReleaseCommand {
   releaseNumber: string; dateUpdate: string; type: string; content: string; attachments: string[];
 }
 export interface Release {
-  id: string; releaseNumber: string; dateUpdate: string; type: string; typeLabel: string;
-  typeDisabled: boolean; content: string; version: number; createdAt: string;
+  id: string; releaseNumber: string; dateUpdate: string; type: string; typeLabel?: string;
+  typeDisabled?: boolean; content: string; version: number; createdAt: string;
 }
 export interface ReleaseDetail { release: Release; attachments: FileChoice[] }
 const root = '/api/admin/platform/releases';

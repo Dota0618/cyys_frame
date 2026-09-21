@@ -27,7 +27,7 @@ class CacheRefreshFailureTest {
         ScopeContext.set(new RequestIdentity("actor", "scope-a", List.of(), List.of()));
         var redis = mock(StringRedisTemplate.class);
         var keys = new CacheKeys("test", "local");
-        when(redis.delete(List.of(keys.unit("user-display")))).thenThrow(new RedisConnectionFailureException("offline"));
+        when(redis.delete(List.of(keys.platform("user-records")))).thenThrow(new RedisConnectionFailureException("offline"));
         var cache = new ScopedHashCache(redis, keys);
         var authorization = mock(DataAuthorizationMapper.class);
         when(authorization.hasPermission("actor", "cache:user:refresh")).thenReturn(true);

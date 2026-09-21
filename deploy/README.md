@@ -1,8 +1,8 @@
 # Linux / Docker / Nginx 部署准备
 
-最新本机版本：API/Web 均为 `cache-groups-20260921`，数据库仍为 V26，地址 https://localhost/。用户/字典缓存分组已接入事务提交后自动失效，默认下次读取时加载；共享字典刷新还需字典管理权限。旧镜像和 `.env.before-cache-groups-20260921` 保留，数据源、账号和文件挂载配置不变。
+最新本机版本：API 为 `cache-values-20260921`，Web 沿用 `cache-groups-20260921`，数据库仍为 V26，地址 https://localhost/。已有返回模型使用 `@CacheValue`：部门负责人姓名/展示状态、通知阅读人、通知部门、单位通知/系统通知/版本类型及通知字典选项。用户共享记录包含停用用户，按用户 ID 自动失效；部门按实际单位、字典按系统组失效。回填不增加目标用户单位或状态查询，业务原有授权仍保留。规则与来源清单见 `docs/development/backend/cache-usage.md`。
 
-本轮 28 项缓存/字典保护/架构定向检查、前端类型检查及生产构建、缓存页面 Ant lint、发布产物结构检查通过。Redis/Lua 使用独立随机缓存命名空间验证；事务同步由 Spring JDBC 事务管理器配合模拟数据库连接验证，未运行需要清库的历史数据库套件。部署后 9 项 HTTP 检查通过，停旧 API 后记录的 26 张完整表指纹与新 API 启动后完全一致；当前本地私有文件目录为空。证据位于 `backend/logs/cache-tests.log`、`cache-ui-typecheck.log`、`cache-ui-build.log`、`cache-antd.json`、`cache-deployment-http.json` 和 `cache-preservation.properties`。未做登录后的页面操作回归。本次无数据库迁移，应用重启后进程内会话需要重新登录；缓存组刷新本身不触及会话键。
+本轮 35 项集中检查通过（含 3 项真实 HTTP/独立 MySQL/Redis 集成场景、字段类型与空值、事务回滚、按 ID 失效并发保护），前端类型与发布产物结构检查通过。前端仅同步可空返回类型，没有界面或运行时代码变更，沿用已构建 Web。部署后 9 项 HTTP 检查通过，停旧 API 后记录的 26 张完整表指纹与新 API 启动后完全一致；私有文件目录仍为空。证据：`backend/logs/cache-values-tests.log`、`cache-values-models-tests.log`、`cache-values-concurrency.log`、`cache-values-ui-typecheck.log`、`cache-values-deployment-http.json`、`cache-values-preservation.properties`。API 镜像 digest：`sha256:3ca10f267075a37200ec5fa42230af4482cf1a3824e74170ec76176ba4ec5517`；上一版 `cache-groups-20260921` 及 `.env.before-cache-values-20260921` 保留，数据源、账号和文件挂载未改动。本次无数据库迁移、未运行历史全量或登录后页面操作套件。应用重启后的进程内会话需要重新登录；缓存刷新本身不触及会话键。源码仅本地提交，不推送、不另存源码快照。
 ## 当前机构模型版本（2026-09-21）
 
 当前本机地址仍为 https://localhost/，API 镜像为 `organization-20260921`，Web 为 `organization-20260921-2`，Flyway V25。使用统一账号和角色、机构树、单一用户资料及数据范围；右上角是机构筛选。生成器暂停，旧平台角色与跨单位权限入口退出。下方按日期保留的 single/multi、平台角色和旧镜像记录是历史验收，不是当前部署配置。

@@ -34,13 +34,8 @@ abstract class IsolationTestSupport extends HttpTestSupport {
     @AfterEach
     void clearTestCaches() {
         ScopeContext.clear();
-        try {
-            for (String scope : List.of("scope-a", "scope-b")) {
-                as("u-alice", scope);
-                redis.delete(keys.unit("user-display"));
-                ScopeContext.clear();
-            }
-        } finally { ScopeContext.clear(); }
+        redis.delete(List.of(keys.platform("user-records"), keys.unit("scope-a", "department-records"),
+                keys.unit("scope-b", "department-records")));
     }
 
     void org(String id, String scope, String parent, String ancestors, String creator) {

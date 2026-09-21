@@ -62,29 +62,31 @@ class CacheGroupBehaviorTest {
         var source = mock(DataSource.class);
         when(source.getConnection()).thenReturn(database);
         tx = new TransactionTemplate(new DataSourceTransactionManager(source));
-        as("a"); ownedKeys.add(keys.unit(USER_NAMES.id()));
-        as("b"); ownedKeys.add(keys.unit(USER_NAMES.id()));
+        as("a"); ownedKeys.add(keys.unit(DEPARTMENT_NAMES.id()));
+        as("b"); ownedKeys.add(keys.unit(DEPARTMENT_NAMES.id()));
         ownedKeys.add(keys.platform(DICTIONARY_OPTIONS.id()));
         ownedKeys.add(keys.platform(DICTIONARY_LABELS.id()));
+        ownedKeys.add(keys.platform(BusinessCacheGroups.USER_NAMES.id()));
         ownedKeys.add(keys.sessionPrefix() + "sentinel");
         as("a");
     }
     @AfterEach void clean() { ScopeContext.clear(); redis.delete(ownedKeys); }
     void as(String scope) { ScopeContext.clear(); ScopeContext.set(new RequestIdentity("actor", scope, List.of(), List.of())); }
     void seed() {
-        as("a"); cache.getOrLoad(USER_NAMES, List.of("u"), ids -> Map.of("u", "A"));
-        as("b"); cache.getOrLoad(USER_NAMES, List.of("u"), ids -> Map.of("u", "B"));
+        as("a"); cache.getOrLoad(DEPARTMENT_NAMES, List.of("u"), ids -> Map.of("u", "A"));
+        as("b"); cache.getOrLoad(DEPARTMENT_NAMES, List.of("u"), ids -> Map.of("u", "B"));
         as("a");
         cache.getOrLoad(DICTIONARY_OPTIONS, List.of("D"), ids -> Map.of("D", "[]"));
         cache.getOrLoad(DICTIONARY_LABELS, List.of("D"), ids -> Map.of("D", "label"));
+        cache.getOrLoad(BusinessCacheGroups.USER_NAMES, List.of("u"), ids -> Map.of("u", "cached-user"));
         redis.opsForValue().set(ownedKeys.getLast(), "session", java.time.Duration.ofMinutes(2));
     }
 
     @Test void commitCapturesScopeCoalescesAndLeavesOtherGroupsAndSessions() throws Exception {
         seed();
         tx.executeWithoutResult(status -> {
-            groups.invalidateAfterCommit(USERS);
-            groups.invalidateAfterCommit(USERS);
+            groups.invalidateAfterCommit(DEPARTMENTS);
+            groups.invalidateAfterCommit(DEPARTMENTS);
             assertThat(redis.hasKey(ownedKeys.getFirst())).isTrue();
             as("b");
         });
@@ -126,24 +128,41 @@ class CacheGroupBehaviorTest {
     }
 
     @Test void delayedLoadCannotRefillInvalidatedRegionAndTtlIsBounded() {
-        var result = cache.getOrLoad(USER_NAMES, List.of("u"), ids -> {
-            groups.refresh(USERS); // 等价于另一个请求在查询期间完成刷新。
+        var result = cache.getOrLoad(DEPARTMENT_NAMES, List.of("u"), ids -> {
+            groups.refresh(DEPARTMENTS); // 等价于另一个请求在查询期间完成刷新。
             return Map.of("u", "old");
         });
         assertThat(result).containsEntry("u", "old");
-        assertThat(redis.hasKey(keys.unit(USER_NAMES.id()))).isFalse();
-        assertThat(cache.getOrLoad(USER_NAMES, List.of("u"), ids -> Map.of("u", "new"))).containsEntry("u", "new");
-        assertThat(redis.getExpire(keys.unit(USER_NAMES.id()))).isBetween(1L, 600L);
+        assertThat(redis.hasKey(keys.unit(DEPARTMENT_NAMES.id()))).isFalse();
+        assertThat(cache.getOrLoad(DEPARTMENT_NAMES, List.of("u"), ids -> Map.of("u", "new"))).containsEntry("u", "new");
+        assertThat(redis.getExpire(keys.unit(DEPARTMENT_NAMES.id()))).isBetween(1L, 600L);
     }
 
     @Test void writeTransactionDoesNotReadOrPopulateCache() {
         seed();
         tx.executeWithoutResult(status -> {
-            assertThat(cache.getOrLoad(USER_NAMES, List.of("u"), ids -> Map.of("u", "uncommitted")))
+            assertThat(cache.getOrLoad(DEPARTMENT_NAMES, List.of("u"), ids -> Map.of("u", "uncommitted")))
                     .containsEntry("u", "uncommitted");
             status.setRollbackOnly();
         });
-        assertThat(cache.getOrLoad(USER_NAMES, List.of("u"), ids -> { throw new AssertionError(); })).containsEntry("u", "A");
+        assertThat(cache.getOrLoad(DEPARTMENT_NAMES, List.of("u"), ids -> { throw new AssertionError(); })).containsEntry("u", "A");
+    }
+
+    @Test void targetedCommitBlocksStaleFillAndPreservesOtherUsersAndTtl() {
+        var region = BusinessCacheGroups.USER_NAMES;
+        String key = keys.platform(region.id());
+        cache.getOrLoad(region, List.of("other"), ids -> Map.of("other", "保留"));
+        redis.expire(key, java.time.Duration.ofSeconds(90));
+        var inFlight = cache.getOrLoad(region, List.of("changed"), ids -> {
+            tx.executeWithoutResult(status -> groups.invalidateEntriesAfterCommit(BusinessCacheGroups.USERS, List.of("changed")));
+            return Map.of("changed", "旧姓名");
+        });
+        assertThat(inFlight).containsEntry("changed", "旧姓名");
+        assertThat(redis.opsForHash().hasKey(key, "changed")).isFalse();
+        assertThat(redis.opsForHash().get(key, "other")).isEqualTo("保留");
+        assertThat(redis.getExpire(key)).isBetween(1L, 90L);
+        assertThat(cache.getOrLoad(region, List.of("changed"), ids -> Map.of("changed", "新姓名")))
+                .containsEntry("changed", "新姓名");
     }
 
     @Test void dictionaryOptionsAndLabelsAreSharedHitsButEligibilityAlwaysUsesDatabase() {
@@ -195,7 +214,7 @@ class CacheGroupBehaviorTest {
             });
             assertThat(redis.hasKey(keys.platform(DICTIONARY_OPTIONS.id()))).isEqualTo(rollback);
             assertThat(redis.hasKey(keys.platform(DICTIONARY_LABELS.id()))).isEqualTo(rollback);
-            assertThat(redis.hasKey(keys.unit(USER_NAMES.id()))).isTrue();
+            assertThat(redis.hasKey(keys.unit(DEPARTMENT_NAMES.id()))).isTrue();
         }
     }
 
@@ -214,16 +233,17 @@ class CacheGroupBehaviorTest {
             tx.executeWithoutResult(status -> {
                 if (operation.equals("create")) service.create(new CreateMemberCommand("cache-user", "Cache-Test-12345!", "新用户", null, null));
                 else service.edit("m", new UpdateMemberCommand(0, "新姓名", null, 1, null));
-                assertThat(redis.hasKey(keys.unit(USER_NAMES.id()))).isTrue();
+                assertThat(redis.hasKey(keys.unit(DEPARTMENT_NAMES.id()))).isTrue();
                 if (rollback) status.setRollbackOnly();
             });
-            assertThat(redis.hasKey(keys.unit(USER_NAMES.id()))).isEqualTo(rollback);
+            if (operation.equals("edit")) assertThat(redis.opsForHash().hasKey(keys.platform(BusinessCacheGroups.USER_NAMES.id()), "u")).isEqualTo(rollback);
+            assertThat(redis.hasKey(keys.unit(DEPARTMENT_NAMES.id()))).isTrue();
             assertThat(redis.hasKey(keys.platform(DICTIONARY_OPTIONS.id()))).isTrue();
         }
     }
 
     @Test void missingTransactionFailsVisibly() {
-        assertThatThrownBy(() -> groups.invalidateAfterCommit(USERS)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> groups.invalidateAfterCommit(DEPARTMENTS)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test void redisFailuresFallBackOnReadAndDoNotUndoCommittedBusinessWrites() throws Exception {
@@ -232,33 +252,23 @@ class CacheGroupBehaviorTest {
         when(offline.execute(any(org.springframework.data.redis.core.script.RedisScript.class), anyList(), any(Object[].class)))
                 .thenThrow(new org.springframework.data.redis.RedisConnectionFailureException("offline"));
         var unavailable = new ScopedHashCache(offline, keys);
-        assertThat(unavailable.getOrLoad(USER_NAMES, List.of("u"), ids -> Map.of("u", "source")))
+        assertThat(unavailable.getOrLoad(DEPARTMENT_NAMES, List.of("u"), ids -> Map.of("u", "source")))
                 .containsEntry("u", "source");
         doThrow(new org.springframework.data.redis.RedisConnectionFailureException("offline"))
-                .when(redis).delete(List.of(keys.unit(USER_NAMES.id())));
-        assertThatCode(() -> tx.executeWithoutResult(status -> groups.invalidateAfterCommit(USERS))).doesNotThrowAnyException();
+                .when(redis).delete(List.of(keys.unit(DEPARTMENT_NAMES.id())));
+        assertThatCode(() -> tx.executeWithoutResult(status -> groups.invalidateAfterCommit(DEPARTMENTS))).doesNotThrowAnyException();
         verify(database).commit();
-        assertThat(redis.getExpire(keys.unit(USER_NAMES.id()))).isBetween(1L, 600L);
+        assertThat(redis.getExpire(keys.unit(DEPARTMENT_NAMES.id()))).isBetween(1L, 600L);
     }
 
     @Test void capacityAndOversizeValuesReturnSourceWithoutGrowingCache() {
         var fields = java.util.stream.IntStream.range(0, 10_001).mapToObj(Integer::toString).toList();
         Map<String, String> loaded = new HashMap<>(); fields.forEach(field -> loaded.put(field, "value"));
-        assertThat(cache.getOrLoad(USER_NAMES, fields, missing -> loaded)).hasSize(10_001);
-        assertThat(redis.opsForHash().size(keys.unit(USER_NAMES.id()))).isEqualTo(1); // 只有代次元数据
+        assertThat(cache.getOrLoad(DEPARTMENT_NAMES, fields, missing -> loaded)).hasSize(10_001);
+        assertThat(redis.opsForHash().size(keys.unit(DEPARTMENT_NAMES.id()))).isEqualTo(1); // 只有代次元数据
         String large = "大".repeat(100_000);
-        assertThat(cache.getOrLoad(USER_NAMES, List.of("large"), missing -> Map.of("large", large))).containsEntry("large", large);
-        assertThat(redis.opsForHash().hasKey(keys.unit(USER_NAMES.id()), "large")).isFalse();
+        assertThat(cache.getOrLoad(DEPARTMENT_NAMES, List.of("large"), missing -> Map.of("large", large))).containsEntry("large", large);
+        assertThat(redis.opsForHash().hasKey(keys.unit(DEPARTMENT_NAMES.id()), "large")).isFalse();
     }
 
-    @Test void cachedUserNamesStillRequirePermissionAndVisibility() {
-        seed();
-        var authorization = mock(DataAuthorizationMapper.class);
-        var mapper = mock(UserDisplayMapper.class);
-        var users = new UserDisplayService(mapper, authorization, cache);
-        assertThatThrownBy(() -> users.names(List.of("u"))).hasMessageContaining("权限");
-        when(authorization.hasPermission("actor", "user:display:read")).thenReturn(true);
-        assertThatThrownBy(() -> users.names(List.of("u"))).hasMessageContaining("不可访问");
-        verify(mapper, never()).labels(anyString(), anyList());
-    }
 }

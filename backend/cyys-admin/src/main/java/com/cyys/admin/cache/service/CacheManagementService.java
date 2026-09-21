@@ -19,7 +19,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CacheManagementService {
     private static final CacheActionView USER_DISPLAY = new CacheActionView(BusinessCacheGroups.USERS.id(), "用户缓存",
-            "当前单位", List.of("用户显示名称"), "用户新增、修改后自动失效；下次读取时重新加载。");
+            "系统共享", List.of("用户展示记录（ID、姓名、状态，含停用用户）"), "用户变更后仅使该用户记录失效；手动刷新整个用户缓存组。");
+    private static final CacheActionView DEPARTMENT = new CacheActionView(BusinessCacheGroups.DEPARTMENTS.id(), "部门缓存",
+            "当前单位", List.of("部门展示记录（ID、名称）"), "部门新增、修改、删除后自动失效；下次读取时加载。");
     private static final CacheActionView DICTIONARY = new CacheActionView(BusinessCacheGroups.DICTIONARIES.id(), "字典缓存",
             "系统共享", List.of("字典选项", "字典项名称与失效状态"), "字典分类、字典项增删改后自动失效；刷新影响全系统共享字典。");
     private final CacheGroupService groups;
@@ -29,7 +31,11 @@ public class CacheManagementService {
 
     public List<CacheActionView> actions() {
         requirePermission();
-        return canManageDictionary() ? List.of(USER_DISPLAY, DICTIONARY) : List.of(USER_DISPLAY);
+        var result = new java.util.ArrayList<CacheActionView>();
+        result.add(USER_DISPLAY);
+        if (canManageDictionary()) result.add(DICTIONARY);
+        if (authorization.hasPermission(ScopeContext.get().loginId(), "department:update")) result.add(DEPARTMENT);
+        return List.copyOf(result);
     }
 
     @Transactional(propagation = Propagation.NEVER)
@@ -40,6 +46,11 @@ public class CacheManagementService {
             case "dictionary" -> {
                 if (!canManageDictionary()) throw new ApiException(403, "没有系统共享字典的管理权限");
                 yield BusinessCacheGroups.DICTIONARIES;
+            }
+            case "department" -> {
+                if (!authorization.hasPermission(ScopeContext.get().loginId(), "department:update"))
+                    throw new ApiException(403, "没有部门缓存管理权限");
+                yield BusinessCacheGroups.DEPARTMENTS;
             }
             default -> throw new ApiException(404, "缓存操作不存在");
         };
@@ -58,7 +69,7 @@ public class CacheManagementService {
     private void requirePermission() {
         var identity = ScopeContext.get();
         if (!authorization.hasPermission(identity.loginId(), "cache:user:refresh")) {
-            throw new ApiException(403, "没有当前单位的缓存管理权限");
+            throw new ApiException(403, "没有缓存管理权限");
         }
     }
 }

@@ -12,14 +12,28 @@ public class CacheGroupService {
     private final ScopedHashCache cache;
 
     public void invalidateAfterCommit(CacheGroup group) {
+        invalidate(group, java.util.List.of());
+    }
+
+    /** 共享账号名称变更只失效实际账号，不清除其他账号的名称。 */
+    public void invalidateEntriesAfterCommit(CacheGroup group, java.util.List<String> ids) {
+        if (ids.isEmpty()) throw new IllegalArgumentException("失效记录不能为空");
+        if (ids.stream().anyMatch(id -> id == null || id.isBlank() || id.startsWith("@")))
+            throw new IllegalArgumentException("非法缓存记录编号");
+        invalidate(group, ids.stream().distinct().sorted().toList());
+    }
+
+    private void invalidate(CacheGroup group, java.util.List<String> fields) {
         if (!TransactionSynchronizationManager.isActualTransactionActive()
                 || !TransactionSynchronizationManager.isSynchronizationActive())
             throw new IllegalStateException("业务缓存失效必须在数据库事务内登记");
         var keys = cache.groupKeys(group);
         for (var sync : TransactionSynchronizationManager.getSynchronizations()) {
-            if (sync instanceof Invalidation pending && pending.keys.equals(keys)) return;
+            if (sync instanceof Invalidation pending && pending.keys.equals(keys)) {
+                if (pending.fields.isEmpty() || pending.fields.equals(fields)) return;
+            }
         }
-        TransactionSynchronizationManager.registerSynchronization(new Invalidation(keys));
+        TransactionSynchronizationManager.registerSynchronization(new Invalidation(keys, fields));
     }
 
     public void refresh(CacheGroup group) {
@@ -30,7 +44,8 @@ public class CacheGroupService {
 
     private final class Invalidation implements TransactionSynchronization {
         private final java.util.List<String> keys;
-        private Invalidation(java.util.List<String> keys) { this.keys = keys; }
-        @Override public void afterCommit() { cache.evict(keys, false); }
+        private final java.util.List<String> fields;
+        private Invalidation(java.util.List<String> keys, java.util.List<String> fields) { this.keys = keys; this.fields = fields; }
+        @Override public void afterCommit() { cache.evict(keys, fields, false); }
     }
 }

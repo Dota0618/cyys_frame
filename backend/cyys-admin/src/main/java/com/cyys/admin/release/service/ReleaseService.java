@@ -19,8 +19,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,8 +34,7 @@ public class ReleaseService {
     public IPage<ReleaseView> page(long page,long size,String number) {
         security.authorize("release:read");
         var result=releases.page(new Page<Release>(page,size),number);
-        var labels=labels(result.getRecords());
-        return result.convert(row -> view(row,labels));
+        return result.convert(this::view);
     }
 
     @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
@@ -124,18 +121,12 @@ public class ReleaseService {
         if(type==null) throw new ApiException(409,"版本类型已失效，请重新选择");
         row.setType(value); row.setTypeLabel(type.label());
     }
-    private Map<String,DictionaryOption> labels(List<Release> rows) {
-        if(rows.isEmpty()) return Map.of();
-        return dictionaries.labels(TYPES,rows.stream().map(Release::getType).distinct().toList())
-                .stream().collect(Collectors.toMap(DictionaryOption::value,Function.identity()));
-    }
     private ReleaseDetail detail(Release row) {
-        return new ReleaseDetail(view(row,labels(List.of(row))),attachments.releaseViews(row.getId()));
+        return new ReleaseDetail(view(row),attachments.releaseViews(row.getId()));
     }
-    private ReleaseView view(Release row,Map<String,DictionaryOption> labels) {
-        var type=labels.get(row.getType());
+    private ReleaseView view(Release row) {
         return new ReleaseView(row.getId(),row.getReleaseNumber(),row.getDateUpdate(),row.getType(),
-                type==null?row.getTypeLabel():type.label(),type==null||type.disabled(),row.getContent(),row.getVersion(),row.getCreatedAt());
+                null,null,row.getContent(),row.getVersion(),row.getCreatedAt());
     }
     private static void requireOne(int count) {
         if(count!=1) throw new ApiException(409,"版本记录已变化，请刷新后重试");

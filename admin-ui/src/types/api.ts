@@ -44,7 +44,7 @@ export interface DepartmentOption extends Option { parentId?: string }
 export interface DepartmentLeaderOption extends Option { disabled: boolean }
 export interface Department {
   id: string; scopeId: string; parentId?: string; name: string; code?: string;
-  leaderId?: string; leaderName?: string; leaderActive: boolean; version: number;
+  leaderId?: string; leaderName?: string; leaderActive?: boolean; version: number;
 }
 export interface CreateDepartment { name: string; code?: string; parentId?: string; leaderId?: string }
 export interface EditDepartment { id: string; version: number; name: string; leaderId?: string }

@@ -184,7 +184,7 @@ class MultiScopeIsolationTest extends IsolationTestSupport {
     }
 
     @Test
-    void cacheHitStillChecksPermissionAndMembershipAndRefreshIsScoped() throws Exception {
+    void cachedNamesAllowCrossUnitTargetsWhileEndpointPermissionStillApplies() throws Exception {
         for (String role : List.of("role-a","role-b")) {
             allow(role,"user:display:read",false);
             allow(role,"cache:user:refresh",false);
@@ -192,11 +192,11 @@ class MultiScopeIsolationTest extends IsolationTestSupport {
         String alice=token("alice"),bob=token("bob");
         assertThat(ok("GET","/user-names?ids=u-alice",alice,"scope-a",null).raw()).contains("alice");
         ok("GET","/user-names?ids=u-bob",bob,"scope-b",null);
-        as("u-alice","scope-a"); String a=keys.unit("user-display"); ScopeContext.clear();
-        as("u-bob","scope-b"); String b=keys.unit("user-display"); ScopeContext.clear();
+        as("u-alice","scope-a"); String a=keys.platform("user-records"); ScopeContext.clear();
+        as("u-bob","scope-b"); String b=keys.platform("user-records"); ScopeContext.clear();
         assertThat(redis.hasKey(a)).isTrue(); assertThat(redis.hasKey(b)).isTrue();
         assertThat(redis.getExpire(a)).isBetween(1L,600L);
-        assertThat(call("GET","/user-names?ids=u-bob",alice,"scope-a",null).status()).isEqualTo(403);
+        assertThat(call("GET","/user-names?ids=u-bob",alice,"scope-a",null).status()).isEqualTo(200);
         jdbc.update("update sys_menu set status=0 where code='user:display:read'");
         assertThat(call("GET","/user-names?ids=u-alice",alice,"scope-a",null).status()).isEqualTo(403);
         jdbc.update("update sys_menu set status=1 where code='user:display:read'");
@@ -205,7 +205,7 @@ class MultiScopeIsolationTest extends IsolationTestSupport {
         finally { ScopeContext.clear(); }
         assertThat(redis.hasKey(a)).isTrue();
         ok("POST","/user-cache-refresh",alice,"scope-a",null);
-        assertThat(redis.hasKey(a)).isFalse(); assertThat(redis.hasKey(b)).isTrue();
+        assertThat(redis.hasKey(a)).isFalse(); assertThat(redis.hasKey(b)).isFalse();
         ok("GET","/user-names?ids=u-alice",alice,"scope-a",null);
         jdbc.update("update sys_user_scope set status=0 where user_id='u-alice'");
         assertThat(call("GET","/user-names?ids=u-alice",alice,"scope-a",null).status()).isEqualTo(403);

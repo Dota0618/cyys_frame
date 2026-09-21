@@ -24,10 +24,17 @@ public final class ScopedHashCache {
     private static final String GENERATION = "@generation";
     private static final DefaultRedisScript<String> OPEN_SCRIPT = script("redis/bounded-hash-open.lua", String.class);
     private static final DefaultRedisScript<Long> FILL_SCRIPT = script("redis/bounded-hash-fill.lua", Long.class);
+    private static final DefaultRedisScript<Long> EVICT_FIELDS_SCRIPT = script("redis/bounded-hash-evict-fields.lua", Long.class);
     private final StringRedisTemplate redis;
     private final CacheKeys keys;
 
     public Map<String, String> getOrLoad(CacheRegion region, List<String> fields,
+                                       Function<List<String>, Map<String, String>> loader) {
+        return getOrLoad(region, region.scope() == CacheScope.UNIT
+                ? com.cyys.common.satoken.ScopeContext.get().requireScopeId() : null, fields, loader);
+    }
+
+    public Map<String, String> getOrLoad(CacheRegion region, String scopeId, List<String> fields,
                                        Function<List<String>, Map<String, String>> loader) {
         if (fields.isEmpty()) return Map.of();
         var unique = fields.stream().distinct().toList();
@@ -38,7 +45,7 @@ public final class ScopedHashCache {
                 || !Integer.valueOf(java.sql.Connection.TRANSACTION_READ_COMMITTED).equals(
                     TransactionSynchronizationManager.getCurrentTransactionIsolationLevel())))
             return Map.copyOf(loader.apply(unique));
-        String key = key(region);
+        String key = region.scope() == CacheScope.UNIT ? keys.unit(scopeId, region.id()) : keys.platform(region.id());
         String generation = null;
         Map<String, String> result = new LinkedHashMap<>();
         try {
@@ -83,9 +90,19 @@ public final class ScopedHashCache {
     }
 
     void evict(List<String> groupKeys, boolean required) {
+        evict(groupKeys, List.of(), required);
+    }
+
+    void evict(List<String> groupKeys, List<String> fields, boolean required) {
         try {
             // 单次 DEL 覆盖固定组内键；不扫描，不触及会话或其他单位。
-            if (redis.delete(groupKeys) == null) throw new org.springframework.data.redis.RedisSystemException("Missing eviction result", null);
+            Long result;
+            if (fields.isEmpty()) result = redis.delete(groupKeys);
+            else {
+                var arguments = new ArrayList<String>(); arguments.add(UUID.randomUUID().toString()); arguments.addAll(fields);
+                result = redis.execute(EVICT_FIELDS_SCRIPT, groupKeys, arguments.toArray());
+            }
+            if (result == null) throw new org.springframework.data.redis.RedisSystemException("Missing eviction result", null);
         } catch (DataAccessException unavailable) {
             if (required) throw new com.cyys.common.web.ApiException(503, "缓存服务暂不可用，请稍后重试");
             LOG.warn("Cache group eviction unavailable; entries remain bounded by TTL, regions={}", groupKeys.size());

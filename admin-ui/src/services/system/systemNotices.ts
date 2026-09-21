@@ -4,7 +4,7 @@ import { api } from '@/utils/request';
 
 export interface SystemNoticeCommand { title: string; type: string; content: string; visible: boolean }
 export interface SystemNotice extends SystemNoticeCommand {
-  id: string; typeLabel: string; typeDisabled: boolean; version: number; createdAt: string;
+  id: string; typeLabel?: string; typeDisabled?: boolean; version: number; createdAt: string;
 }
 const root = '/api/admin/platform/system-notices';
 export const listSystemNotices = (page: number, size: number, title = '') =>

@@ -16,7 +16,11 @@ public class CacheKeys {
     }
 
     public String unit(String feature) {
-        return prefix + ":unit:" + segment(ScopeContext.get().requireScopeId()) + ":" + segment(feature);
+        return unit(ScopeContext.get().requireScopeId(), feature);
+    }
+
+    public String unit(String scopeId, String feature) {
+        return prefix + ":unit:" + segment(scopeId) + ":" + segment(feature);
     }
 
     public String platform(String feature) { return prefix + ":platform:" + segment(feature); }

@@ -4,14 +4,14 @@ import type { Page, DepartmentOption } from '@/types/api';
 export interface DictionaryOption { value: string; label: string; disabled: boolean }
 export interface Attachment { id: string; name: string; byteSize?: number; available?: boolean }
 export interface OrgNotice {
-  id: string; departmentId: string; departmentName: string; title: string;
-  type?: string; typeLabel?: string; typeDisabled: boolean; version: number;
+  id: string; departmentId: string; departmentName?: string; title: string;
+  type?: string; typeLabel?: string; typeDisabled?: boolean; version: number;
   readCount: number; read: boolean; createdAt: string;
 }
 export interface NoticeDetail { notice: OrgNotice; content: string; attachments: Attachment[] }
 export interface NoticeOptions { departments: DepartmentOption[]; types: DictionaryOption[] }
 export interface NoticeCommand { title: string; type?: string | null; content: string; attachments: string[] }
-export interface NoticeReader { userId: string; userName: string; firstReadAt: string }
+export interface NoticeReader { userId: string; userName?: string; firstReadAt: string }
 const base = '/api/admin/org-notices';
 const paging = (page: number, size: number, name: string, search?: string) => {
   const query = new URLSearchParams({ page: String(page), size: String(size) }); if (search) query.set(name, search); return query;
