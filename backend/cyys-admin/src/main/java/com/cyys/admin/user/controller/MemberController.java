@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -37,11 +38,11 @@ public class MemberController {
         }
     }
     @GetMapping @SaCheckPermission("user:read")
-    public Object page(@RequestParam(defaultValue="1") long page,@RequestParam(defaultValue="20") long size,@RequestParam(required=false) String name) {
+    public Object page(@RequestParam(defaultValue="1") @Min(1) long page,@RequestParam(defaultValue="20") @Min(1) @Max(200) long size,@RequestParam(required=false) @Size(max=100) String name) {
         return R.ok(service.page(new MemberQuery(page,size,name)));
     }
     @GetMapping("/all") @AuthorizedScopesRead @SaCheckPermission("user:read")
-    public Object all(@RequestParam(defaultValue="1") long page,@RequestParam(defaultValue="20") long size) {
+    public Object all(@RequestParam(defaultValue="1") @Min(1) long page,@RequestParam(defaultValue="20") @Min(1) @Max(200) long size) {
         return R.ok(service.all(new MemberQuery(page,size,null)));
     }
     @GetMapping("/{id}") @SaCheckPermission("user:read")
@@ -51,7 +52,7 @@ public class MemberController {
     @PutMapping("/{id}") @SaCheckPermission("user:update")
     public Object edit(@PathVariable String id,@Valid @RequestBody UpdateMemberCommand command) {return R.ok(service.edit(id,command));}
     @PutMapping("/{id}/roles") @SaCheckPermission("role:grant")
-    public Object grant(@PathVariable String id,@RequestBody List<String> roles) {service.grantRoles(id,roles);return R.ok();}
+    public Object grant(@PathVariable @NotBlank @Size(max=32) String id,@RequestBody @NotNull @Size(max=100) List<@NotBlank String> roles) {service.grantRoles(id,roles);return R.ok();}
     @GetMapping("/departments") @SaCheckPermission("user:read")
     public Object departments() {return R.ok(service.departments());}
     @GetMapping("/roles") @SaCheckPermission("role:grant")

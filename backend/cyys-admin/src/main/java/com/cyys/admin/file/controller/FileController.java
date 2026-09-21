@@ -5,18 +5,17 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.cyys.admin.file.dto.*;
 import com.cyys.admin.file.service.FileService;
 import com.cyys.common.web.R;
+import com.cyys.common.validation.SafeFileName;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import com.cyys.common.web.DownloadResponse;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 
-@Validated
 @RestController
 @RequestMapping("/api/admin/files")
 @RequiredArgsConstructor
@@ -32,7 +31,7 @@ public class FileController {
     }
 
     @PostMapping(consumes="multipart/form-data") @SaCheckPermission("file:upload")
-    public R<FileView> upload(@RequestPart("file") MultipartFile file,
+    public R<FileView> upload(@RequestPart("file") @SafeFileName MultipartFile file,
                               @RequestParam(required=false) @Size(max=32) String directoryId) { return R.ok(service.upload(file,directoryId)); }
 
     @PostMapping("/move") @SaCheckPermission("file:move")

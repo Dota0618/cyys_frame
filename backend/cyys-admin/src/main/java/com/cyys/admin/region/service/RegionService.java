@@ -86,8 +86,8 @@ public class RegionService {
 
     @Transactional
     public void delete(List<RegionVersionReference> commands) {
-        if(commands.isEmpty() || commands.size()>100 || commands.stream().map(RegionVersionReference::id).distinct().count()!=commands.size())
-            throw new ApiException(400,"每次删除 1–100 条且不能重复");
+        if(commands.stream().map(RegionVersionReference::id).distinct().count()!=commands.size())
+            throw new ApiException(400,"批量记录不能重复");
         var ordered=commands.stream().sorted(Comparator.comparing(RegionVersionReference::id)).toList();
         for(var command:ordered) {
             var row=require(command.id(),true);

@@ -6,18 +6,13 @@ import com.cyys.common.mybatis.DataPolicyRegistry;
 import com.cyys.common.mybatis.DataTransactionGuard;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.web.ApiException;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.annotation.Validated;
 import java.util.List;
 import java.util.Set;
 
 @Service
-@Validated
 @RequiredArgsConstructor
 public class RoleGrantService {
     private final RoleGrantMapper mapper;
@@ -40,8 +35,8 @@ public class RoleGrantService {
     }
 
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
-    public void replaceRoles(@NotBlank @Size(max=32) String userId,
-                                 @NotNull @Size(max=100) List<@NotBlank String> roleIds) {
+    public void replaceRoles(String userId,
+                                 List<String> roleIds) {
         var identity = ScopeContext.get();
         String scope = identity.requireScopeId();
         DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);

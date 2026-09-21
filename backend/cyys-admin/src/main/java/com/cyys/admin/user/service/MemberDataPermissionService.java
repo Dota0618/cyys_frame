@@ -7,17 +7,14 @@ import com.cyys.admin.user.mapper.MemberDataPermissionMapper;
 import com.cyys.admin.user.model.SysUserScope;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.web.ApiException;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.annotation.Validated;
 import java.util.HashSet;
 import java.util.Objects;
 
 @Service
-@Validated
 @RequiredArgsConstructor
 public class MemberDataPermissionService {
     private final MemberDataPermissionMapper mapper;
@@ -36,7 +33,7 @@ public class MemberDataPermissionService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public MemberDataPermissionView update(String id, @Valid UpdateMemberDataPermissionCommand command) {
+    public MemberDataPermissionView update(String id, UpdateMemberDataPermissionCommand command) {
         var identity = ScopeContext.get();
         var member = lockForUpdate(id, command.version());
         String scope = member.getScopeId();

@@ -9,15 +9,11 @@ import com.cyys.admin.role.service.RoleService;
 import com.cyys.common.web.R;
 import com.cyys.common.web.PlatformControl;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@Validated
 @RequiredArgsConstructor
 @PlatformControl
 @RequestMapping("/api/admin/roles")
@@ -26,9 +22,9 @@ public class RoleController {
 
     @GetMapping
     @SaCheckPermission("role:read")
-    public Object page(@RequestParam(defaultValue = "1") long page,
-                       @RequestParam(defaultValue = "20") long size,
-                       @RequestParam(required = false) String search) {
+    public Object page(@RequestParam(defaultValue = "1") @Min(1) long page,
+                       @RequestParam(defaultValue = "20") @Min(1) @Max(200) long size,
+                       @RequestParam(required = false) @Size(max=100) String search) {
         return R.ok(service.page(new RoleQuery(page, size, search)));
     }
 
@@ -38,9 +34,9 @@ public class RoleController {
 
     @GetMapping("/accounts")
     @SaCheckPermission("role:grant")
-    public Object accounts(@RequestParam(defaultValue = "1") long page,
-                           @RequestParam(defaultValue = "20") long size,
-                           @RequestParam(required = false) String search) {
+    public Object accounts(@RequestParam(defaultValue = "1") @Min(1) long page,
+                           @RequestParam(defaultValue = "20") @Min(1) @Max(200) long size,
+                           @RequestParam(required = false) @Size(max=100) String search) {
         return R.ok(service.accounts(new RoleQuery(page, size, search)));
     }
 

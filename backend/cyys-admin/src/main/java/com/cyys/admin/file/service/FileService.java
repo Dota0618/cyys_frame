@@ -86,7 +86,7 @@ public class FileService {
 
     @Transactional(propagation = Propagation.NEVER)
     public FileView upload(MultipartFile source, String directoryId) {
-        String name = safeName(source.getOriginalFilename());
+        String name = source.getOriginalFilename().strip();
         var target = storage.active();
         if (source.getSize() > target.maxBytes()) throw new ApiException(413, "文件超过允许大小");
         // 先登记对象位置，再写物理文件；崩溃后仍有 UPLOADING 记录供核对，不产生无主路径。
@@ -158,7 +158,7 @@ public class FileService {
     public FileView rename(String id, FileRenameCmd command) {
         FileEntry file = mapper.lock(id);
         if (file == null || !file.getVersion().equals(command.version())) throw new ApiException(409, "文件不可修改或版本已变化");
-        file.setName(safeName(command.name()));
+        file.setName(command.name().strip());
         requireOne(mapper.updateById(file));
         audit.success("file", id, "UPDATE");
         return FileView.from(file);
@@ -210,14 +210,6 @@ public class FileService {
 
     static void validateDistinct(List<FileVersionReference> commands) {
         if(commands.stream().map(FileVersionReference::id).distinct().count()!=commands.size()) throw new ApiException(400,"批次不能包含重复文件");
-    }
-
-    static String safeName(String value) {
-        if (value == null || value.isBlank() || value.length() > 200 || value.equals(".") || value.equals("..")
-                || value.indexOf('/') >= 0 || value.indexOf('\\') >= 0 || value.codePoints().anyMatch(Character::isISOControl)) {
-            throw new ApiException(400, "文件名不能为空、超过200字或包含路径和控制字符");
-        }
-        return value.strip();
     }
 
     private static void requireOne(int count) {

@@ -45,7 +45,7 @@ public class ResumableUploadService {
         directories.requireTarget(command.directoryId());
         FileEntry file = new FileEntry();
         file.setDirId(command.directoryId());
-        file.setName(FileService.safeName(command.name()));
+        file.setName(command.name().strip());
         file.setOrgId(owners.department(identity.loginId(), identity.requireScopeId()));
         file.setStorageProfile(target.profileId()); file.setObjectKey(ConfiguredStorage.newKey());
         file.setState("UPLOADING"); file.setExpectedBytes(command.bytes()); file.setPartBytes(limits.partBytes());

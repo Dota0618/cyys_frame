@@ -8,6 +8,7 @@ import com.cyys.admin.department.dto.DepartmentQuery;
 import com.cyys.admin.department.service.DepartmentService;
 import com.cyys.common.web.R;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -20,9 +21,9 @@ public class DepartmentController {
 
     @GetMapping
     @SaCheckPermission("department:read")
-    public Object page(@RequestParam(defaultValue = "1") long page,
-                       @RequestParam(defaultValue = "20") long size,
-                       @RequestParam(required = false) String search) {
+    public Object page(@RequestParam(defaultValue = "1") @Min(1) long page,
+                       @RequestParam(defaultValue = "20") @Min(1) @Max(200) long size,
+                       @RequestParam(required = false) @Size(max=100) String search) {
         return R.ok(service.page(new DepartmentQuery(page, size, search)));
     }
 
@@ -40,13 +41,13 @@ public class DepartmentController {
 
     @GetMapping("/leader-options/create")
     @SaCheckPermission("department:create")
-    public Object createLeaderOptions(@RequestParam(required = false) String search) {
+    public Object createLeaderOptions(@RequestParam(required = false) @Size(max=100) String search) {
         return R.ok(service.leaderOptionsForCreate(search));
     }
 
     @GetMapping("/{id}/leader-options")
     @SaCheckPermission("department:update")
-    public Object updateLeaderOptions(@PathVariable String id, @RequestParam(required = false) String search) {
+    public Object updateLeaderOptions(@PathVariable String id, @RequestParam(required = false) @Size(max=100) String search) {
         return R.ok(service.leaderOptionsForUpdate(id, search));
     }
 
@@ -70,7 +71,7 @@ public class DepartmentController {
 
     @DeleteMapping
     @SaCheckPermission("department:delete")
-    public Object delete(@RequestBody List<DepartmentVersionedId> commands) {
+    public Object delete(@RequestBody @NotEmpty @Size(max=100) List<@NotNull @Valid DepartmentVersionedId> commands) {
         service.deleteBatch(commands);
         return R.ok();
     }

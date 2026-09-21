@@ -11,6 +11,7 @@ import com.cyys.admin.user.service.UserDisplayService;
 import com.cyys.common.web.AuthorizedScopesRead;
 import com.cyys.common.web.R;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -30,8 +31,8 @@ public class IsolationProbe {
 
     @GetMapping("/departments")
     @SaCheckPermission("department:read")
-    Object page(@RequestParam(defaultValue="1") long page, @RequestParam(defaultValue="20") long size,
-                @RequestParam(required=false) String search) {
+    Object page(@RequestParam(defaultValue="1") @Min(1) long page, @RequestParam(defaultValue="20") @Min(1) @Max(200) long size,
+                @RequestParam(required=false) @Size(max=100) String search) {
         return R.ok(departments.page(new DepartmentQuery(page,size,search)));
     }
     @GetMapping("/departments/{id}")
@@ -42,13 +43,13 @@ public class IsolationProbe {
     Object create(@Valid @RequestBody CreateDepartmentCommand command) { return R.ok(departments.create(command)); }
     @PostMapping("/batch-create")
     @SaCheckPermission("department:create")
-    Object createBatch(@RequestBody List<CreateDepartmentCommand> commands) { return R.ok(departments.createBatch(commands)); }
+    Object createBatch(@RequestBody @NotEmpty @Size(max=100) List<@NotNull @Valid CreateDepartmentCommand> commands) { return R.ok(departments.createBatch(commands)); }
     @PutMapping("/departments")
     @SaCheckPermission("department:update")
     Object edit(@Valid @RequestBody UpdateDepartmentCommand command) { return R.ok(departments.edit(command)); }
     @PostMapping("/batch-delete")
     @SaCheckPermission("department:delete")
-    Object delete(@RequestBody List<DepartmentVersionedId> commands) { departments.deleteBatch(commands); return R.ok(); }
+    Object delete(@RequestBody @NotEmpty @Size(max=100) List<@NotNull @Valid DepartmentVersionedId> commands) { departments.deleteBatch(commands); return R.ok(); }
     @GetMapping("/global")
     @AuthorizedScopesRead
     @SaCheckPermission("department:read")
@@ -77,10 +78,10 @@ public class IsolationProbe {
         });
     }
     @PostMapping("/roles/{user}")
-    Object grant(@PathVariable String user, @RequestBody List<String> roles) { grants.replaceRoles(user,roles); return R.ok(); }
+    Object grant(@PathVariable @NotBlank @Size(max=32) String user, @RequestBody @NotNull @Size(max=100) List<@NotBlank String> roles) { grants.replaceRoles(user,roles); return R.ok(); }
     @GetMapping("/user-names")
     @SaCheckPermission("user:display:read")
-    Object names(@RequestParam List<String> ids) { return R.ok(users.names(ids)); }
+    Object names(@RequestParam @NotEmpty @Size(max=100) List<@NotBlank String> ids) { return R.ok(users.names(ids)); }
     @PostMapping("/user-cache-refresh")
     Object refresh() { caches.refresh("user-display"); return R.ok(); }
 }

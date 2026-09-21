@@ -19,16 +19,13 @@ import com.cyys.admin.role.mapper.RoleMapper;
 import com.cyys.admin.role.model.SysRole;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.web.ApiException;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.annotation.Validated;
 import java.util.*;
 
 @Service
-@Validated
 @RequiredArgsConstructor
 public class RoleService {
     private final RoleMapper mapper;
@@ -36,7 +33,7 @@ public class RoleService {
     private final DataAuditService audit;
 
     @Transactional(readOnly = true)
-    public IPage<RoleView> page(@Valid RoleQuery query) {
+    public IPage<RoleView> page(RoleQuery query) {
         Page<SysRole> page = new Page<>(query.page(), query.size());
         page.setOptimizeCountSql(false);
         return mapper.page(page, query.search()).convert(RoleView::from);
@@ -59,7 +56,7 @@ public class RoleService {
     }
 
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
-    public RoleView create(@Valid CreateRoleCommand command) {
+    public RoleView create(CreateRoleCommand command) {
         Set<String> ceiling = security.permissionCeiling();
         validateSelections(command.menuIds(), ceiling);
         var role = new SysRole();
@@ -77,7 +74,7 @@ public class RoleService {
     }
 
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
-    public RoleView edit(@Valid UpdateRoleCommand command) {
+    public RoleView edit(UpdateRoleCommand command) {
         security.lockAdministratorGuard();
         Set<String> ceiling = security.permissionCeiling();
         SysRole role = requireRole(mapper.lock(command.id()));
@@ -112,7 +109,7 @@ public class RoleService {
     }
 
     @Transactional(readOnly = true)
-    public IPage<AccountView> accounts(@Valid RoleQuery query) {
+    public IPage<AccountView> accounts(RoleQuery query) {
         security.requireAllDataRange();
         Page<AccountRow> page = new Page<>(query.page(), query.size());
         page.setOptimizeCountSql(false);
@@ -121,7 +118,7 @@ public class RoleService {
     }
 
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
-    public void assign(String userId, @Valid AssignRolesCommand command) {
+    public void assign(String userId, AssignRolesCommand command) {
         security.lockAdministratorGuard();
         Set<String> ceiling = security.permissionCeiling();
         security.requireAllDataRange();

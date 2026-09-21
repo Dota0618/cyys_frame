@@ -10,17 +10,14 @@ import com.cyys.admin.menu.mapper.SysMenuMapper;
 import com.cyys.admin.menu.model.SysMenu;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.web.ApiException;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.annotation.Validated;
 import java.util.List;
 import java.util.Objects;
 
 @Service
-@Validated
 @RequiredArgsConstructor
 public class MenuService {
     private static final String ROOT = "0";
@@ -40,7 +37,7 @@ public class MenuService {
     }
 
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
-    public MenuView create(@Valid CreateMenuCommand command) {
+    public MenuView create(CreateMenuCommand command) {
         validateParent(command.parentId(), null, command.type());
         var menu = new SysMenu();
         menu.setId(IdWorker.getIdStr());
@@ -59,7 +56,7 @@ public class MenuService {
     }
 
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
-    public MenuView edit(@Valid UpdateMenuCommand command) {
+    public MenuView edit(UpdateMenuCommand command) {
         security.lockAdministratorGuard();
         SysMenu menu = requireMenu(mapper.lock(command.id()));
         if (!Objects.equals(menu.getVersion(), command.version())) throw new ApiException(409, "菜单版本已变更");

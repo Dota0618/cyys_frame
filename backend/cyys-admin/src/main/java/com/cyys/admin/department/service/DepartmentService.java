@@ -20,20 +20,14 @@ import com.cyys.admin.department.mapper.SysOrgMapper;
 import com.cyys.admin.department.model.SysOrg;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.web.ApiException;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.annotation.Validated;
 import java.util.*;
 
 /** 受保护的单位部门资源；查询和写入均由 Mapper 数据策略限定。 */
 @Service
-@Validated
 @RequiredArgsConstructor
 public class DepartmentService {
     private final SysOrgMapper mapper;
@@ -43,7 +37,7 @@ public class DepartmentService {
     private final CacheGroupService caches;
 
     @Transactional(readOnly = true)
-    public IPage<DepartmentView> page(@Valid DepartmentQuery query) {
+    public IPage<DepartmentView> page(DepartmentQuery query) {
         Page<SysOrg> page = new Page<>(query.page(), query.size());
         page.setOptimizeCountSql(false);
         var wrapper = new QueryWrapper<SysOrg>().like(query.search() != null && !query.search().isBlank(), "name", query.search())
@@ -70,12 +64,12 @@ public class DepartmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<DepartmentLeaderOption> leaderOptionsForCreate(@Size(max = 100) String search) {
+    public List<DepartmentLeaderOption> leaderOptionsForCreate(String search) {
         return leaders.activeOptions(ScopeContext.get().requireScopeId(), search);
     }
 
     @Transactional(readOnly = true)
-    public List<DepartmentLeaderOption> leaderOptionsForUpdate(String id, @Size(max = 100) String search) {
+    public List<DepartmentLeaderOption> leaderOptionsForUpdate(String id, String search) {
         SysOrg org = mapper.selectForUpdateOptions(id);
         if (org == null) throw new ApiException(404, "记录不存在或不可修改");
         List<DepartmentLeaderOption> options = new ArrayList<>(
@@ -95,10 +89,10 @@ public class DepartmentService {
     }
 
     @Transactional
-    public DepartmentView create(@Valid CreateDepartmentCommand command) { return insert(command); }
+    public DepartmentView create(CreateDepartmentCommand command) { return insert(command); }
 
     @Transactional
-    public List<DepartmentView> createBatch(@NotEmpty @Size(max=100) List<@NotNull @Valid CreateDepartmentCommand> commands) {
+    public List<DepartmentView> createBatch(List<CreateDepartmentCommand> commands) {
         return commands.stream().map(this::insert).toList();
     }
 
@@ -131,7 +125,7 @@ public class DepartmentService {
     }
 
     @Transactional
-    public DepartmentView edit(@Valid UpdateDepartmentCommand command) {
+    public DepartmentView edit(UpdateDepartmentCommand command) {
         SysOrg org = mapper.selectForUpdate(command.id());
         if (org == null || !org.getVersion().equals(command.version())) throw new ApiException(409, "记录不可修改或版本已变更");
         if (command.leaderId() != null && !Objects.equals(command.leaderId(), org.getLeaderId())) {
@@ -146,7 +140,7 @@ public class DepartmentService {
     }
 
     @Transactional
-    public void deleteBatch(@NotEmpty @Size(max=100) List<@NotNull @Valid DepartmentVersionedId> commands) {
+    public void deleteBatch(List<DepartmentVersionedId> commands) {
         List<String> ids = commands.stream().map(DepartmentVersionedId::id).distinct().toList();
         if (ids.size() != commands.size()) throw new ApiException(400, "批量记录不能重复");
         var records = mapper.selectForDelete(ids).stream().collect(java.util.stream.Collectors.toMap(SysOrg::getId, org -> org));
