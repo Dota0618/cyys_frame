@@ -80,6 +80,7 @@ export default [
   },
   { path: '/system/files', name: '文件管理', icon: 'FileOutlined', access: 'canOpenFiles', component: './system/files' },
   { path: '/system/file-recycle', name: '文件回收站', icon: 'DeleteOutlined', access: 'canOpenFileRecycle', component: './system/file-recycle' },
+  { path: '/system/recycle', name: '数据回收站', icon: 'DeleteOutlined', access: 'canReadRecycle', component: './system/recycle' },
   { path: '/system/org-notices', name: '单位通知', icon: 'NotificationOutlined', access: 'canReadOrgNotices', component: './system/org-notices' },
   { path: '/system/system-notices', name: '系统通知', icon: 'NotificationOutlined', access: 'canReadSystemNotices', component: './system/system-notices' },
   { path: '/system/releases', name: '版本更新', icon: 'HistoryOutlined', access: 'canReadReleases', component: './system/releases' },

@@ -85,7 +85,6 @@ public class ReleaseService {
     public void delete(String id,int version) {
         var row=require(id,true);
         if(row.getVersion()!=version) throw new ApiException(409,"版本记录已变化，请刷新后重试");
-        attachments.replaceRelease(id,List.of());
         requireOne(releases.softDelete(id,version,ScopeContext.get().loginId()));
         audit.platformSuccess("release",id,"DELETE");
     }

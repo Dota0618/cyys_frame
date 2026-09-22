@@ -22,4 +22,6 @@ public interface OrgNoticeReadMapper {
     @Select("select r.user_id,null as user_name,r.first_read_at from sys_org_notice_ref r " +
             "where r.scope_id=#{scope} and r.notice_id=#{notice} order by r.first_read_at desc,r.user_id")
     IPage<OrgNoticeReadView> page(Page<OrgNoticeReadView> page,@Param("scope") String scope,@Param("notice") String notice);
+    @Delete("delete from sys_org_notice_ref where scope_id=#{scope} and notice_id=#{notice}")
+    int clear(@Param("scope") String scope, @Param("notice") String notice);
 }

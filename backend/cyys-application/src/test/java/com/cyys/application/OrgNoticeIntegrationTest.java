@@ -110,7 +110,7 @@ class OrgNoticeIntegrationTest extends IsolationTestSupport {
         assertThat(update(id,alice,0,List.of(foreign),"normal").status()).isEqualTo(409);
         assertThat(request("GET",BASE+"/"+id,alice,"scope-a",null).body().at("/data/attachments/0/id").asText()).isEqualTo(local);
         assertThat(request("DELETE",BASE+"/"+id+"?version=0",alice,"scope-a",null).status()).isEqualTo(200);
-        assertThat(count("select count(*) from sys_file_binding")).isZero();
+        assertThat(count("select count(*) from sys_file_binding")).isEqualTo(1);
         assertThat(CLIENT.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/api/admin/files/"+local+"/content"))
                 .header("Authorization","Bearer "+alice).header("X-Cyys-Scope-Id","scope-a").GET().build(),HttpResponse.BodyHandlers.ofByteArray()).statusCode()).isEqualTo(200);
     }

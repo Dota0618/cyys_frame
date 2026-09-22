@@ -89,6 +89,26 @@ public class FileAttachmentService {
         catch(IOException error) { throw new ApiException(503,"附件内容暂不可用"); }
     }
 
+    /** 调用方已锁定并授权回收站父记录；锁定附件后复核可恢复状态。 */
+    @Transactional(propagation=Propagation.MANDATORY)
+    public void validateRecycled(String scope, AttachmentResource resource, String record) {
+        for (String id : new TreeSet<>(bindings.ids(scope, resource, record))) {
+            var file = bindings.lockExisting(bindings.fileScope(scope, resource, record, id), id);
+            if (file == null || file.getDeleted() != 0 || !"READY".equals(file.getState())) {
+                throw new ApiException(409, "关联附件已失效，请先恢复附件后重试");
+            }
+        }
+    }
+
+    /** 只解除已授权父记录的关系，文件对象继续由文件回收站维护。 */
+    @Transactional(propagation=Propagation.MANDATORY)
+    public void clearRecycled(String scope, AttachmentResource resource, String record) {
+        for (String id : new TreeSet<>(bindings.ids(scope, resource, record))) {
+            bindings.lockExisting(bindings.fileScope(scope, resource, record, id), id);
+        }
+        bindings.clear(scope, resource, record);
+    }
+
     @Transactional(propagation=Propagation.MANDATORY)
     public void requireUnbound(FileEntry file) {
         if(bindings.firstReference(file.getScopeId(),file.getId())!=null) throw new ApiException(409,"文件仍被业务引用，请先解除附件关联");

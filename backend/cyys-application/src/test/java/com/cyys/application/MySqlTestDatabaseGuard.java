@@ -71,7 +71,11 @@ public class MySqlTestDatabaseGuard implements ApplicationContextInitializer<Con
                 for (String table : actualTables) {
                     if (table.equals("flyway_schema_history")) continue;
                     String seedFilter = table.equals("sys_menu")
-                            ? " where not (id='perm-user-data-permission' and code='user:data-permission' and type=3 and created_by='migration-v21')" : "";
+                            ? " where not ((id='perm-user-data-permission' and code='user:data-permission' and type=3 and created_by='migration-v21')"
+                              + " or (created_by='migration-v27' and ((id='nav-menu-data-recycle' and code='nav:menu:data-recycle' and type=2)"
+                              + " or (id='perm-recycle-read' and code='recycle:read' and type=3)"
+                              + " or (id='perm-recycle-restore' and code='recycle:restore' and type=3)"
+                              + " or (id='perm-recycle-purge' and code='recycle:purge' and type=3))))" : "";
                     try (var rows = statement.executeQuery("select 1 from " + table + seedFilter + " limit 1")) {
                         if (rows.next()) {
                             throw new IllegalStateException("测试拒绝含已有数据的 schema（" + table

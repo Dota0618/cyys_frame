@@ -409,6 +409,9 @@ WHERE rm.deleted=0) g
 WHERE NOT EXISTS(SELECT 1 FROM sys_role_menu e WHERE e.role_id=g.role_id AND e.menu_id=g.menu_id);
 
 -- 当前模型只开放一个角色目录；代码生成器按本轮范围暂停。
+UPDATE sys_menu m JOIN sys_menu p ON p.code='nav:group:system'
+SET m.parent_id=p.id,m.version=m.version+1 WHERE m.code='nav:menu:data-recycle' AND m.parent_id='0';
+
 UPDATE sys_menu SET status=0,visible=0,version=version+1 WHERE code LIKE 'platform:role:%' OR path='/system/platform-roles' OR code IN ('nav:menu:generator','generator:read','generator:generate');
 UPDATE sys_menu SET name='机构管理',version=version+1 WHERE code='nav:menu:scopes';
 UPDATE sys_menu SET name='菜单管理',version=version+1 WHERE path='/system/platform-menus';

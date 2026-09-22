@@ -26,9 +26,9 @@
 
 | 缓存组 | 已使用处 | 提交后失效入口 |
 |---|---|---|
-| 用户 | `OrgNoticeReadView.userName`、`DepartmentView.leaderName/leaderActive`、`UserDisplayService.names` | `MemberService.create/edit`，仅对应用户 ID |
-| 单位 | `ScopeInfo.name`：登录资料、当前用户资料、右上角单位列表、工作台；`MemberView.scopeName`：用户列表、详情 | `ScopeManagementService.create/update`，仅对应单位 ID；当前没有单位删除入口 |
-| 部门 | `OrgNoticeView.departmentName`；`MemberView.orgName`：用户列表、详情、导出，按记录实际单位取值 | `DepartmentService` 新增、修改、删除，失效对应单位部门组 |
+| 用户 | `OrgNoticeReadView.userName`、`DepartmentView.leaderName/leaderActive`、`UserDisplayService.names`、`RecycleRecord.deletedByName` | `MemberService.create/edit`，仅对应用户 ID |
+| 单位 | `ScopeInfo.name`：登录资料、当前用户资料、右上角单位列表、工作台；`MemberView.scopeName`：用户列表、详情；`RecycleRecord.scopeName` | `ScopeManagementService.create/update`，仅对应单位 ID；当前没有单位删除入口 |
+| 部门 | `OrgNoticeView.departmentName`；`MemberView.orgName`：用户列表、详情、导出；`RecycleRecord.departmentName`，按记录实际单位取值 | `DepartmentService` 新增、修改、删除，失效对应单位部门组 |
 | 字典 | `OrgNoticeView`、`SystemNoticeView`、`ReleaseView` 的类型名称/状态；`OrgNoticeOptions.types`、系统通知/版本候选列表 | `DictionaryService` 分类和字典项增删改，同时失效记录与列表缓存 |
 
 ## 用法

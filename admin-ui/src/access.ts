@@ -11,6 +11,7 @@ export default (initialState?: { user?: UserInfo }) => {
 
 
   return {
+    canReadRecycle: has('recycle:read'),
     canReadUsers: has('user:read'),
     canReadScopes: has('platform:scope:read'),
     canCreateScopes: has('platform:scope:create'),

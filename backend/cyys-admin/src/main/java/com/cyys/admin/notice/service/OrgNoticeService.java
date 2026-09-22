@@ -85,7 +85,6 @@ public class OrgNoticeService {
     public void remove(String id,int version) {
         var notice=require(id,true);
         if(notice.getVersion()!=version) throw new ApiException(409,"通知版本已变化");
-        attachments.replace(AttachmentResource.ORG_NOTICE,id,List.of());
         requireOne(notices.remove(id,version,ScopeContext.get().loginId()));
         audit.success("org-notice",id,"DELETE");
     }
