@@ -1,5 +1,5 @@
 **
 !backend/
-!backend/cyys-business/
-!backend/cyys-business/target/
-!backend/cyys-business/target/cyys-business.jar
+!backend/cyys-application/
+!backend/cyys-application/target/
+!backend/cyys-application/target/cyys-application.jar

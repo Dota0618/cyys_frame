@@ -83,6 +83,9 @@ foreach ($case in $cases) {
     $expectedFailure = $case -notin @('check', 'build-only', 'success', 'web-only', 'api-only', 'web-build', 'api-build')
     Assert ($failed -eq $expectedFailure) "$case : unexpected result $failureMessage"
     Assert ($env:CYYS_DEPLOY_TEST_MARKER -eq 'must-be-restored') "$case : environment not restored"
+    if ($commands.ContainsKey('backend-package')) {
+        Assert ($commands['backend-package'] -contains 'cyys-application' -and $commands['backend-package'] -notcontains 'cyys-business') 'Backend build did not use the application module'
+    }
     if ($Target -eq 'web') {
         Assert (!$stages.Contains('backend-package') -and !$stages.Contains('backup') -and !$stages.Contains('stop-services')) 'Web deployment touched backend or database'
         Assert ((Get-Content -LiteralPath $EnvFile -Raw) -match 'CYYS_API_IMAGE=old-api') 'Web deployment changed API image'

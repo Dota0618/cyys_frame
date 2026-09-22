@@ -42,7 +42,7 @@ class OutboundHttpTest {
             .withConfiguration(AutoConfigurations.of(SslAutoConfiguration.class, HttpClientAutoConfiguration.class,
                     ImperativeHttpClientAutoConfiguration.class, HttpMessageConvertersAutoConfiguration.class,
                     RestClientAutoConfiguration.class))
-            .withUserConfiguration(OutboundHttpConfiguration.class, com.cyys.common.web.HttpJsonConfiguration.class)
+            .withUserConfiguration(OutboundHttpConfiguration.class, com.cyys.application.config.HttpJsonConfiguration.class)
             .withPropertyValues("spring.http.clients.imperative.factory=jdk", "spring.http.clients.connect-timeout=1s",
                     "spring.http.clients.read-timeout=2s", "spring.http.clients.redirects=dont-follow",
                     "spring.http.clients.cookie-handling=disable");

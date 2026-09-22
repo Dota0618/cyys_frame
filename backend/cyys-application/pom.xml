@@ -10,10 +10,10 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>cyys-business</artifactId>
+    <artifactId>cyys-application</artifactId>
     <packaging>jar</packaging>
-    <name>cyys-business</name>
-    <description>CYYS Framework - Business &amp; Executable Application (Only executable JAR)</description>
+    <name>cyys-application</name>
+    <description>CYYS Framework - Application Assembly (Only executable JAR)</description>
 
     <dependencies>
         <dependency>
@@ -25,6 +25,12 @@
             <groupId>com.cyys</groupId>
             <artifactId>cyys-common</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
         <dependency>
@@ -56,7 +62,7 @@
     </dependencies>
 
     <build>
-        <finalName>cyys-business</finalName>
+        <finalName>cyys-application</finalName>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>

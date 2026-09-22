@@ -2,7 +2,6 @@ package com.cyys.application;
 
 import com.cyys.admin.department.mapper.SysOrgMapper;
 import com.cyys.admin.department.model.SysOrg;
-import com.cyys.admin.scope.mapper.SysScopeMapper;
 import com.cyys.common.satoken.RequestIdentity;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.mybatis.DataPermissionContext;
@@ -22,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class DatabaseFoundationTest extends HttpTestSupport {
     @Autowired SysOrgMapper orgMapper;
-    @Autowired SysScopeMapper scopeMapper;
     @Autowired org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter mvc;
     @Autowired org.springframework.beans.factory.ObjectProvider<org.springframework.web.client.RestClient.Builder> restClients;
 

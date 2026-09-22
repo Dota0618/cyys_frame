@@ -1,8 +1,6 @@
 package com.cyys.admin.user.mapper;
 
 import com.cyys.common.mybatis.ManualDataScope;
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.cyys.admin.user.model.SysUserRole;
 import com.cyys.admin.menu.dto.NavigationMenu;
 import org.apache.ibatis.annotations.*;
 import java.util.List;
@@ -10,7 +8,7 @@ import java.util.List;
 /** 功能授权只有一套；机构选择和用户数据范围不参与角色、菜单计算。 */
 @Mapper
 @ManualDataScope
-public interface SysUserRoleMapper extends BaseMapper<SysUserRole> {
+public interface SysUserRoleMapper {
     String VALID_GRANT = """
             from sys_user_role ur
             join sys_user u on u.id=ur.user_id and u.status=1 and u.deleted=0

@@ -2,7 +2,7 @@ param([ValidateSet('web', 'api', 'all')][string]$Target = 'all')
 $ErrorActionPreference = 'Stop'
 $framework = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $backend = Join-Path $framework 'backend'
-$jar = Join-Path $backend 'cyys-business\target\cyys-business.jar'
+$jar = Join-Path $backend 'cyys-application\target\cyys-application.jar'
 $dist = Join-Path $framework 'admin-ui\dist'
 if ($Target -ne 'web') {
 if (!(Test-Path -LiteralPath $jar -PathType Leaf)) { throw 'Executable JAR is missing.' }
@@ -12,7 +12,7 @@ try {
     $entries = @($archive.Entries | ForEach-Object FullName)
     if ($entries -notcontains 'BOOT-INF/classes/com/cyys/application/CyysApplication.class' -or
         $entries -notcontains 'org/springframework/boot/loader/launch/JarLauncher.class') {
-        throw 'The business JAR is not the expected executable application.'
+        throw 'The application JAR is not the expected executable application.'
     }
     $forbidden = @($entries | Where-Object {
         $_ -match '(?i)(^|/)(application-(test|local)\.[^/]+|dev-data)(/|$)' -or
@@ -37,7 +37,8 @@ try {
     }
 } finally { $archive.Dispose() }
 
-foreach ($module in @('cyys-common','cyys-admin')) {
+[xml]$parentPom = Get-Content -LiteralPath (Join-Path $backend 'pom.xml')
+foreach ($module in @($parentPom.project.modules.module | Where-Object { $_ -ne 'cyys-application' })) {
     $moduleJars = @(Get-ChildItem -LiteralPath (Join-Path $backend "$module\target") -Filter "$module-*.jar" -File | Where-Object { $_.Name -notmatch '-(sources|javadoc|tests)\.jar$' })
     if ($moduleJars.Count -ne 1) { throw "Expected one ordinary JAR for $module." }
     $library = [IO.Compression.ZipFile]::OpenRead($moduleJars[0].FullName)

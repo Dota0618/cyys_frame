@@ -14,6 +14,8 @@
 
 默认更新现有 `cyys-local-acceptance` 项目。优先使用 `deploy/.env.dev`；未创建时沿用已有的 `backend/cyys-business/target/docker-local/.env`。日常运行不重新配置环境；前端依赖只在缺失或锁文件变化时安装。
 
+后端启动模块为 `cyys-application`。旧 `backend/cyys-business/target` 仅保留本机运行配置和历史材料，不参与 Maven 构建；已有部署继续读取原配置位置。
+
 ## 首次使用
 
 1. 准备 PowerShell、项目要求的 Java/Node.js、Maven、Git、Docker Desktop Linux 引擎及 MySQL 客户端。

@@ -67,7 +67,7 @@ try {
     Invoke-Stage 'real-backend-browser' { & (Join-Path $PSScriptRoot 'verify-ui.ps1') -SkipBuild -LogPrefix "${LogPrefix}_ui" }
     Invoke-Stage 'artifact-structure' {
         & (Join-Path $PSScriptRoot 'check-release-artifacts.ps1')
-        $jar = Join-Path $backend 'cyys-business\target\cyys-business.jar'
+        $jar = Join-Path $backend 'cyys-application\target\cyys-application.jar'
         $dist = Join-Path $frontend 'dist'
         $files = @((Get-Item -LiteralPath $jar)) + @(Get-ChildItem -LiteralPath $dist -Recurse -File)
         $report.artifacts = @($files | Sort-Object FullName | ForEach-Object {

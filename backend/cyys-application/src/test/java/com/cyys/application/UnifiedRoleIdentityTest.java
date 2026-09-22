@@ -2,7 +2,6 @@ package com.cyys.application;
 
 import com.cyys.admin.auth.dto.ScopeInfo;
 import com.cyys.admin.auth.service.IdentityService;
-import com.cyys.admin.scope.mapper.SysScopeMapper;
 import com.cyys.admin.user.mapper.*;
 import com.cyys.admin.user.model.SysUser;
 import org.junit.jupiter.api.Test;
@@ -14,7 +13,6 @@ class UnifiedRoleIdentityTest {
     @Test void institutionFilterDoesNotChangeRolesOrPermissions() {
         var accounts = mock(SysUserMapper.class);
         var profiles = mock(SysUserScopeMapper.class);
-        var scopes = mock(SysScopeMapper.class);
         var roles = mock(SysUserRoleMapper.class);
         var service = new IdentityService(accounts, profiles, roles);
         var user = new SysUser(); user.setId("user");

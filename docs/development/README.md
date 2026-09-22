@@ -5,7 +5,7 @@
 | 范围 | 开发任务 | 规则 |
 |---|---|---|
 | 项目 | 当前启用、暂停和未接入范围 | [当前开发范围](current-scope.md) |
-| 项目 | 目录、环境准备和构建命令 | [目录与构建](project-build.md) |
+| 项目 | 新增业务模块、目录、环境准备和构建命令 | [目录与构建](project-build.md) |
 | 项目 | 验证、提交和本机记录 | [验证与保存](verification.md) |
 | 后端 | 当前账号、单位和权限入口 | [身份与单位上下文](backend/identity-context.md) |
 | 后端 | Controller 请求、命令对象和输入校验 | [API 命令与输入校验](backend/api-command-validation.md) |

@@ -2,8 +2,8 @@ param([ValidatePattern('^[a-zA-Z0-9_-]+$')][string]$RunName = ('local-recovery-'
 $ErrorActionPreference = 'Stop'
 . 'F:\git\frame\scripts\use-local-toolchain.ps1'
 $framework = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$module = Join-Path $framework 'backend/cyys-business'
-$runtime = Join-Path $module 'target/docker-local'
+$module = Join-Path $framework 'backend/cyys-application'
+$runtime = Join-Path $framework 'backend/cyys-business/target/docker-local'
 $envFile = Join-Path $runtime '.env'
 $compose = Join-Path $framework 'deploy/compose.yml'
 $backup = Join-Path $runtime $RunName

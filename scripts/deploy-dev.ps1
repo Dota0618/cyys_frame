@@ -176,7 +176,7 @@ function Invoke-DevDeployment {
         $frontend = Join-Path $framework 'admin-ui'
         # 当前本机配置和附件可能位于 target 下，不能执行 clean。
         if ($Target -ne 'web') {
-            Invoke-DevCommand 'backend-package' "$env:MAVEN_HOME/bin/mvn.cmd" @('-B', '-s', '.m2/settings.xml', '-pl', 'cyys-business', '-am', 'package', '-DskipTests') $backend | Out-Null
+            Invoke-DevCommand 'backend-package' "$env:MAVEN_HOME/bin/mvn.cmd" @('-B', '-s', '.m2/settings.xml', '-pl', 'cyys-application', '-am', 'package', '-DskipTests') $backend | Out-Null
         }
         if ($Target -ne 'api') {
         $lockHash = (Get-FileHash -LiteralPath (Join-Path $frontend 'package-lock.json')).Hash

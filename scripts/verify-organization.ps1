@@ -19,7 +19,7 @@ $env:SPRING_DATASOURCE_USERNAME=$env:CYYS_TEST_DB_USERNAME
 $env:SPRING_DATASOURCE_PASSWORD=$env:CYYS_TEST_DB_PASSWORD
 $env:CYYS_ENVIRONMENT='organization-acceptance'
 $tests='OrganizationModelIntegrationTest,UnifiedRoleIdentityTest,UnifiedRoleServiceTest,MemberDataPermissionServiceTest,UnitAdministrationServiceTest,ScopeManagementServiceTest,ArchitectureRulesTest'
-$arguments=@('-B','-s',(Join-Path $backend '.m2/settings.xml'),'-pl','cyys-business','-am','package',"-Dtest=$tests",'-Dsurefire.failIfNoSpecifiedTests=false')
+$arguments=@('-B','-s',(Join-Path $backend '.m2/settings.xml'),'-pl','cyys-application','-am','package',"-Dtest=$tests",'-Dsurefire.failIfNoSpecifiedTests=false')
 $outLog=Join-Path $backend "logs/${LogPrefix}_out.log"
 $errLog=Join-Path $backend "logs/${LogPrefix}_err.log"
 $build=Start-Process -FilePath "$env:MAVEN_HOME/bin/mvn.cmd" -ArgumentList $arguments -WorkingDirectory $backend -WindowStyle Hidden -PassThru -RedirectStandardOutput $outLog -RedirectStandardError $errLog

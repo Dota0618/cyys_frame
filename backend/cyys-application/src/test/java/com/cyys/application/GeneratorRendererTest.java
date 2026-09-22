@@ -35,6 +35,10 @@ class GeneratorRendererTest {
             var root=Path.of("target/generator-verification/"+layout.name().toLowerCase(Locale.ROOT)).toAbsolutePath();
             var files=new ArrayList<File>();
             for(var source:preview.files()) {
+                if (source.path().endsWith(".java")) {
+                    assertThat(source.path()).startsWith("backend/cyys-sample/src/main/java/com/cyys/sample/");
+                    assertThat(source.content()).contains("package com.cyys.sample.").doesNotContain("com.cyys.modules.");
+                }
                 Path path=root.resolve(source.path()).normalize();
                 assertThat(path.startsWith(root)).isTrue();
                 Files.createDirectories(path.getParent());Files.writeString(path,source.content());
@@ -62,6 +66,10 @@ class GeneratorRendererTest {
 
     @Test void reservedOwnershipFieldsPathsAndInvalidDictionaryDefinitionsAreRejected() {
         var good=sample(GeneratorLayout.LIST);
+        for (String feature : List.of("common", "admin", "application", "modules", "business")) {
+            assertThatThrownBy(() -> renderer.preview(new GenerateCodeCommand(good.table(), feature, good.className(),
+                    good.title(), good.layout(), false, good.fields()))).isInstanceOf(ApiException.class);
+        }
         for(String table:List.of("sys_user","../escape","biz_x;drop_table","biz_x/../../")) {
             assertThatThrownBy(()->renderer.preview(new GenerateCodeCommand(table,good.feature(),good.className(),good.title(),good.layout(),false,good.fields())))
                     .isInstanceOf(ApiException.class);

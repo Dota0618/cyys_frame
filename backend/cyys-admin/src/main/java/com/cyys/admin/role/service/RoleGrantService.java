@@ -1,6 +1,7 @@
 package com.cyys.admin.role.service;
 
 import com.cyys.admin.auth.service.UnitAdministrationService;
+import com.cyys.admin.role.dto.RoleOption;
 import com.cyys.admin.role.mapper.RoleGrantMapper;
 import com.cyys.common.mybatis.DataPolicyRegistry;
 import com.cyys.common.mybatis.DataTransactionGuard;
@@ -23,19 +24,19 @@ public class RoleGrantService {
     private final com.cyys.admin.auth.service.PlatformSecurityService security;
 
     @Transactional(readOnly = true)
-    public List<RoleGrantMapper.RoleOption> grantableRoleOptions() {
+    public List<RoleOption> grantableRoleOptions() {
         var identity = ScopeContext.get();
         identity.requireScopeId();
         DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);
         Set<String> ceiling = administration.authorize("role:grant", true);
-        List<RoleGrantMapper.RoleOption> candidates = mapper.activeRoles();
+        List<RoleOption> candidates = mapper.activeRoles();
         if (candidates.isEmpty()) return candidates;
-        List<String> roleIds = candidates.stream().map(RoleGrantMapper.RoleOption::value).toList();
+        List<String> roleIds = candidates.stream().map(RoleOption::value).toList();
         Set<String> rejected = new HashSet<>();
         for (var permission : mapper.permissions(roleIds)) {
             if (!ceiling.contains(permission.code())) rejected.add(permission.roleId());
         }
-        var result = new ArrayList<RoleGrantMapper.RoleOption>();
+        var result = new ArrayList<RoleOption>();
         for (var role : candidates) {
             if (!rejected.contains(role.value())) result.add(role);
         }

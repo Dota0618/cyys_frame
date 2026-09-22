@@ -4,7 +4,7 @@ ARG JAVA_RUNTIME_IMAGE
 RUN case "$JAVA_RUNTIME_IMAGE" in *@sha256:*) ;; *) echo 'Pin the Java image by digest' >&2; exit 1 ;; esac \
     && java -XshowSettings:properties -version 2>&1 | grep -Eq 'java.specification.version = 25$'
 WORKDIR /app
-COPY backend/cyys-business/target/cyys-business.jar /app/application.jar
+COPY backend/cyys-application/target/cyys-application.jar /app/application.jar
 USER 10001:10001
 EXPOSE 8080
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=70", "-Duser.timezone=Asia/Shanghai", "-jar", "/app/application.jar"]

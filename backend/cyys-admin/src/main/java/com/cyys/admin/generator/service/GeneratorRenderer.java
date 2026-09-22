@@ -15,12 +15,12 @@ import java.util.zip.*;
 /** Fixed, versioned source templates. User input is data, never a template or output path. */
 @Component
 public class GeneratorRenderer {
-    public static final String VERSION="2026-09-21.1";
+    public static final String VERSION="2026-09-22.1";
     private static final Set<String> RESERVED=Set.of("id","scope_id","org_id","department_id","parent_id","children","version","deleted","created_by","created_at","updated_by","updated_at");
     private static final Set<String> CLASS_NAMES=Set.of("Object","String","Integer","Boolean","BigDecimal","LocalDate","LocalDateTime","List","Map","Page","R","ApiException","System","Override","QueryWrapper",
             "IPage","DataAuditService","SysOrgMapper","DictionaryOption","DictionaryOptionMapper","ScopeContext","RequiredArgsConstructor","Service","Transactional","BaseMapper","ProtectedMapper","Mapper","Select","Update","Param","JsonFormat","DepartmentOption","LinkedHashMap","TableName","DataResourceDefinition","TableId","IdType","TableField","FieldFill","FieldStrategy","Version","TableLogic");
     private static final Set<String> RESERVED_PROPERTIES=Set.of("record","var","yield","permits","sealed","hashCode","toString","clone","finalize","notify","notifyAll","getClass","wait");
-    private static final Set<String> FRAMEWORK_FEATURES=Set.of("user","department","role","menu","platform","configuration","dictionary","audit","cache","file","region","release","generator","auth","account","scope","serial");
+    private static final Set<String> FRAMEWORK_FEATURES=Set.of("common","admin","application","modules","business","user","department","role","menu","platform","configuration","dictionary","audit","cache","file","region","release","generator","auth","account","scope","serial");
     private static final Pattern SLOT=Pattern.compile("@@([A-Z_]+)@@");
     private final JsonMapper json;
     public GeneratorRenderer(JsonMapper json) { this.json=json; }
@@ -53,7 +53,7 @@ public class GeneratorRenderer {
     public GeneratorPreview preview(GenerateCodeCommand c) {
         validate(c);
         Map<String,String> v=new HashMap<>();
-        v.put("PACKAGE","com.cyys.modules."+c.feature()); v.put("FEATURE",c.feature()); v.put("CLASS",c.className());
+        v.put("PACKAGE","com.cyys."+c.feature()); v.put("FEATURE",c.feature()); v.put("CLASS",c.className());
         v.put("TABLE",c.table()); v.put("TITLE",quote(c.title())); v.put("TITLE_HTML","{"+quote(c.title())+"}");
         v.put("LABEL_PROPERTY",property(c.fields().getFirst().column()));
         boolean tree=c.layout()==GeneratorLayout.TREE;
@@ -107,7 +107,7 @@ public class GeneratorRenderer {
         v.put("PARENT_COMMAND",tree?"parentId: values.parentId ?? null,":"");
         v.put("DICT_OPTIONS",dictionaryOptions(c));
         var result=new ArrayList<GeneratedSource>();
-        String javaRoot="backend/cyys-business/src/main/java/com/cyys/modules/"+c.feature()+"/";
+        String javaRoot="backend/cyys-"+c.feature()+"/src/main/java/com/cyys/"+c.feature()+"/";
         for(String kind:List.of("Model","Create","Update","View","Options","Mapper","Service","Controller")) {
             String path=switch(kind) {
                 case "Model" -> "model/"+c.className(); case "Create","Update" -> "dto/"+kind+c.className()+"Command";

@@ -21,7 +21,7 @@
     <modules>
         <module>cyys-common</module>
         <module>cyys-admin</module>
-        <module>cyys-business</module>
+        <module>cyys-application</module>
     </modules>
 
     <properties>
@@ -32,7 +32,6 @@
 
         <mybatis-plus.version>3.5.17</mybatis-plus.version>
         <sa-token.version>1.46.0</sa-token.version>
-        <hutool.version>5.8.47</hutool.version>
         <springdoc.version>3.1.1</springdoc.version>
         <mysql.version>8.0.33</mysql.version>
         <poi.version>5.5.1</poi.version>
@@ -49,14 +48,6 @@
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-bom</artifactId>
                 <version>${mybatis-plus.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>cn.hutool</groupId>
-                <artifactId>hutool-bom</artifactId>
-                <version>${hutool.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

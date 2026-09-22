@@ -1,4 +1,4 @@
-package com.cyys.common.web;
+package com.cyys.application.config;
 
 import org.springframework.boot.http.converter.autoconfigure.ClientHttpMessageConvertersCustomizer;
 import org.springframework.boot.http.converter.autoconfigure.ServerHttpMessageConvertersCustomizer;

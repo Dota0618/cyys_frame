@@ -1,5 +1,6 @@
 package com.cyys.admin.role.mapper;
 
+import com.cyys.admin.role.dto.RoleOption;
 import com.cyys.common.mybatis.ManualDataScope;
 
 import org.apache.ibatis.annotations.*;
@@ -22,5 +23,4 @@ public interface RoleGrantMapper {
     List<RoleOption> activeRoles();
 
     record GrantPermission(String roleId, String code) {}
-    record RoleOption(String value, String label) {}
 }

@@ -9,7 +9,7 @@ $planRoot = [IO.Path]::GetFullPath($PlanDirectory)
 $targetRoot = [IO.Path]::GetFullPath((Join-Path $framework 'backend/cyys-business/target'))
 if (!$planRoot.StartsWith($targetRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Keep migration data inside the ignored business target directory.' }
 $plan = Get-Content (Join-Path $planRoot 'plan.json') -Raw | ConvertFrom-Json
-[xml]$settings = Get-Content (Join-Path $framework 'backend/cyys-business/src/test/resources/application-test.xml')
+[xml]$settings = Get-Content (Join-Path $framework 'backend/cyys-application/src/test/resources/application-test.xml')
 foreach ($name in @('CYYS_TEST_DB_URL','CYYS_TEST_DB_USERNAME','CYYS_TEST_DB_PASSWORD')) {
     [Environment]::SetEnvironmentVariable($name, ($settings.properties.entry | Where-Object key -eq $name).InnerText, 'Process')
 }

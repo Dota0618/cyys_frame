@@ -2,6 +2,7 @@ package com.cyys.application;
 
 import com.cyys.admin.auth.service.PlatformSecurityService;
 import com.cyys.admin.auth.service.UnitAdministrationService;
+import com.cyys.admin.role.dto.RoleOption;
 import com.cyys.admin.role.mapper.RoleGrantMapper;
 import com.cyys.admin.role.service.RoleGrantService;
 import com.cyys.admin.role.service.RoleService;
@@ -32,9 +33,9 @@ class RoleGrantOptionsTest {
     @AfterEach void clear() { ScopeContext.clear(); }
 
     @Test void anyExcessPermissionExcludesRoleWhileRetainingCandidateOrder() {
-        var empty = new RoleGrantMapper.RoleOption("empty", "无操作权限");
-        var reader = new RoleGrantMapper.RoleOption("reader", "查询角色");
-        var mixed = new RoleGrantMapper.RoleOption("mixed", "含越权权限");
+        var empty = new RoleOption("empty", "无操作权限");
+        var reader = new RoleOption("reader", "查询角色");
+        var mixed = new RoleOption("mixed", "含越权权限");
         when(mapper.activeRoles()).thenReturn(List.of(empty, mixed, reader));
         when(mapper.permissions(List.of("empty", "mixed", "reader"))).thenReturn(List.of(
                 new RoleGrantMapper.GrantPermission("mixed", "user:read"),
