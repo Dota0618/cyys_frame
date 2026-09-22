@@ -52,59 +52,99 @@ public class CachedResponseValues {
             if (value == null) return () -> null;
             if (value instanceof R<?> envelope) {
                 if (!Integer.valueOf(200).equals(envelope.getCode())) return () -> value;
-                var data = collect(envelope.getData(), depth+1);
-                return () -> { R result = new R(); result.setCode(envelope.getCode()); result.setMsg(envelope.getMsg());
-                    result.setTimestamp(envelope.getTimestamp()); result.setData(data.get()); return result; };
+                var data = collect(envelope.getData(), depth + 1);
+                return () -> {
+                    R result = new R();
+                    result.setCode(envelope.getCode());
+                    result.setMsg(envelope.getMsg());
+                    result.setTimestamp(envelope.getTimestamp());
+                    result.setData(data.get());
+                    return result;
+                };
             }
             if (value instanceof IPage page) {
-                var records = collect(page.getRecords(), depth+1);
-                return () -> { page.setRecords((List) records.get()); return page; };
+                var records = collect(page.getRecords(), depth + 1);
+                return () -> {
+                    page.setRecords((List) records.get());
+                    return page;
+                };
             }
             if (value instanceof List<?> list) {
-                var children = list.stream().map(child -> collect(child, depth+1)).toList();
-                return () -> children.stream().map(Supplier::get).toList();
+                var children = new ArrayList<Supplier<Object>>(list.size());
+                for (Object child : list) children.add(collect(child, depth + 1));
+                return () -> {
+                    var result = new ArrayList<>();
+                    for (var child : children) result.add(child.get());
+                    return Collections.unmodifiableList(result);
+                };
             }
             if (value instanceof Map<?,?> map) {
-                Map<Object,Supplier<Object>> children = new LinkedHashMap<>();
-                map.forEach((key, child) -> children.put(key, collect(child, depth+1)));
-                return () -> { Map<Object,Object> result = new LinkedHashMap<>(); children.forEach((key, child) -> result.put(key, child.get())); return result; };
+                Map<Object, Supplier<Object>> children = new LinkedHashMap<>();
+                for (var entry : map.entrySet()) {
+                    children.put(entry.getKey(), collect(entry.getValue(), depth + 1));
+                }
+                return () -> {
+                    Map<Object, Object> result = new LinkedHashMap<>();
+                    for (var entry : children.entrySet()) result.put(entry.getKey(), entry.getValue().get());
+                    return result;
+                };
             }
             if (!value.getClass().isRecord()) return () -> value;
+            return collectRecord(value, depth);
+        }
+
+        private Supplier<Object> collectRecord(Object value, int depth) {
             Schema schema = schemas.get(value.getClass());
-            Object[] original = Arrays.stream(schema.fields).map(field -> read(field.getAccessor(), value)).toArray();
+            Object[] original = new Object[schema.fields.length];
+            for (int index = 0; index < schema.fields.length; index++) {
+                original[index] = read(schema.fields[index].getAccessor(), value);
+            }
             List<Supplier<Object>> children = new ArrayList<>();
-            for (int index=0; index<schema.fields.length; index++) {
+            for (int index = 0; index < schema.fields.length; index++) {
                 var field = schema.fields[index];
                 var annotation = field.getAnnotation(CacheValue.class);
-                if (annotation == null) { children.add(collect(original[index], depth+1)); continue; }
-                var source = sources.get(annotation.cache());
-                if (source != null) checkType(field, source, annotation);
-                String id = scalar(property(schema, original, annotation.key()));
-                if (source == null || ((!annotation.key().isEmpty() || source.shape() == CacheShape.RECORD) && (id == null || id.isBlank()))) { children.add(() -> empty(field.getType())); continue; }
-                String scope = source.scope() == CacheScope.SYSTEM ? null
-                        : annotation.scopeKey().isEmpty() ? ScopeContext.get().requireScopeId()
-                        : scalar(property(schema, original, annotation.scopeKey()));
-                // 缺少真实单位不能变成全系统查询。
-                if (source.scope() == CacheScope.UNIT && (scope == null || scope.isBlank())) { children.add(() -> empty(field.getType())); continue; }
-                var batch = new Batch(source.name(), scope, annotation.variant());
-                var ids = requests.computeIfAbsent(batch, ignored -> new LinkedHashSet<>());
-                if (id != null) ids.add(id);
-                children.add(() -> {
-                    if (annotation.key().isEmpty()) return annotation.field().isEmpty() ? lists.get(batch) : null;
-                    Record row = loaded.get(batch).get(id);
-                    Object selected = annotation.field().isEmpty() ? row : recordField(row, annotation.field());
-                    return selected == null ? empty(field.getType()) : selected;
-                });
+                if (annotation == null) children.add(collect(original[index], depth + 1));
+                else children.add(collectCachedField(schema, original, field, annotation));
             }
             return () -> {
-                try { return schema.constructor.newInstance(children.stream().map(Supplier::get).toArray()); }
+                Object[] values = new Object[children.size()];
+                for (int index = 0; index < children.size(); index++) values[index] = children.get(index).get();
+                try { return schema.constructor.newInstance(values); }
                 catch (ReflectiveOperationException failure) { throw new IllegalStateException("响应 DTO 构造失败", failure); }
             };
         }
 
+        private Supplier<Object> collectCachedField(Schema schema, Object[] original,
+                                                     RecordComponent field, CacheValue annotation) {
+            var source = sources.get(annotation.cache());
+            if (source == null) return () -> empty(field.getType());
+            checkType(field, source, annotation);
+            String id = scalar(property(schema, original, annotation.key()));
+            boolean requiresKey = !annotation.key().isEmpty() || source.shape() == CacheShape.RECORD;
+            if (requiresKey && (id == null || id.isBlank())) return () -> empty(field.getType());
+
+            String scope = null;
+            if (source.scope() == CacheScope.UNIT) {
+                scope = annotation.scopeKey().isEmpty() ? ScopeContext.get().requireScopeId()
+                        : scalar(property(schema, original, annotation.scopeKey()));
+                // 缺少真实单位不能变成全系统查询。
+                if (scope == null || scope.isBlank()) return () -> empty(field.getType());
+            }
+            var batch = new Batch(source.name(), scope, annotation.variant());
+            var ids = requests.computeIfAbsent(batch, ignored -> new LinkedHashSet<>());
+            if (id != null) ids.add(id);
+            return () -> {
+                if (annotation.key().isEmpty()) return annotation.field().isEmpty() ? lists.get(batch) : null;
+                Record row = loaded.get(batch).get(id);
+                Object selected = annotation.field().isEmpty() ? row : recordField(row, annotation.field());
+                return selected == null ? empty(field.getType()) : selected;
+            };
+        }
+
         void load() {
-            requests.forEach((batch, ids) -> {
-                Map<String,Record> result = new LinkedHashMap<>(); var unique = List.copyOf(ids);
+            for (var request : requests.entrySet()) {
+                var batch = request.getKey();
+                Map<String, Record> result = new LinkedHashMap<>();
                 var source = sources.get(batch.source);
                 if (source.shape() == CacheShape.LIST) {
                     var rows = source.list(batch.scope, batch.variant);
@@ -113,11 +153,15 @@ public class CachedResponseValues {
                         String id = scalar(recordField(row, source.listKey()));
                         if (id != null) result.putIfAbsent(id, row);
                     }
+                } else {
+                    var ids = List.copyOf(request.getValue());
+                    for (int from = 0; from < ids.size(); from += BATCH_SIZE) {
+                        var chunk = ids.subList(from, Math.min(from + BATCH_SIZE, ids.size()));
+                        result.putAll(source.records(batch.scope, batch.variant, chunk));
+                    }
                 }
-                else for (int from=0; from<unique.size(); from+=BATCH_SIZE)
-                    result.putAll(sources.get(batch.source).records(batch.scope, batch.variant, unique.subList(from, Math.min(from+BATCH_SIZE, unique.size()))));
                 loaded.put(batch, result);
-            });
+            }
         }
     }
 

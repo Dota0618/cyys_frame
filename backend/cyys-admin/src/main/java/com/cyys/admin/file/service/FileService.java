@@ -19,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 
 @Service
@@ -166,38 +169,48 @@ public class FileService {
 
     @Transactional
     public void trash(String id, int version) {
-        FileEntry file = mapper.lock(id);
-        if (file == null || file.getVersion() != version || "UPLOADING".equals(file.getState())) {
-            throw new ApiException(409, "文件不可删除、正在上传或版本已变化");
-        }
-        attachments.requireUnbound(file);
-        if (file.getPartBytes() != null || "FAILED".equals(file.getState())) {
-            temporaryCleaner.clean(file);
-            requireOne(mapper.temporaryCleaned(id,file.getVersion()));
-        }
-        requireOne(mapper.trash(id, version, ScopeContext.get().loginId()));
-        audit.success("file", id, "DELETE");
+        trash(lockForTrash(id, version, "文件不可删除、正在上传或版本已变化"));
     }
 
     @Transactional
     public void trashBatch(List<FileVersionReference> commands) {
         validateDistinct(commands);
         // 全部授权和版本先复核；任何一项失败都不开始清理分片或改变记录。
-        for(var command:commands.stream().sorted(java.util.Comparator.comparing(FileVersionReference::id)).toList()) {
-            FileEntry file=mapper.lock(command.id());
-            if(file==null || !file.getVersion().equals(command.version()) || "UPLOADING".equals(file.getState())) {
-                throw new ApiException(409,"批次包含不可删除、正在上传或版本已变化的文件");
-            }
-            attachments.requireUnbound(file);
+        var ordered = new ArrayList<>(commands);
+        ordered.sort(Comparator.comparing(FileVersionReference::id));
+        var files = new ArrayList<FileEntry>(ordered.size());
+        for (var command : ordered) {
+            files.add(lockForTrash(command.id(), command.version(), "批次包含不可删除、正在上传或版本已变化的文件"));
         }
-        for(var command:commands) trash(command.id(),command.version());
+        for (var file : files) trash(file);
+    }
+
+    private FileEntry lockForTrash(String id, int version, String message) {
+        FileEntry file = mapper.lock(id);
+        if (file == null || file.getVersion() != version || "UPLOADING".equals(file.getState())) {
+            throw new ApiException(409, message);
+        }
+        attachments.requireUnbound(file);
+        return file;
+    }
+
+    private void trash(FileEntry file) {
+        String id = file.getId();
+        if (file.getPartBytes() != null || "FAILED".equals(file.getState())) {
+            temporaryCleaner.clean(file);
+            requireOne(mapper.temporaryCleaned(id,file.getVersion()));
+        }
+        requireOne(mapper.trash(id, file.getVersion(), ScopeContext.get().loginId()));
+        audit.success("file", id, "DELETE");
     }
 
     @Transactional
     public void move(MoveFilesCommand command) {
         validateDistinct(command.files());
         directories.requireTarget(command.directoryId());
-        for(var reference:command.files().stream().sorted(java.util.Comparator.comparing(FileVersionReference::id)).toList()) {
+        var ordered = new ArrayList<>(command.files());
+        ordered.sort(Comparator.comparing(FileVersionReference::id));
+        for(var reference:ordered) {
             var file=mapper.lock(reference.id());
             if(file==null || !file.getVersion().equals(reference.version())
                     || !file.getCreatedBy().equals(ScopeContext.get().loginId())) throw new ApiException(409,"批次包含不可移动或版本已变化的文件");
@@ -209,7 +222,10 @@ public class FileService {
     }
 
     static void validateDistinct(List<FileVersionReference> commands) {
-        if(commands.stream().map(FileVersionReference::id).distinct().count()!=commands.size()) throw new ApiException(400,"批次不能包含重复文件");
+        var ids = new HashSet<String>();
+        for (var command : commands) {
+            if (!ids.add(command.id())) throw new ApiException(400, "批次不能包含重复文件");
+        }
     }
 
     private static void requireOne(int count) {

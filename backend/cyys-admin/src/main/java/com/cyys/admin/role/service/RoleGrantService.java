@@ -9,6 +9,8 @@ import com.cyys.common.web.ApiException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -28,10 +30,16 @@ public class RoleGrantService {
         Set<String> ceiling = administration.authorize("role:grant", true);
         List<RoleGrantMapper.RoleOption> candidates = mapper.activeRoles();
         if (candidates.isEmpty()) return candidates;
-        Set<String> rejected = mapper.permissions(candidates.stream().map(RoleGrantMapper.RoleOption::value).toList()).stream()
-                .filter(permission -> !ceiling.contains(permission.code()))
-                .map(RoleGrantMapper.GrantPermission::roleId).collect(java.util.stream.Collectors.toSet());
-        return candidates.stream().filter(role -> !rejected.contains(role.value())).toList();
+        List<String> roleIds = candidates.stream().map(RoleGrantMapper.RoleOption::value).toList();
+        Set<String> rejected = new HashSet<>();
+        for (var permission : mapper.permissions(roleIds)) {
+            if (!ceiling.contains(permission.code())) rejected.add(permission.roleId());
+        }
+        var result = new ArrayList<RoleGrantMapper.RoleOption>();
+        for (var role : candidates) {
+            if (!rejected.contains(role.value())) result.add(role);
+        }
+        return List.copyOf(result);
     }
 
     @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
