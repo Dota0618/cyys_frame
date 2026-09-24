@@ -11,6 +11,7 @@ import com.cyys.admin.cache.service.BusinessCacheGroups;
 import com.cyys.common.cache.CacheGroupService;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.web.ApiException;
+import com.cyys.common.export.BoundedXlsx;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -102,6 +103,16 @@ public class ConfigurationService {
             requireNonNegativeInteger(name, value);
         if (ConfigurationKeys.PWD_LOCK_HOUR.equals(name))
             requirePositiveInteger(name, value);
+        if (ConfigurationKeys.MAINTENANCE_MODE.equals(name)
+                && !Set.of("0", "1").contains(value.strip()))
+            throw new ApiException(400, "MAINTENANCE_MODE 只能设置为 0 或 1");
+        if (ConfigurationKeys.PASSWORD_EXPIRE_DAYS.equals(name)
+                || ConfigurationKeys.AUDIT_RETENTION_DAYS.equals(name))
+            requireNonNegativeInteger(name, value);
+        if (ConfigurationKeys.FILE_MAX_SIZE_MB.equals(name))
+            requirePositiveInteger(name, value);
+        if (ConfigurationKeys.EXPORT_MAX_ROWS.equals(name))
+            requireIntegerRange(name, value, 1, BoundedXlsx.MAX_ROWS, "必须是 1 到 " + BoundedXlsx.MAX_ROWS + " 的整数");
     }
 
     private static void requireNonNegativeInteger(String name, String value) {
@@ -119,6 +130,15 @@ public class ConfigurationService {
                 throw new NumberFormatException();
         } catch (NumberFormatException error) {
             throw new ApiException(400, name + " 必须是正整数");
+        }
+    }
+
+    private static void requireIntegerRange(String name, String value, long min, long max, String message) {
+        try {
+            long parsed = Long.parseLong(value.strip());
+            if (parsed < min || parsed > max) throw new NumberFormatException();
+        } catch (NumberFormatException error) {
+            throw new ApiException(400, name + " " + message);
         }
     }
 

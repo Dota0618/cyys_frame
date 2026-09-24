@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
+import com.cyys.admin.configuration.service.SystemRuntimeSettings;
 import com.cyys.admin.file.dto.*;
 import com.cyys.admin.file.mapper.FileEntryMapper;
 import com.cyys.admin.file.mapper.FileOwnerMapper;
@@ -36,10 +37,12 @@ public class FileService {
     private final ResumableUploadService uploads;
     private final FileRecycleService recycle;
     private final TransactionTemplate transactions;
+    private final SystemRuntimeSettings runtimeSettings;
 
     public FileService(FileEntryMapper mapper, FileOwnerMapper owners, ConfiguredStorage storage,
                        DataAuditService audit, TemporaryFileCleaner temporaryCleaner, FileDirectoryService directories, FileAttachmentService attachments,
-                       ResumableUploadService uploads, FileRecycleService recycle, PlatformTransactionManager manager) {
+                       ResumableUploadService uploads, FileRecycleService recycle, PlatformTransactionManager manager,
+                       SystemRuntimeSettings runtimeSettings) {
         this.mapper = mapper; this.owners = owners; this.storage = storage; this.audit = audit;
         this.temporaryCleaner = temporaryCleaner;
         this.directories = directories;
@@ -47,6 +50,7 @@ public class FileService {
         this.uploads = uploads;
         this.recycle = recycle;
         this.transactions = new TransactionTemplate(manager);
+        this.runtimeSettings = runtimeSettings;
     }
 
     public IPage<FileView> recycled(long page, long size, String search) { return recycle.page(page, size, search); }
@@ -91,7 +95,8 @@ public class FileService {
     public FileView upload(MultipartFile source, String directoryId) {
         String name = source.getOriginalFilename().strip();
         var target = storage.active();
-        if (source.getSize() > target.maxBytes()) throw new ApiException(413, "文件超过允许大小");
+        long maxBytes = Math.min(target.maxBytes(), runtimeSettings.current().fileMaxBytes());
+        if (source.getSize() > maxBytes) throw new ApiException(413, "文件超过允许大小");
         // 先登记对象位置，再写物理文件；崩溃后仍有 UPLOADING 记录供核对，不产生无主路径。
         FileEntry file = transactions.execute(status -> {
             var identity = ScopeContext.get();
@@ -116,7 +121,7 @@ public class FileService {
                 var current=mapper.lock(file.getId());
                 if(current==null || !"UPLOADING".equals(current.getState())) throw new ApiException(409,"上传记录状态已变化");
                 try(InputStream input=source.getInputStream()) {
-                    return target.storage().write(file.getObjectKey(),input,target.maxBytes());
+                    return target.storage().write(file.getObjectKey(),input,maxBytes);
                 } catch(IOException error) { throw new UncheckedIOException(error); }
             });
         } catch (RuntimeException error) {

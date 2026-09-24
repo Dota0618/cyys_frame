@@ -3,8 +3,8 @@
 INSERT INTO sys_scope (id, code, name, created_by)
 VALUES ('${bootstrapScopeId}', '${bootstrapScopeId}', '本地开发单位', 'bootstrap');
 
-INSERT INTO sys_user (id, login_name, password_hash, real_name, created_by)
-VALUES ('${bootstrapAccountId}', '${bootstrapLoginName}', '${bootstrapPasswordHash}', '本地初始化账号', 'bootstrap');
+INSERT INTO sys_user (id, login_name, password_hash, real_name, pwd_last_changed, created_by)
+VALUES ('${bootstrapAccountId}', '${bootstrapLoginName}', '${bootstrapPasswordHash}', '本地初始化账号', CURRENT_TIMESTAMP, 'bootstrap');
 
 INSERT INTO sys_user_scope (id, user_id, scope_id, member_role, default_flag, created_by)
 VALUES ('local-membership', '${bootstrapAccountId}', '${bootstrapScopeId}', 'OWNER', 1, 'bootstrap');

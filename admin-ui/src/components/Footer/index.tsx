@@ -52,10 +52,14 @@ const Footer: React.FC = () => {
   const { initialState } = useModel('@@initialState');
   const year = new Date().getFullYear();
   const systemName = initialState?.settings?.title || 'CYYS';
+  const copyright = initialState?.publicConfigurations?.COPYRIGHT_TEXT?.trim()
+    || `${systemName} © ${year}`;
+  const contactPhone = initialState?.publicConfigurations?.CONTACT_PHONE?.trim();
 
   return (
     <div className={styles.footer}>
-      <div className={styles.copyright}>{systemName} &copy; {year}</div>
+      <div className={styles.copyright}>{copyright}</div>
+      {contactPhone && <div className={styles.meta}><span className={styles.group}>联系电话：{contactPhone}</span></div>}
       <a
         className={styles.link}
         href={packageJson.template.repository}

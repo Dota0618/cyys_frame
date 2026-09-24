@@ -19,7 +19,11 @@ public final class BoundedXlsx {
     private BoundedXlsx() {}
 
     public static byte[] write(String sheetName, List<String> headers, List<List<String>> rows) throws IOException {
-        if (headers.isEmpty() || headers.size() > 16 || rows.size() > MAX_ROWS) {
+        return write(sheetName, headers, rows, MAX_ROWS);
+    }
+
+    public static byte[] write(String sheetName, List<String> headers, List<List<String>> rows, int maxRows) throws IOException {
+        if (maxRows < 1 || maxRows > MAX_ROWS || headers.isEmpty() || headers.size() > 16 || rows.size() > maxRows) {
             throw new IllegalArgumentException("表格行列数超过同步导出上限");
         }
         long characters = validateCells(headers);

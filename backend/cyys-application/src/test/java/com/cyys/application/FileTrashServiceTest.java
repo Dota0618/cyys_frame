@@ -6,6 +6,7 @@ import com.cyys.admin.file.mapper.FileEntryMapper;
 import com.cyys.admin.file.mapper.FileOwnerMapper;
 import com.cyys.admin.file.model.FileEntry;
 import com.cyys.admin.file.service.*;
+import com.cyys.admin.configuration.service.SystemRuntimeSettings;
 import com.cyys.common.satoken.RequestIdentity;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.storage.ConfiguredStorage;
@@ -29,7 +30,8 @@ class FileTrashServiceTest {
     private final DataAuditService audit = mock(DataAuditService.class);
     private final FileService service = new FileService(mapper, mock(FileOwnerMapper.class),
             mock(ConfiguredStorage.class), audit, cleaner, mock(FileDirectoryService.class), attachments,
-            mock(ResumableUploadService.class), mock(FileRecycleService.class), mock(PlatformTransactionManager.class));
+            mock(ResumableUploadService.class), mock(FileRecycleService.class), mock(PlatformTransactionManager.class),
+            mock(SystemRuntimeSettings.class));
 
     @BeforeEach void identity() {
         ScopeContext.set(new RequestIdentity("actor", "scope-a", List.of(), List.of()));

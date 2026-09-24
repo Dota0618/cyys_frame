@@ -14,7 +14,7 @@ public interface MemberAccountMapper {
             + "<foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach></script>")
     List<MemberOption> accountNames(@Param("ids") List<String> ids);
 
-    @Insert("insert into sys_user(id,login_name,password_hash,created_by,updated_by) values(#{id},#{login},#{hash},#{actor},#{actor})")
+    @Insert("insert into sys_user(id,login_name,password_hash,pwd_last_changed,created_by,updated_by) values(#{id},#{login},#{hash},CURRENT_TIMESTAMP,#{actor},#{actor})")
     int createAccount(@Param("id") String id,@Param("login") String login,@Param("hash") String hash,@Param("actor") String actor);
 
     @Select("select role_id from sys_user_role where user_id=#{user} and deleted=0 order by created_at desc,id")

@@ -1,6 +1,7 @@
 package com.cyys.admin.file.service;
 
 import com.cyys.admin.audit.service.DataAuditService;
+import com.cyys.admin.configuration.service.SystemRuntimeSettings;
 import com.cyys.admin.file.dto.*;
 import com.cyys.admin.file.mapper.*;
 import com.cyys.admin.file.model.FileEntry;
@@ -27,11 +28,16 @@ public class ResumableUploadService {
     private final DataAuditService audit;
     private final FileDirectoryService directories;
     private final TemporaryFileCleaner temporaryCleaner;
+    private final SystemRuntimeSettings runtimeSettings;
 
     public FileUploadLimitsDTO limits() {
-        if (settings.getPartBytes() < 1024 || settings.getPartBytes() > settings.getMaxBytes()
-                || settings.getMaxResumableBytes() < settings.getMaxBytes()) throw new ApiException(503, "上传大小配置无效");
-        return new FileUploadLimitsDTO(settings.getMaxBytes(), settings.getMaxResumableBytes(), settings.getPartBytes());
+        long configuredMax = runtimeSettings.current().fileMaxBytes();
+        long directBytes = Math.min(settings.getMaxBytes(), configuredMax);
+        long resumableBytes = Math.min(settings.getMaxResumableBytes(), configuredMax);
+        int partBytes = (int) Math.min(settings.getPartBytes(), Math.min(directBytes, Integer.MAX_VALUE));
+        if (partBytes < 1024 || partBytes > directBytes || resumableBytes < directBytes)
+            throw new ApiException(503, "上传大小配置无效");
+        return new FileUploadLimitsDTO(directBytes, resumableBytes, partBytes);
     }
 
     @Transactional

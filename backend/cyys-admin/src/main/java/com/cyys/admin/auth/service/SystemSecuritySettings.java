@@ -15,7 +15,8 @@ public class SystemSecuritySettings {
         return new PasswordSettings(
                 boundedInt(configurations.value(ConfigurationKeys.PWD_STRENGTH), 0, 0, 2),
                 boundedInt(configurations.value(ConfigurationKeys.PWD_LOCK_NUM), 5, 0, Integer.MAX_VALUE),
-                boundedInt(configurations.value(ConfigurationKeys.PWD_LOCK_HOUR), 1, 1, Integer.MAX_VALUE));
+                boundedInt(configurations.value(ConfigurationKeys.PWD_LOCK_HOUR), 1, 1, Integer.MAX_VALUE),
+                boundedInt(configurations.value(ConfigurationKeys.PASSWORD_EXPIRE_DAYS), 0, 0, Integer.MAX_VALUE));
     }
 
     private static int boundedInt(String value, int fallback, int min, int max) {
@@ -27,5 +28,5 @@ public class SystemSecuritySettings {
         }
     }
 
-    public record PasswordSettings(int strength, int lockAttempts, int lockHours) {}
+    public record PasswordSettings(int strength, int lockAttempts, int lockHours, int passwordExpireDays) {}
 }

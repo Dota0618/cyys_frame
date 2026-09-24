@@ -1,6 +1,7 @@
 package com.cyys.admin.user.service;
 
 import com.cyys.admin.auth.service.PasswordPolicy;
+import com.cyys.admin.configuration.service.SystemRuntimeSettings;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
@@ -54,6 +55,7 @@ public class MemberService {
     private final com.cyys.admin.auth.service.PlatformSecurityService security;
     private final CachedResponseValues cachedValues;
     private final TransactionTemplate transactions;
+    private final SystemRuntimeSettings runtimeSettings;
 
     @Transactional(readOnly = true)
     public com.cyys.admin.user.dto.MemberDataPermissionView dataPermission(String id) {
@@ -68,16 +70,17 @@ public class MemberService {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public byte[] export(ExportMembersCommand command) {
         String name = command.name() == null || command.name().isBlank() ? null : command.name();
+        int maxRows = runtimeSettings.current().exportMaxRows();
         var read = new TransactionTemplate(transactions.getTransactionManager());
         read.setReadOnly(true);
         read.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
-        var members = read.execute(status -> exportViews(name));
+        var members = read.execute(status -> exportViews(name, maxRows));
         byte[] result;
         try {
             result = BoundedXlsx.write("单位成员", List.of("成员姓名", "登录账号", "部门", "成员状态", "创建时间"),
                     members.stream().map(member -> Arrays.asList(member.displayName(), member.loginName(),
                             member.orgName(), member.status() == 1 ? "启用" : "停用",
-                            member.createdAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))).toList());
+                            member.createdAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))).toList(), maxRows);
         } catch (IOException failure) { throw new ApiException(503, "导出文件生成失败，请稍后重试"); }
         transactions.executeWithoutResult(status -> {
             if (!members.isEmpty() && mapper.selectCount(new QueryWrapper<SysUserScope>().in("id", members.stream().map(MemberView::id).toList())) != members.size()) {
@@ -89,9 +92,9 @@ public class MemberService {
     }
 
     @SuppressWarnings("unchecked")
-    private List<MemberView> exportViews(String name) {
-        var members = mapper.export(name, BoundedXlsx.MAX_ROWS + 1);
-        if (members.size() > BoundedXlsx.MAX_ROWS) throw new ApiException(422, "最多导出 5000 条，请缩小姓名筛选范围");
+    private List<MemberView> exportViews(String name, int maxRows) {
+        var members = mapper.export(name, maxRows + 1);
+        if (members.size() > maxRows) throw new ApiException(422, "最多导出 " + maxRows + " 条，请缩小姓名筛选范围");
         var logins = names(members);
         List<MemberView> result = new ArrayList<>(members.size());
         for (int start = 0; start < members.size(); start += 200) {

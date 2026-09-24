@@ -24,6 +24,7 @@ public class AuthService {
     private final SysUserMapper userMapper;
     private final IdentityService identityService;
     private final SystemSecuritySettings securitySettings;
+    private final com.cyys.admin.configuration.service.SystemRuntimeSettings runtimeSettings;
     private final LoginAuditService loginAuditService;
     private final TransactionTemplate transactions;
     private final PasswordService passwords;
@@ -38,7 +39,8 @@ public class AuthService {
         }
         // 密码失败先提交计数，再抛请求错误；成功身份在事务提交后才创建会话。
         SystemSecuritySettings.PasswordSettings settings = securitySettings.current();
-        LoginAttempt attempt = Objects.requireNonNull(transactions.execute(status -> authenticate(command, clientIp, settings)));
+        var runtime = runtimeSettings.current();
+        LoginAttempt attempt = Objects.requireNonNull(transactions.execute(status -> authenticate(command, clientIp, settings, runtime)));
         if (attempt.failure() != null) {
             throw attempt.failure();
         }
@@ -64,7 +66,8 @@ public class AuthService {
         }
     }
 
-    private LoginAttempt authenticate(LoginCmd command, String clientIp, SystemSecuritySettings.PasswordSettings settings) {
+    private LoginAttempt authenticate(LoginCmd command, String clientIp, SystemSecuritySettings.PasswordSettings settings,
+                                      com.cyys.admin.configuration.service.SystemRuntimeSettings.RuntimeSettings runtime) {
         String loginName = command.loginName().trim();
         SysUser user = userMapper.selectForLogin(loginName);
         if (user == null) {
@@ -104,12 +107,23 @@ public class AuthService {
             return rejected(locked ? 423 : 401, locked ? "密码错误次数过多，账号已暂时锁定" : "账号或密码错误");
         }
 
+        if (passwordExpired(user, settings.passwordExpireDays(), now)) {
+            recordRejected(command, user, clientIp, "FAILURE", "PASSWORD_EXPIRED");
+            return rejected(403, "密码已过期，请联系管理员重置");
+        }
+
         IdentityService.Snapshot snapshot;
         try {
             snapshot = identityService.forLogin(user, command.scopeId());
         } catch (ApiException denied) {
             loginAuditService.record(loginName, user.getRealName(), user.getId(), null, clientIp, "FAILURE", "SCOPE_DENIED");
             return new LoginAttempt(null, denied);
+        }
+        if (runtime.maintenanceMode()
+                && !snapshot.identity().roles().contains(PlatformSecurityService.SUPER_ADMIN)) {
+            loginAuditService.record(loginName, user.getRealName(), user.getId(), snapshot.identity().scopeId(),
+                    clientIp, "FAILURE", "MAINTENANCE_MODE");
+            return rejected(503, "系统正在维护，请稍后重试");
         }
         requireUpdated(userMapper.recordLoginSuccess(user.getId(), now, clientIp));
         loginAuditService.record(loginName, user.getRealName(), user.getId(), snapshot.identity().scopeId(), clientIp, "SUCCESS", null);
@@ -138,6 +152,11 @@ public class AuthService {
 
     private LoginAttempt rejected(int status, String message) {
         return new LoginAttempt(null, new ApiException(status, message));
+    }
+
+    private static boolean passwordExpired(SysUser user, int expireDays, java.time.LocalDateTime now) {
+        return expireDays > 0 && (user.getPwdLastChanged() == null
+                || !user.getPwdLastChanged().plusDays(expireDays).isAfter(now));
     }
 
     private void requireUpdated(int rows) {

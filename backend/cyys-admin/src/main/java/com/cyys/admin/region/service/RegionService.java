@@ -9,6 +9,7 @@ import com.cyys.admin.region.mapper.RegionMapper;
 import com.cyys.admin.region.model.Region;
 import com.cyys.admin.configuration.service.ConfigurationKeys;
 import com.cyys.admin.configuration.service.ConfigurationLookupService;
+import com.cyys.admin.configuration.service.SystemRuntimeSettings;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.export.BoundedXlsx;
 import com.cyys.common.web.ApiException;
@@ -26,20 +27,22 @@ public class RegionService {
     private final RegionMapper regions;
     private final DataAuditService audit;
     private final ConfigurationLookupService configurations;
+    private final SystemRuntimeSettings runtimeSettings;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public byte[] export(ExportRegionsCommand command) {
         String parentId = blankToNull(command.parentId());
         String rootId = visibleRootId(parentId);
-        var rows = regions.export(parentId, rootId, command.name(), BoundedXlsx.MAX_ROWS + 1);
-        if (rows.size() > BoundedXlsx.MAX_ROWS) throw new ApiException(422, "最多导出 5000 条，请缩小地区或名称筛选范围");
+        int maxRows = runtimeSettings.current().exportMaxRows();
+        var rows = regions.export(parentId, rootId, command.name(), maxRows + 1);
+        if (rows.size() > maxRows) throw new ApiException(422, "最多导出 " + maxRows + " 条，请缩小地区或名称筛选范围");
         byte[] result;
         try {
             result = BoundedXlsx.write("地区", List.of("地区名称", "地区编码", "邮编", "级别", "简称", "排序", "经度", "纬度"),
                     rows.stream().map(row -> Arrays.asList(row.getName(), row.getCityCode(), row.getZipCode(),
                             String.valueOf(row.getLevel()), row.getShortName(), String.valueOf(row.getSort()),
                             row.getLongitude() == null ? null : row.getLongitude().toPlainString(),
-                            row.getLatitude() == null ? null : row.getLatitude().toPlainString())).toList());
+                            row.getLatitude() == null ? null : row.getLatitude().toPlainString())).toList(), maxRows);
         } catch (IOException failure) { throw new ApiException(503, "导出文件生成失败，请稍后重试"); }
         audit.platformSuccess("region", IdWorker.getIdStr(), "EXPORT_GENERATED");
         return result;

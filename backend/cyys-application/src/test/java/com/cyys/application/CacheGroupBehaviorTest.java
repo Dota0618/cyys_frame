@@ -3,6 +3,7 @@ package com.cyys.application;
 import com.cyys.admin.audit.service.DataAuditService;
 import com.cyys.admin.auth.mapper.DataAuthorizationMapper;
 import com.cyys.admin.auth.service.PlatformSecurityService;
+import com.cyys.admin.configuration.service.SystemRuntimeSettings;
 import com.cyys.admin.cache.service.*;
 import com.cyys.admin.dictionary.dto.*;
 import com.cyys.admin.dictionary.mapper.*;
@@ -227,7 +228,7 @@ class CacheGroupBehaviorTest {
         when(accounts.accountNames(anyList())).thenReturn(List.of(new MemberOption("u", "login")));
         var service = new MemberService(mapper, accounts, mock(MemberDepartmentMapper.class), mock(com.cyys.admin.role.service.RoleGrantService.class), mock(DataAuditService.class),
                 groups, mock(MemberDataPermissionService.class), mock(PlatformSecurityService.class),
-                mock(com.cyys.common.cache.CachedResponseValues.class), tx);
+                mock(com.cyys.common.cache.CachedResponseValues.class), tx, mock(SystemRuntimeSettings.class));
         for (boolean rollback : List.of(true, false)) {
             seed();
             tx.executeWithoutResult(status -> {

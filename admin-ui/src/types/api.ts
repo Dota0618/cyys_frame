@@ -13,6 +13,9 @@ export interface PublicConfiguration {
   PWD_STRENGTH?: string;
   PWD_LOCK_NUM?: string;
   PWD_LOCK_HOUR?: string;
+  COPYRIGHT_TEXT?: string;
+  MAINTENANCE_MODE?: string;
+  CONTACT_PHONE?: string;
 }
 export type ConfigurationType = 'SYSTEM' | 'THIRD_PARTY';
 export interface Configuration {
