@@ -13,6 +13,12 @@
 - 写事务提交后失效相关缓存，回滚不失效。
 - 自动失效和手动刷新共用分组，不清空 Redis 或登录会话。
 - 修改缓存时更新下方来源、字段、使用处和失效入口。
+- 新功能先在 `BusinessCacheGroups` 声明 `CacheRegion` 和 `CacheGroup`。
+- 展示缓存实现 `CacheValueSource<T extends Record>`，使用 `RecordCache` 或 `ScopedHashCache` 回源。
+- `CacheValue.cache` 使用来源名称，`key` 使用 DTO 字段，单位缓存补充 `scopeKey`。
+- 写事务提交后调用 `invalidateEntriesAfterCommit` 或 `invalidateAfterCommit`。
+- 需要手动刷新时增加迁移记录，保持 `cache_key`、刷新组和作用范围与代码一致。
+- 不在业务代码中直接拼接 Redis 键、扫描 Redis 或缓存完整实体。
 
 ## 已缓存清单
 
@@ -45,6 +51,28 @@
 - 新来源实现 `CacheValueSource`，分组登记在 `BusinessCacheGroups`。
 - 组失效使用 `invalidateAfterCommit`，按 ID 失效使用 `invalidateEntriesAfterCommit`。
 - 不通过数据库配置类名或方法名执行反射。
+
+## 新功能接入
+
+```java
+public record ProductLabel(String id, String name) {}
+
+public static final CacheRegion PRODUCT_NAMES =
+        new CacheRegion("product-records", CacheScope.UNIT);
+public static final CacheGroup PRODUCTS =
+        new CacheGroup("product-display", List.of(PRODUCT_NAMES));
+```
+
+```java
+public record ProductView(String productId, String scopeId,
+    @CacheValue(cache = "product", key = "productId", scopeKey = "scopeId", field = "name")
+    String productName) {}
+```
+
+- 来源类使用 `@Component`，`name()` 必须与 `@CacheValue.cache` 相同。
+- 来源类返回只含展示字段的 `record`，不返回实体、权限或敏感字段。
+- 单条变更传入受影响 ID；整组变更调用整组失效。
+- 刷新组迁移只登记缓存区域，不创建缓存值。
 
 ## 缓存管理
 
