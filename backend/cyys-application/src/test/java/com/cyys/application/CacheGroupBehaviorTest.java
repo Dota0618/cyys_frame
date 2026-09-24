@@ -5,6 +5,8 @@ import com.cyys.admin.auth.mapper.DataAuthorizationMapper;
 import com.cyys.admin.auth.service.PlatformSecurityService;
 import com.cyys.admin.configuration.service.SystemRuntimeSettings;
 import com.cyys.admin.cache.service.*;
+import com.cyys.admin.cache.mapper.CacheDefinitionMapper;
+import com.cyys.admin.cache.model.CacheDefinition;
 import com.cyys.admin.dictionary.dto.*;
 import com.cyys.admin.dictionary.mapper.*;
 import com.cyys.admin.dictionary.model.*;
@@ -108,24 +110,27 @@ class CacheGroupBehaviorTest {
         assertThat(redis.hasKey(keys.platform(DICTIONARY_LABELS.id()))).isTrue();
     }
 
-    @Test void manualDictionaryRefreshIsAtomicScopedAndRequiresDictionaryPermission() {
+    @Test void manualDictionaryRefreshUsesConfiguredRefreshGroupAndKeepsOtherGroups() {
         seed();
+        var mapper = mock(CacheDefinitionMapper.class);
+        var options = new CacheDefinition(); options.setId("options"); options.setName("字典选项缓存");
+        options.setCacheKey(DICTIONARY_OPTIONS.id()); options.setRefreshGroup("字典缓存"); options.setScope("SYSTEM");
+        var labels = new CacheDefinition(); labels.setId("labels"); labels.setName("字典项缓存");
+        labels.setCacheKey(DICTIONARY_LABELS.id()); labels.setRefreshGroup("字典缓存"); labels.setScope("SYSTEM");
+        when(mapper.list()).thenReturn(List.of(options, labels));
+        when(mapper.refreshGroup("字典缓存", "SYSTEM")).thenReturn(List.of(options, labels));
         var authorization = mock(DataAuthorizationMapper.class);
         when(authorization.hasPermission("actor", "cache:user:refresh")).thenReturn(true);
         var audit = mock(DataAuditService.class);
-        var management = new CacheManagementService(groups, authorization, audit, tx);
-        assertThat(management.actions()).hasSize(1);
-        assertThatThrownBy(() -> management.refresh("dictionary")).hasMessageContaining("字典");
-        assertThatThrownBy(() -> management.refresh("flushall")).hasMessageContaining("不存在");
-        assertThat(redis.hasKey(keys.platform(DICTIONARY_OPTIONS.id()))).isTrue();
-        when(authorization.hasPermission("actor", "dictionary:update")).thenReturn(true);
-        assertThat(management.actions()).hasSize(2);
-        management.refresh("dictionary");
+        var management = new CacheManagementService(mapper, groups, authorization, audit, tx);
+        assertThat(management.list()).hasSize(2);
+        assertThatThrownBy(() -> management.refreshGroup("不存在", CacheScope.SYSTEM)).hasMessageContaining("不存在");
+        management.refreshGroup("字典缓存", CacheScope.SYSTEM);
         assertThat(redis.hasKey(keys.platform(DICTIONARY_OPTIONS.id()))).isFalse();
         assertThat(redis.hasKey(keys.platform(DICTIONARY_LABELS.id()))).isFalse();
         assertThat(redis.hasKey(ownedKeys.getFirst())).isTrue();
         assertThat(redis.opsForValue().get(ownedKeys.getLast())).isEqualTo("session");
-        verify(audit).platformSuccess("cache", "dictionary", "REFRESH");
+        verify(audit).platformSuccess(eq("cache"), startsWith("group-"), eq("REFRESH"));
     }
 
     @Test void delayedLoadCannotRefillInvalidatedRegionAndTtlIsBounded() {

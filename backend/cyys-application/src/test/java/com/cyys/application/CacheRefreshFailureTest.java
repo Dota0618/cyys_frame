@@ -2,7 +2,10 @@ package com.cyys.application;
 
 import com.cyys.admin.audit.service.DataAuditService;
 import com.cyys.admin.auth.mapper.DataAuthorizationMapper;
+import com.cyys.admin.cache.mapper.CacheDefinitionMapper;
+import com.cyys.admin.cache.model.CacheDefinition;
 import com.cyys.admin.cache.service.CacheManagementService;
+import com.cyys.common.cache.CacheScope;
 import com.cyys.common.cache.CacheKeys;
 import com.cyys.common.cache.ScopedHashCache;
 import com.cyys.common.satoken.RequestIdentity;
@@ -33,8 +36,13 @@ class CacheRefreshFailureTest {
         when(authorization.hasPermission("actor", "cache:user:refresh")).thenReturn(true);
         var audit = mock(DataAuditService.class);
         var transactions = mock(TransactionTemplate.class);
-        var service = new CacheManagementService(new com.cyys.common.cache.CacheGroupService(cache), authorization, audit, transactions);
-        assertThatThrownBy(() -> service.refresh("user-display"))
+        var mapper = mock(CacheDefinitionMapper.class);
+        var definition = new CacheDefinition();
+        definition.setId("user"); definition.setName("用户缓存"); definition.setCacheKey("user-records");
+        definition.setGroupName("用户"); definition.setRefreshGroup("用户缓存"); definition.setScope("SYSTEM");
+        when(mapper.refreshGroup("用户缓存", "SYSTEM")).thenReturn(List.of(definition));
+        var service = new CacheManagementService(mapper, new com.cyys.common.cache.CacheGroupService(cache), authorization, audit, transactions);
+        assertThatThrownBy(() -> service.refreshGroup("用户缓存", CacheScope.SYSTEM))
                 .isInstanceOfSatisfying(ApiException.class, error -> org.assertj.core.api.Assertions.assertThat(error.getStatus()).isEqualTo(503));
         verifyNoInteractions(audit, transactions);
     }

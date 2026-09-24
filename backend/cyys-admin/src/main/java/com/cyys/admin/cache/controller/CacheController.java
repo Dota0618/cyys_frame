@@ -1,10 +1,10 @@
 package com.cyys.admin.cache.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
-import com.cyys.admin.cache.dto.CreateCacheRefreshItemCommand;
-import com.cyys.admin.cache.dto.UpdateCacheRefreshItemCommand;
+import com.cyys.admin.cache.dto.CreateCacheDefinitionCommand;
+import com.cyys.admin.cache.dto.RefreshCacheGroupCommand;
+import com.cyys.admin.cache.dto.UpdateCacheDefinitionCommand;
 import com.cyys.admin.cache.service.CacheManagementService;
-import com.cyys.admin.cache.service.CacheRefreshManagementService;
 import com.cyys.common.web.R;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -18,47 +18,34 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/admin/caches")
 public class CacheController {
     private final CacheManagementService service;
-    private final CacheRefreshManagementService refreshService;
 
     @GetMapping
     @SaCheckPermission("cache:user:refresh")
-    public Object actions() { return R.ok(service.actions()); }
+    public Object list() { return R.ok(service.list()); }
 
-    @GetMapping("/refresh-items")
+    @PostMapping
     @SaCheckPermission("cache:user:refresh")
-    public Object refreshItems() { return R.ok(refreshService.list()); }
-
-    @PostMapping("/refresh-items")
-    @SaCheckPermission("cache:user:refresh")
-    public Object createRefreshItem(@Valid @RequestBody CreateCacheRefreshItemCommand command) {
-        return R.ok(refreshService.create(command));
+    public Object create(@Valid @RequestBody CreateCacheDefinitionCommand command) {
+        return R.ok(service.create(command));
     }
 
-    @PutMapping("/refresh-items/{id}")
+    @PutMapping("/{id}")
     @SaCheckPermission("cache:user:refresh")
-    public Object updateRefreshItem(@PathVariable String id,
-                                    @Valid @RequestBody UpdateCacheRefreshItemCommand command) {
-        return R.ok(refreshService.update(id, command));
+    public Object update(@PathVariable String id, @Valid @RequestBody UpdateCacheDefinitionCommand command) {
+        return R.ok(service.update(id, command));
     }
 
-    @DeleteMapping("/refresh-items/{id}")
+    @DeleteMapping("/{id}")
     @SaCheckPermission("cache:user:refresh")
-    public Object deleteRefreshItem(@PathVariable String id, @RequestParam @Min(0) int version) {
-        refreshService.delete(id, version);
+    public Object delete(@PathVariable String id, @RequestParam @Min(0) int version) {
+        service.delete(id, version);
         return R.ok();
     }
 
-    @PostMapping("/refresh-items/{id}/refresh")
+    @PostMapping("/refresh-groups/refresh")
     @SaCheckPermission("cache:user:refresh")
-    public Object refreshConfigured(@PathVariable String id) {
-        refreshService.refresh(id);
-        return R.ok();
-    }
-
-    @PostMapping("/{action}/refresh")
-    @SaCheckPermission("cache:user:refresh")
-    public Object refresh(@PathVariable String action) {
-        service.refresh(action);
+    public Object refreshGroup(@Valid @RequestBody RefreshCacheGroupCommand command) {
+        service.refreshGroup(command.refreshGroup(), command.scope());
         return R.ok();
     }
 }

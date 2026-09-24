@@ -10,6 +10,7 @@ import com.cyys.admin.role.service.RoleGrantService;
 import com.cyys.admin.user.service.UserDisplayService;
 import com.cyys.common.web.AuthorizedScopesRead;
 import com.cyys.common.web.R;
+import com.cyys.common.cache.CacheScope;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
@@ -83,5 +84,5 @@ public class IsolationProbe {
     @SaCheckPermission("user:display:read")
     Object names(@RequestParam @NotEmpty @Size(max=100) List<@NotBlank String> ids) { return R.ok(users.names(ids)); }
     @PostMapping("/user-cache-refresh")
-    Object refresh() { caches.refresh("user-display"); return R.ok(); }
+    Object refresh() { caches.refreshGroup("用户缓存", CacheScope.SYSTEM); return R.ok(); }
 }

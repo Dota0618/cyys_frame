@@ -129,7 +129,8 @@ java -jar "F:\git\frame\cyys-framework\backend\cyys-business\target\cyys-busines
 | GET/POST /api/admin/platform/dictionaries/{basicId}/items，GET/PUT/DELETE /{id} | 分类下的字典项管理；编码唯一、版本冲突及分类删除依赖保护，后端运行测试及真实浏览器验收通过 |
 | GET /api/admin/audits | 当前单位操作审计分页，独立 audit:read 权限与过滤参数校验 |
 | GET /api/admin/login-audits | 当前单位登录记录分页，独立 login-audit:read 权限；未知/未确认单位记录不混入单位查询 |
-| GET /api/admin/caches，POST /api/admin/caches/{action}/refresh | 登记的业务缓存动作，当前仅 user-display；按 cache:user:refresh 授权，只刷新当前单位，失败返回错误 |
+| GET/POST/PUT/DELETE /api/admin/caches | 缓存定义的查询、新增、修改和软删除；按 cache:user:refresh 授权 |
+| POST /api/admin/caches/refresh-groups/refresh | 按刷新组和作用范围整体刷新；不提供单缓存刷新 |
 
 平台菜单和平台角色入口允许不选择业务单位，但每次操作仍实时验证 `platform:scope:access` 及对应 GLOBAL 操作权限。停用关键权限、停用或改权平台角色、替换账号 GLOBAL 授权时使用同一数据库锁串行检查，拒绝移除最后一名可用平台管理员。
 

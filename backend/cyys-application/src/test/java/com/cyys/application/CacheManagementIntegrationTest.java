@@ -8,6 +8,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -42,19 +43,19 @@ class CacheManagementIntegrationTest extends IsolationTestSupport {
             redis.opsForValue().set(sessionKey, "session-sentinel", Duration.ofMinutes(2));
             Reply actions = request("GET", PATH, alice, "scope-a", null);
             assertThat(actions.status()).as(actions.raw()).isEqualTo(200);
-            assertThat(actions.body().at("/data").size()).isEqualTo(2);
-            assertThat(actions.body().at("/data/0/id").asText()).isEqualTo("user-display");
-            assertThat(actions.body().at("/data/1/id").asText()).isEqualTo("department");
-            assertThat(actions.raw()).doesNotContain("redis", "methodName", "java.lang", "USER_MAP_FULL");
-            Reply refresh = request("POST", PATH + "/user-display/refresh", alice, "scope-a", null);
+            assertThat(actions.body().at("/data").size()).isGreaterThanOrEqualTo(6);
+            assertThat(actions.raw()).contains("\"cacheKey\":\"user-records\"", "\"groupName\":\"用户\"");
+            assertThat(actions.raw()).doesNotContain("redis", "methodName", "java.lang", "USER_MAP_FULL", "refresh-items");
+            Reply refresh = request("POST", PATH + "/refresh-groups/refresh", alice, "scope-a",
+                    JSON.writeValueAsString(Map.of("refreshGroup", "用户缓存", "scope", "SYSTEM")));
             assertThat(refresh.status()).as(refresh.raw()).isEqualTo(200);
             assertThat(redis.hasKey(a)).isFalse();
             assertThat(redis.hasKey(b)).isTrue();
             assertThat(redis.opsForValue().get(platformKey)).isEqualTo("platform-sentinel");
             assertThat(redis.opsForValue().get(sessionKey)).isEqualTo("session-sentinel");
             assertThat(request("GET", "/api/auth/me", alice, "scope-a", null).status()).isEqualTo(200);
-            assertThat(count("select count(*) from sys_data_audit where resource='cache' and record_id='user-display' "
-                    + "and operation='REFRESH' and scope_id='GLOBAL' and user_id='u-alice'"))
+            assertThat(count("select count(*) from sys_data_audit where resource='cache' and operation='REFRESH' "
+                    + "and scope_id='GLOBAL' and user_id='u-alice'"))
                     .isEqualTo(1);
             assertThat(ok("GET", "/user-names?ids=u-alice", alice, "scope-a", null).raw()).contains("alice");
             assertThat(redis.hasKey(a)).isTrue();
@@ -67,14 +68,17 @@ class CacheManagementIntegrationTest extends IsolationTestSupport {
         String alice = token("alice"), bob = token("bob");
         assertThat(request("GET", PATH, null, "scope-a", null).status()).isEqualTo(401);
         assertThat(request("GET", PATH, alice, null, null).status()).isEqualTo(403);
-        assertThat(request("POST", PATH + "/user-display/refresh", alice, "scope-b", null).status()).isEqualTo(403);
-        assertThat(request("POST", PATH + "/user-display/refresh", bob, "scope-b", null).status()).isEqualTo(403);
+        assertThat(request("POST", PATH + "/refresh-groups/refresh", alice, "scope-b",
+                JSON.writeValueAsString(Map.of("refreshGroup", "用户缓存", "scope", "SYSTEM"))).status()).isEqualTo(403);
+        assertThat(request("POST", PATH + "/refresh-groups/refresh", bob, "scope-b",
+                JSON.writeValueAsString(Map.of("refreshGroup", "用户缓存", "scope", "SYSTEM"))).status()).isEqualTo(403);
         for (String action : List.of("all", "sessions", "USER_MAP_FULL", "java.lang.Runtime")) {
             assertThat(request("POST", PATH + "/" + action + "/refresh", alice, "scope-a", null).status()).isEqualTo(404);
         }
         assertThat(count("select count(*) from sys_data_audit where resource='cache'")).isZero();
         jdbc.update("update sys_menu set status=0 where code='cache:user:refresh'");
         assertThat(request("GET", PATH, alice, "scope-a", null).status()).isEqualTo(403);
-        assertThat(request("POST", PATH + "/user-display/refresh", alice, "scope-a", null).status()).isEqualTo(403);
+        assertThat(request("POST", PATH + "/refresh-groups/refresh", alice, "scope-a",
+                JSON.writeValueAsString(Map.of("refreshGroup", "用户缓存", "scope", "SYSTEM"))).status()).isEqualTo(403);
     }
 }

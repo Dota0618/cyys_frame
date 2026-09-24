@@ -40,7 +40,7 @@ class ScopeCacheIntegrationTest extends HttpTestSupport {
         ScopeContext.clear();
         clearCaches();
         jdbc.update("delete from sys_data_audit where scope_id='GLOBAL' and "
-                + "((resource='scope' and record_id='scope-a') or (resource='cache' and record_id='scope'))");
+                + "((resource='scope' and record_id='scope-a') or (resource='cache' and operation='REFRESH'))");
     }
     private void clearCaches() {
         redis.delete(List.of(keys.platform(BusinessCacheGroups.SCOPE_NAMES.id()),
@@ -88,10 +88,11 @@ class ScopeCacheIntegrationTest extends HttpTestSupport {
         String token=token("alice");
         var actions=request("GET","/api/admin/caches",token,"scope-a",null);
         assertThat(actions.status()).as(actions.raw()).isEqualTo(200);
-        assertThat(actions.raw()).contains("单位缓存","\"id\":\"scope\"");
+        assertThat(actions.raw()).contains("\"groupName\":\"单位\"", "\"cacheKey\":\"scope-records\"");
         String userKey=keys.platform(BusinessCacheGroups.USER_NAMES.id());
         redis.opsForHash().put(userKey,"user-fixture","preserved");
-        var refreshed=request("POST","/api/admin/caches/scope/refresh",token,"scope-a",null);
+        var refreshed=request("POST","/api/admin/caches/refresh-groups/refresh",token,"scope-a",
+                JSON.writeValueAsString(Map.of("refreshGroup", "单位缓存", "scope", "SYSTEM")));
         assertThat(refreshed.status()).as(refreshed.raw()).isEqualTo(200);
         assertThat(redis.hasKey(keys.platform(BusinessCacheGroups.SCOPE_NAMES.id()))).isFalse();
         assertThat(redis.opsForHash().get(userKey,"user-fixture")).isEqualTo("preserved");
