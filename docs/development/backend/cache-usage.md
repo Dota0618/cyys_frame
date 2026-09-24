@@ -46,6 +46,12 @@
 - 组失效使用 `invalidateAfterCommit`，按 ID 失效使用 `invalidateEntriesAfterCommit`。
 - 不通过数据库配置类名或方法名执行反射。
 
+## 独立刷新配置
+
+- 只保存系统共享缓存的刷新名称，不保存缓存值。
+- 名称同时作为独立平台缓存区域标识。
+- 新增、修改、删除和刷新均使用缓存管理权限。
+
 ```java
 public record ReaderView(String userId,
     @CacheValue(cache="user", key="userId", field="name") String userName) {}

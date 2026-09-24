@@ -244,9 +244,9 @@ SELECT 'nav-menu-caches','nav:menu:caches','缓存管理',(SELECT id FROM sys_me
 WHERE NOT EXISTS(SELECT 1 FROM sys_menu WHERE code='nav:menu:caches');
 UPDATE sys_menu m JOIN sys_menu p ON p.code='nav:group:system' SET m.name='缓存管理',m.parent_id=p.id,m.sort=120,m.version=m.version+1 WHERE m.code='nav:menu:caches';
 INSERT INTO sys_menu(id,code,name,parent_id,type,path,sort,created_by)
-SELECT 'nav-action-46','cache:user:refresh','刷新单位缓存',(SELECT id FROM sys_menu WHERE code='nav:menu:caches'),3,NULL,1,'system-migration'
+SELECT 'nav-action-46','cache:user:refresh','缓存管理',(SELECT id FROM sys_menu WHERE code='nav:menu:caches'),3,NULL,1,'system-migration'
 WHERE NOT EXISTS(SELECT 1 FROM sys_menu WHERE code='cache:user:refresh');
-UPDATE sys_menu m JOIN sys_menu p ON p.code='nav:menu:caches' SET m.name='刷新单位缓存',m.parent_id=p.id,m.sort=1,m.version=m.version+1 WHERE m.code='cache:user:refresh';
+UPDATE sys_menu m JOIN sys_menu p ON p.code='nav:menu:caches' SET m.name='缓存管理',m.parent_id=p.id,m.sort=1,m.version=m.version+1 WHERE m.code='cache:user:refresh';
 INSERT INTO sys_menu(id,code,name,parent_id,type,path,sort,created_by)
 SELECT 'nav-menu-files','nav:menu:files','文件管理',(SELECT id FROM sys_menu WHERE code='nav:group:files'),2,'/system/files',130,'system-migration'
 WHERE NOT EXISTS(SELECT 1 FROM sys_menu WHERE code='nav:menu:files');
