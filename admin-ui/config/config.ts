@@ -22,7 +22,6 @@ export default defineConfig({
   manifest: {},
   model: {},
   initialState: {},
-  title: 'CYYS',
   layout: { locale: false, ...defaultSettings },
   moment2dayjs: { preset: 'antd', plugins: ['duration', 'relativeTime'] },
   locale: { default: 'zh-CN', antd: true, baseNavigator: false },

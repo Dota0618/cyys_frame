@@ -51,9 +51,9 @@ const Footer: React.FC = () => {
   const { styles } = useStyles();
   const { initialState } = useModel('@@initialState');
   const year = new Date().getFullYear();
-  const systemName = initialState?.settings?.title || 'CYYS';
+  const systemName = initialState?.publicConfigurations?.SYSTEM_NAME?.trim() || '';
   const copyright = initialState?.publicConfigurations?.COPYRIGHT_TEXT?.trim()
-    || `${systemName} © ${year}`;
+    || (systemName ? `${systemName} © ${year}` : `© ${year}`);
   const contactPhone = initialState?.publicConfigurations?.CONTACT_PHONE?.trim();
 
   return (

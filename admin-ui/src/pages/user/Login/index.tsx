@@ -51,7 +51,7 @@ export default function Login() {
   const { styles } = useStyles();
   const { message } = App.useApp();
   const [error, setError] = useState('');
-  const systemName = initialState?.settings?.title || 'CYYS';
+  const systemName = initialState?.publicConfigurations?.SYSTEM_NAME?.trim() || '';
   const maintenance = initialState?.publicConfigurations?.MAINTENANCE_MODE === '1';
   return (
     <div className={styles.container}>
@@ -77,7 +77,7 @@ export default function Login() {
           contentStyle={{ minWidth: 280, maxWidth: '75vw' }}
           logo={<img alt="logo" src="/logo.svg" />}
           title={systemName}
-          subTitle={`${systemName} 管理平台`}
+          subTitle={systemName ? `${systemName} 管理平台` : '管理平台'}
           onFinish={async (values) => {
             setError('');
             try {

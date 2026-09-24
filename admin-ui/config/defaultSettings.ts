@@ -12,7 +12,6 @@ const Settings = {
   fixedHeader: false,
   fixSiderbar: true,
   colorWeak: false,
-  title: 'CYYS',
   logo: '/logo.svg',
   iconfontUrl: '',
   token: {

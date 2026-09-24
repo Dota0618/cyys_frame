@@ -56,7 +56,7 @@ export async function getInitialState(): Promise<{
     user,
     revision: session().revision,
     publicConfigurations: publicConfig,
-    settings: { ...defaultSettings, title: publicConfig.SYSTEM_NAME || defaultSettings.title },
+    settings: { ...defaultSettings, title: publicConfig.SYSTEM_NAME?.trim() || '' },
     settingDrawerOpen: false,
   };
 }
@@ -66,7 +66,7 @@ export const layout: RunTimeLayoutConfig = ({
   initialState,
   setInitialState,
 }) => {
-  const systemName = initialState?.settings?.title || defaultSettings.title;
+  const systemName = initialState?.publicConfigurations?.SYSTEM_NAME?.trim() || '';
   const maintenance = initialState?.publicConfigurations?.MAINTENANCE_MODE === '1';
   return {
     menuDataRender: (items) => navigationTree(initialState?.user?.navigation || [], items, createAccess(initialState)),
