@@ -3,6 +3,7 @@ import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import { SettingDrawer } from '@ant-design/pro-components';
 import type { RunTimeLayoutConfig } from '@umijs/max';
 import { Helmet, history, Link } from '@umijs/max';
+import { Alert } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import React from 'react';
@@ -66,6 +67,7 @@ export const layout: RunTimeLayoutConfig = ({
   setInitialState,
 }) => {
   const systemName = initialState?.settings?.title || defaultSettings.title;
+  const maintenance = initialState?.publicConfigurations?.MAINTENANCE_MODE === '1';
   return {
     menuDataRender: (items) => navigationTree(initialState?.user?.navigation || [], items, createAccess(initialState)),
     menuItemRender: (item, dom) => {
@@ -136,6 +138,15 @@ export const layout: RunTimeLayoutConfig = ({
       // if (initialState?.loading) return <PageLoading />;
       return (
         <>
+          {maintenance && (
+            <Alert
+              type="warning"
+              banner
+              showIcon
+              closable={false}
+              title="系统维护中，普通账号暂时无法登录。"
+            />
+          )}
           <Helmet>
             <title>{systemName}</title>
           </Helmet>

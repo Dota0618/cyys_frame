@@ -52,6 +52,7 @@ export default function Login() {
   const { message } = App.useApp();
   const [error, setError] = useState('');
   const systemName = initialState?.settings?.title || 'CYYS';
+  const maintenance = initialState?.publicConfigurations?.MAINTENANCE_MODE === '1';
   return (
     <div className={styles.container}>
       <Helmet>
@@ -61,6 +62,16 @@ export default function Login() {
         <SelectLang />
       </div>
       <div style={{ flex: '1', padding: '32px 0' }}>
+        {maintenance && (
+          <Alert
+            type="warning"
+            banner
+            showIcon
+            closable={false}
+            title="系统维护中，普通账号暂时无法登录。"
+            style={{ marginBottom: 16 }}
+          />
+        )}
         <LoginForm<{ loginName: string; password: string }>
           name="cyys-login"
           contentStyle={{ minWidth: 280, maxWidth: '75vw' }}
