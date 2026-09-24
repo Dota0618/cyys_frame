@@ -173,6 +173,8 @@ export const layout: RunTimeLayoutConfig = ({
       );
     },
     ...initialState?.settings,
+    // ProLayout 混合布局的左上角标题读取 title；始终以全局参数为准，避免静态设置覆盖。
+    title: systemName,
   };
 };
 
