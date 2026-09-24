@@ -64,10 +64,15 @@ public class IdentityService implements IdentityResolver {
             selectedScopeId = availableScopes.stream().filter(ScopeInfo::defaultFlag)
                     .findFirst().orElse(availableScopes.getFirst()).id();
         }
-        List<String> permissions = roleMapper.selectPermissionCodes(user.getId());
+        List<String> roles = roleMapper.selectRoleCodes(user.getId());
+        boolean superAdmin = roles.contains(PlatformSecurityService.SUPER_ADMIN);
+        List<String> permissions = superAdmin
+                ? roleMapper.selectActivePermissionCodes()
+                : roleMapper.selectPermissionCodes(user.getId());
         RequestIdentity identity = new RequestIdentity(user.getId(), selectedScopeId,
-                roleMapper.selectRoleCodes(user.getId()), permissions);
-        return new Snapshot(user, identity, List.copyOf(availableScopes), profile);
+                roles, permissions);
+        return new Snapshot(user, identity, List.copyOf(availableScopes), profile,
+                superAdmin ? roleMapper.selectAllNavigation() : roleMapper.selectNavigation(user.getId()));
     }
     public LoginVO.UserInfo userInfo(Snapshot snapshot) {
         SysUser user = snapshot.user();
@@ -86,8 +91,7 @@ public class IdentityService implements IdentityResolver {
                 user.getNickname(), user.getAvatar(), user.getPhone(), user.getEmail(), user.getStatus(),
                 user.getLastLoginTime(),
                 snapshot.scopes(), defaultScope, identity.scopeId(), identity.roles(),
-                identity.permissions(),
-                roleMapper.selectNavigation(user.getId()), snapshot.profile().getScopeId(), snapshot.profile().getOrgId(), snapshot.profile().getDataRange());
+                identity.permissions(), snapshot.navigation(), snapshot.profile().getScopeId(), snapshot.profile().getOrgId(), snapshot.profile().getDataRange());
     }
 
     static String credentialStamp(SysUser user) {
@@ -100,6 +104,8 @@ public class IdentityService implements IdentityResolver {
         }
     }
 
-    public record Snapshot(SysUser user, RequestIdentity identity, List<ScopeInfo> scopes, com.cyys.admin.user.model.SysUserScope profile) {
+    public record Snapshot(SysUser user, RequestIdentity identity, List<ScopeInfo> scopes,
+                           com.cyys.admin.user.model.SysUserScope profile,
+                           List<com.cyys.admin.menu.dto.NavigationMenu> navigation) {
     }
 }

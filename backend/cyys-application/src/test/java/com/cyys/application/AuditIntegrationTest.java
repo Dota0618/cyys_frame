@@ -35,8 +35,18 @@ class AuditIntegrationTest extends IsolationTestSupport {
         assertThat(page.status()).as(page.raw()).isEqualTo(200);
         assertThat(page.body().at("/data/total").asInt()).isEqualTo(1);
         assertThat(page.body().at("/data/records/0/scopeId").asText()).isEqualTo("scope-a");
-        assertThat(page.body().at("/data/records/0/actorId").asText()).isEqualTo("u-alice");
+        assertThat(page.body().at("/data/records/0/userId").asText()).isEqualTo("u-alice");
+        assertThat(page.body().at("/data/records/0/loginName").asText()).isEqualTo("alice");
+        assertThat(page.body().at("/data/records/0/realName").asText()).isEqualTo("alice");
         assertThat(page.body().at("/data/records/0/operation").asText()).isEqualTo("CREATE");
+        assertThat(page.body().at("/data/records/0/operationLabel").asText()).isEqualTo("新增");
+        assertThat(page.body().at("/data/records/0/outcomeLabel").asText()).isEqualTo("成功");
+
+        var options = request("GET", "/api/admin/audits/options", alice, "scope-a", null);
+        assertThat(options.status()).as(options.raw()).isEqualTo(200);
+        assertThat(options.body().at("/data/operations/0/value").asText()).isEqualTo("CREATE");
+        assertThat(options.body().at("/data/operations/0/label").asText()).isEqualTo("新增");
+        assertThat(options.body().at("/data/outcomes/0/value").asText()).isEqualTo("SUCCESS");
     }
 
     @Test

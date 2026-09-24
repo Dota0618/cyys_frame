@@ -54,7 +54,7 @@ class CacheManagementIntegrationTest extends IsolationTestSupport {
             assertThat(redis.opsForValue().get(sessionKey)).isEqualTo("session-sentinel");
             assertThat(request("GET", "/api/auth/me", alice, "scope-a", null).status()).isEqualTo(200);
             assertThat(count("select count(*) from sys_data_audit where resource='cache' and record_id='user-display' "
-                    + "and operation='REFRESH' and scope_id='GLOBAL' and actor_id='u-alice'"))
+                    + "and operation='REFRESH' and scope_id='GLOBAL' and user_id='u-alice'"))
                     .isEqualTo(1);
             assertThat(ok("GET", "/user-names?ids=u-alice", alice, "scope-a", null).raw()).contains("alice");
             assertThat(redis.hasKey(a)).isTrue();

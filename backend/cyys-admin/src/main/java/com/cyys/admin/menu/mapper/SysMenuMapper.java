@@ -16,6 +16,9 @@ public interface SysMenuMapper extends BaseMapper<SysMenu> {
     @Select("select * from sys_menu where id=#{id} and deleted=0")
     SysMenu detail(@Param("id") String id);
 
+    @Select("select * from sys_menu where code=#{code} and deleted=0")
+    SysMenu byCode(@Param("code") String code);
+
     @Select("select * from sys_menu where id=#{id} and deleted=0 for update")
     SysMenu lock(@Param("id") String id);
 
@@ -54,4 +57,13 @@ public interface SysMenuMapper extends BaseMapper<SysMenu> {
     @Update("update sys_menu set deleted=1,version=version+1,updated_by=#{actor},updated_at=CURRENT_TIMESTAMP "
             + "where id=#{id} and version=#{version} and deleted=0")
     int softDelete(@Param("id") String id, @Param("version") int version, @Param("actor") String actor);
+
+    @Update("update sys_menu set name=#{name},updated_by=#{actor},updated_at=CURRENT_TIMESTAMP where code=#{code} and deleted=0")
+    int updateNameByCode(@Param("code") String code, @Param("name") String name, @Param("actor") String actor);
+
+    @Update("update sys_menu set status=0,visible=0,updated_by=#{actor},updated_at=CURRENT_TIMESTAMP where code=#{code} and deleted=0")
+    int disableByCode(@Param("code") String code, @Param("actor") String actor);
+
+    @Update("update sys_menu set status=1,visible=1,updated_by=#{actor},updated_at=CURRENT_TIMESTAMP where code=#{code} and deleted=0")
+    int enableByCode(@Param("code") String code, @Param("actor") String actor);
 }

@@ -57,14 +57,19 @@ public class MySqlTestDatabaseGuard implements ApplicationContextInitializer<Con
             regionTables.add("param_region");
             var serialTables=new HashSet<>(regionTables);
             serialTables.addAll(Set.of("sys_serial_rule","sys_serial_counter"));
+            var recycleTables = new HashSet<>(serialTables);
+            recycleTables.add("sys_recycle_resource");
             var memberRangeTables = new HashSet<>(serialTables);
             memberRangeTables.remove("sys_role_org");
             memberRangeTables.add("sys_user_scope_org");
+            var recycleMemberRangeTables = new HashSet<>(memberRangeTables);
+            recycleMemberRangeTables.add("sys_recycle_resource");
             if (!actualTables.equals(memberRangeTables) && !actualTables.equals(TABLES) && !actualTables.equals(upgradedTables)
                     && !actualTables.equals(phase4Tables) && !actualTables.equals(loginAuditTables)
                     && !actualTables.equals(fileTables) && !actualTables.equals(directoryTables)
                     && !actualTables.equals(noticeTables) && !actualTables.equals(systemNoticeTables)
-                    && !actualTables.equals(releaseTables) && !actualTables.equals(regionTables) && !actualTables.equals(serialTables)) {
+                    && !actualTables.equals(releaseTables) && !actualTables.equals(regionTables) && !actualTables.equals(serialTables)
+                    && !actualTables.equals(recycleTables) && !actualTables.equals(recycleMemberRangeTables)) {
                 throw new IllegalStateException("测试拒绝未知或未纳管的数据库结构；不会删表或自动 baseline。");
             }
             try (var statement = connection.createStatement()) {
@@ -75,7 +80,12 @@ public class MySqlTestDatabaseGuard implements ApplicationContextInitializer<Con
                               + " or (created_by='migration-v27' and ((id='nav-menu-data-recycle' and code='nav:menu:data-recycle' and type=2)"
                               + " or (id='perm-recycle-read' and code='recycle:read' and type=3)"
                               + " or (id='perm-recycle-restore' and code='recycle:restore' and type=3)"
-                              + " or (id='perm-recycle-purge' and code='recycle:purge' and type=3))))" : "";
+                              + " or (id='perm-recycle-purge' and code='recycle:purge' and type=3)))"
+                              + " or (created_by='migration-v28' and ((id='nav-menu-recycle-config' and code='nav:menu:recycle-config' and type=2)"
+                              + " or (id='perm-recycle-config-read' and code='recycle:config:read' and type=3)"
+                              + " or (id='perm-recycle-config-create' and code='recycle:config:create' and type=3)"
+                              + " or (id='perm-recycle-config-update' and code='recycle:config:update' and type=3)"
+                              + " or (id='perm-recycle-config-delete' and code='recycle:config:delete' and type=3))))" : "";
                     try (var rows = statement.executeQuery("select 1 from " + table + seedFilter + " limit 1")) {
                         if (rows.next()) {
                             throw new IllegalStateException("测试拒绝含已有数据的 schema（" + table

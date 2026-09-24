@@ -68,8 +68,14 @@ class LoginAuditIntegrationTest extends IsolationTestSupport {
         assertThat(page.body().at("/data/total").asInt()).isEqualTo(2);
         assertThat(page.body().at("/data/records").size()).isEqualTo(1);
         assertThat(page.body().at("/data/records/0/scopeId").asText()).isEqualTo("scope-a");
+        assertThat(page.body().at("/data/records/0/realName").asText()).isEqualTo("alice");
+        Reply options = request("GET", PATH + "/options", alice, "scope-a", null);
+        assertThat(options.status()).as(options.raw()).isEqualTo(200);
+        assertThat(options.raw()).contains("SUCCESS", "成功", "FAILURE", "失败");
         Reply failures = request("GET", PATH + "?loginName=alice&outcome=FAILURE", alice, "scope-a", null);
         assertThat(failures.body().at("/data/total").asInt()).isEqualTo(1);
+        assertThat(failures.body().at("/data/records/0/realName").asText()).isEqualTo("alice");
+        assertThat(failures.body().at("/data/records/0/outcomeLabel").asText()).isEqualTo("失败");
         assertThat(failures.body().at("/data/records/0/reason").asText()).isEqualTo("INVALID_CREDENTIALS");
         assertThat(request("GET", PATH + "?loginName=missing", alice, "scope-a", null)
                 .body().at("/data/total").asInt()).isZero();

@@ -36,7 +36,7 @@ class RecycleIntegrationTest extends HttpTestSupport {
         jdbc.update("delete from sys_notice where id like 'g1-recycle-%'");
         jdbc.update("delete from sys_version where id like 'g1-recycle-%'");
         jdbc.update("delete from sys_file_entry where id='g1-recycle-file'");
-        jdbc.update("delete from sys_data_audit where actor_id in ('u-alice','u-bob')");
+        jdbc.update("delete from sys_data_audit where user_id in ('u-alice','u-bob')");
         jdbc.update("update sys_menu set status=1 where created_by='migration-v27'");
     }
 
@@ -61,7 +61,7 @@ class RecycleIntegrationTest extends HttpTestSupport {
         assertThat(change("org-notice", "restore", alice, "scope-a", ref("g1-recycle-a", 0)).status()).isEqualTo(403);
     }
 
-    @Test void listAndMutationsRespectInstitutionDepartmentAndOwnerRanges() throws Exception {
+    @Test void listAndMutationsRespectInstitutionAndOwnerRanges() throws Exception {
         seedNotice("g1-recycle-a", "scope-a", "u-alice", 1);
         seedNotice("g1-recycle-b", "scope-b", "u-bob", 1);
         seedNotice("g1-recycle-other", "scope-a", "u-bob", 1);
@@ -82,8 +82,6 @@ class RecycleIntegrationTest extends HttpTestSupport {
         jdbc.update("update sys_user_scope set data_range=5 where user_id='u-alice'");
         assertThat(request("GET", ROOT + "/org-notice", alice, "scope-a", null).body().at("/data/total").asInt()).isEqualTo(1);
         assertThat(change("org-notice", "purge", alice, "scope-a", ref("g1-recycle-other", 0)).status()).isEqualTo(409);
-        jdbc.update("update sys_user_scope set data_range=3,org_id='g1-recycle-dept-a' where user_id='u-alice'");
-        assertThat(request("GET", ROOT + "/org-notice", alice, "scope-a", null).body().at("/data/total").asInt()).isEqualTo(2);
     }
 
     @Test void softDeleteRetainsAttachmentsAndRestoreKeepsOriginalOwnershipAndReceipts() throws Exception {
@@ -96,8 +94,8 @@ class RecycleIntegrationTest extends HttpTestSupport {
         assertThat(request("DELETE", "/api/admin/files/g1-recycle-file?version=0", alice, "scope-a", null).status()).isEqualTo(409);
         var restored = change("org-notice", "restore", alice, "scope-a", ref("g1-recycle-a", 1));
         assertThat(restored.status()).as(restored.raw()).isEqualTo(200);
-        assertThat(jdbc.queryForMap("select scope_id,org_id,created_by,version,deleted from sys_org_notice where id='g1-recycle-a'"))
-                .containsEntry("scope_id", "scope-a").containsEntry("org_id", "g1-recycle-dept-a")
+        assertThat(jdbc.queryForMap("select scope_id,created_by,version,deleted from sys_org_notice where id='g1-recycle-a'"))
+                .containsEntry("scope_id", "scope-a")
                 .containsEntry("created_by", "u-alice").containsEntry("version", 2);
         assertThat(request("GET", "/api/admin/org-notices/g1-recycle-a", alice, "scope-a", null).raw()).contains("g1-recycle-file", "secret body");
         assertThat(count("select count(*) from sys_org_notice_ref where notice_id='g1-recycle-a'")).isEqualTo(1);
@@ -106,14 +104,9 @@ class RecycleIntegrationTest extends HttpTestSupport {
         assertThat(audits("RESTORE")).isEqualTo(1);
     }
 
-    @Test void invalidDepartmentOrAttachmentBlocksRestoreWithoutChangingHistory() throws Exception {
+    @Test void invalidAttachmentBlocksRestoreWithoutChangingHistory() throws Exception {
         seedNotice("g1-recycle-a", "scope-a", "u-alice", 1);
         String alice = token("alice");
-        jdbc.update("update sys_org set status=0 where id='g1-recycle-dept-a'");
-        assertThat(change("org-notice", "restore", alice, "scope-a", ref("g1-recycle-a", 0)).status()).isEqualTo(409);
-        jdbc.update("update sys_org set status=1,deleted=1 where id='g1-recycle-dept-a'");
-        assertThat(change("org-notice", "restore", alice, "scope-a", ref("g1-recycle-a", 0)).status()).isEqualTo(409);
-        jdbc.update("update sys_org set deleted=0 where id='g1-recycle-dept-a'");
         seedAttachment("ORG_NOTICE", "scope-a", "g1-recycle-a");
         jdbc.update("update sys_file_entry set deleted=1 where id='g1-recycle-file'");
         assertThat(change("org-notice", "restore", alice, "scope-a", ref("g1-recycle-a", 0)).status()).isEqualTo(409);
@@ -223,8 +216,8 @@ class RecycleIntegrationTest extends HttpTestSupport {
     }
 
     private void seedNotice(String id, String scope, String owner, int deleted) {
-        jdbc.update("insert into sys_org_notice(id,scope_id,org_id,title,content,created_by,updated_by,deleted,created_at,updated_at) values(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",
-                id, scope, scope.equals("scope-a") ? "g1-recycle-dept-a" : "g1-recycle-dept-b", id, "secret body", owner, owner, deleted);
+        jdbc.update("insert into sys_org_notice(id,scope_id,title,content,created_by,updated_by,deleted,created_at,updated_at) values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",
+                id, scope, id, "secret body", owner, owner, deleted);
     }
 
     private void seedAttachment(String resource, String scope, String record) {

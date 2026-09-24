@@ -1,19 +1,18 @@
 import { compactFormProps, verticalFormItemProps } from '@/components/ManagementLayout';
-import { ModalForm, PageContainer, ProForm, ProFormText, ProFormTextArea, ProFormTreeSelect, ProTable } from '@ant-design/pro-components';
+import { ModalForm, PageContainer, ProForm, ProFormText, ProFormTextArea, ProTable } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Modal, Popconfirm } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import AttachmentField from '@/components/AttachmentField';
 import DictionarySelect from '@/components/DictionarySelect';
-import { departmentTreeData } from '@/utils/departments';
 import { ApiError, StaleRequest } from '@/utils/request';
 import { session, setDirty } from '@/utils/session';
 import { saveDownload } from '@/utils/download';
 import { createNotice, listNotices, noticeAttachment, noticeDetail, noticeEdit, noticeFiles, noticeOptions, noticeReaders, readNotice, removeNotice, updateNotice } from '@/services/system/orgNotices';
 import type { Attachment, NoticeDetail, NoticeOptions, NoticeReader, OrgNotice } from '@/services/system/orgNotices';
 
-interface FormValue { departmentId?: string; title: string; type?: string | null; content: string; attachments: Attachment[] }
+interface FormValue { title: string; type?: string | null; content: string; attachments: Attachment[] }
 export default function OrgNoticesPage() {
   const access = useAccess();
   const action = useRef<ActionType | null>(null);
@@ -44,7 +43,6 @@ export default function OrgNoticesPage() {
   };
   const columns: ProColumns<OrgNotice>[] = [
     { title: '通知标题', dataIndex: 'title' },
-    { title: '所属部门', dataIndex: 'departmentName', search: false },
     { title: '通知类型', dataIndex: 'typeLabel', search: false, render: (_, row) => row.typeLabel ? `${row.typeLabel}${row.typeDisabled ? '（已失效）' : ''}` : '—' },
     { title: '阅读人数', dataIndex: 'readCount', search: false },
     { title: '我的阅读', dataIndex: 'read', search: false, renderText: (read) => read ? '已读' : '未读' },
@@ -75,12 +73,10 @@ export default function OrgNoticesPage() {
         const command = { title: values.title, content: values.content, type: values.type ?? null, attachments: values.attachments.map((file) => file.id) };
         try {
           if (detail) await updateNotice(detail.notice.id, { ...command, version: detail.notice.version });
-          else await createNotice({ ...command, departmentId: values.departmentId! });
+          else await createNotice(command);
           setEditor(undefined); setDirty(false); void action.current?.reload(); return true;
         } catch { return false; }
       }}>
-      {detail ? <p>所属部门：{detail.notice.departmentName}</p> : <ProFormTreeSelect name="departmentId" label="所属部门"
-        rules={[{ required: true, message: '请选择所属部门' }]} fieldProps={{ treeData: departmentTreeData(editor.options.departments), treeDefaultExpandAll: true }} />}
       <ProFormText name="title" label="通知标题" rules={[{ required: true, whitespace: true, message: '请输入通知标题' }, { max: 100 }]} />
       <ProForm.Item name="type" label="通知类型"><DictionarySelect ariaLabel="通知类型" options={editor.options.types}
         historical={detail?.notice.type ? { value: detail.notice.type, label: detail.notice.typeLabel || detail.notice.type, disabled: detail.notice.typeDisabled } : undefined} /></ProForm.Item>

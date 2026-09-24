@@ -12,6 +12,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class PlatformSecurityService {
     public static final String GLOBAL = "GLOBAL";
+    public static final String SUPER_ADMIN = "SUPER_ADMIN";
 
     private final DataAuthorizationMapper authorization;
     private final PlatformSecurityMapper mapper;
@@ -26,6 +27,9 @@ public class PlatformSecurityService {
 
     /** 授权管理使用实时权限上限；普通接口的操作权限由 Controller 检查。 */
     public Set<String> permissionCeiling() {
+        if (ScopeContext.get().roles().contains(SUPER_ADMIN)) {
+            return Set.copyOf(authorization.activePermissionCodes());
+        }
         return Set.copyOf(authorization.permissions(ScopeContext.get().loginId()));
     }
 

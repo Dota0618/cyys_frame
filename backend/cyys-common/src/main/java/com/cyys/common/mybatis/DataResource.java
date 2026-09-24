@@ -3,10 +3,13 @@ package com.cyys.common.mybatis;
 public record DataResource(String name, String table, String scopeColumn, String departmentColumn,
                            String ancestorsColumn, String actorColumn, String versionColumn, java.util.Set<String> immutableColumns) {
     public DataResource {
-        for (String identifier : new String[]{name, table, scopeColumn, departmentColumn, actorColumn}) {
+        for (String identifier : new String[]{name, table, scopeColumn, actorColumn}) {
             if (identifier == null || !identifier.matches("[a-z][a-z0-9_]*")) {
                 throw new IllegalArgumentException("资源及字段必须使用固定的服务端标识");
             }
+        }
+        if (departmentColumn != null && !departmentColumn.matches("[a-z][a-z0-9_]*")) {
+            throw new IllegalArgumentException("非法部门字段");
         }
         if (ancestorsColumn != null && !ancestorsColumn.matches("[a-z][a-z0-9_]*")) {
             throw new IllegalArgumentException("非法祖先字段");

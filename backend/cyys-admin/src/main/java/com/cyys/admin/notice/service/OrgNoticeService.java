@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.audit.service.DataAuditService;
-import com.cyys.admin.department.mapper.SysOrgMapper;
 import com.cyys.admin.dictionary.dto.DictionaryOption;
 import com.cyys.admin.dictionary.service.DictionaryLookupService;
 import com.cyys.admin.file.dto.FileOption;
@@ -29,7 +28,6 @@ public class OrgNoticeService {
     private static final String TYPES="NOTICE_TYPE";
     private final OrgNoticeMapper notices;
     private final OrgNoticeReadMapper reads;
-    private final SysOrgMapper departments;
     private final DictionaryLookupService dictionaries;
     private final FileAttachmentService attachments;
     private final DataAuditService audit;
@@ -49,7 +47,7 @@ public class OrgNoticeService {
     @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public OrgNoticeOptions options(String id) {
         if(id!=null) require(id,false);
-        return new OrgNoticeOptions(id==null?departments.parentOptionsForCreate():List.of(),null);
+        return new OrgNoticeOptions(null);
     }
 
     @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
@@ -60,12 +58,11 @@ public class OrgNoticeService {
 
     @Transactional
     public OrgNoticeDetail create(CreateOrgNoticeCommand command) {
-        if(departments.forReference(command.departmentId())==null) throw new ApiException(409,"通知所属部门不可选择");
-        var notice=new OrgNotice(); notice.setOrgId(command.departmentId());
+        var notice=new OrgNotice();
         notice.setTitle(command.title().strip()); notice.setContent(command.content());
         setType(notice,command.type());
         requireOne(notices.insert(notice));
-        if(notices.selectById(notice.getId())==null) throw new ApiException(403,"没有该部门的通知创建权限");
+        if(notices.selectById(notice.getId())==null) throw new ApiException(403,"没有单位通知创建权限");
         attachments.replace(AttachmentResource.ORG_NOTICE,notice.getId(),command.attachments());
         audit.success("org-notice",notice.getId(),"CREATE");
         return detail(notice);
@@ -130,8 +127,7 @@ public class OrgNoticeService {
         Map<String,OrgNoticeView> result=new HashMap<>();
         for(var row:rows) {
             var count=counts.get(row.getId());
-            result.put(row.getId(),new OrgNoticeView(row.getId(),row.getOrgId(),null,
-                    row.getTitle(),row.getType(),null,null,row.getVersion(),
+            result.put(row.getId(),new OrgNoticeView(row.getId(),row.getTitle(),row.getType(),null,null,row.getVersion(),
                     count==null?0:count.total(),count!=null&&count.seen(),row.getCreatedAt()));
         }
         return result;

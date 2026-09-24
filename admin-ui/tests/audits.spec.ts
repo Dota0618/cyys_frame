@@ -45,16 +45,21 @@ for (const entry of [
       (record: { scopeId: string }) => record.scopeId === 'scope-a',
     )).toBe(true);
     if (entry.key === 'login') {
+      await expect(page.getByRole('columnheader', { name: '登录名', exact: true })).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: '真实姓名', exact: true })).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: '账号', exact: true })).toHaveCount(0);
       await page.getByLabel('登录名', { exact: true }).fill('no-such-audit-record');
       await page.getByRole('button', { name: '查 询' }).click();
       await expect(page.locator('tr[data-row-key]')).toHaveCount(0);
       await page.getByRole('button', { name: '重 置' }).click();
       await expect(page.locator('tr[data-row-key]').first()).toBeVisible();
     } else {
+      await expect(page.getByRole('columnheader', { name: '登录名', exact: true })).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: '真实姓名', exact: true })).toBeVisible();
       await page.getByLabel('操作', { exact: true }).click();
-      await page.locator('.ant-select-dropdown:visible .ant-select-item-option-content').filter({ hasText: /^CREATE$/ }).click();
+      await page.locator('.ant-select-dropdown:visible .ant-select-item-option-content').filter({ hasText: /^新增$/ }).click();
       await page.getByRole('button', { name: '查 询' }).click();
-      await expect(page.locator('tr[data-row-key]').first()).toContainText('CREATE');
+      await expect(page.locator('tr[data-row-key]').first()).toContainText('新增');
     }
     await expect(page.getByRole('button', { name: /新增|删除|修改/ })).toHaveCount(0);
     await page.screenshot({ path: `test-results/${entry.key}-audits.png`, fullPage: true });

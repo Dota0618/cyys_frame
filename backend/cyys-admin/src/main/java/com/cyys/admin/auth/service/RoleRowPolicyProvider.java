@@ -38,7 +38,6 @@ public class RoleRowPolicyProvider implements RowPolicyProvider {
     public String predicate(DataPolicyRegistry.Policy policy, RequestIdentity identity, String qualifier) {
         var resource = policy.resource();
         String owner = qualifier + "." + resource.scopeColumn();
-        String department = qualifier + "." + resource.departmentColumn();
         String creator = qualifier + "." + resource.actorColumn();
         String actor = literal(identity.loginId());
         boolean userProfile = resource.table().equals("sys_user_scope");
@@ -51,16 +50,22 @@ public class RoleRowPolicyProvider implements RowPolicyProvider {
         if (userProfile) activeOwner = "(" + owner + " is null or " + activeOwner + ")";
         String filter = identity.scopeId() == null ? "" : "(" + owner + "=" + literal(identity.scopeId())
                 + (userProfile ? " or " + owner + " is null" : "") + ") and ";
-        String departmentDescendants = resource.ancestorsColumn() != null
-                ? "(p.org_id=" + department + " or find_in_set(p.org_id," + qualifier + "." + resource.ancestorsColumn() + ")>0)"
-                : "exists(select 1 from sys_org pol_org where pol_org.id=" + department + " and pol_org.scope_id=" + owner
-                    + " and pol_org.deleted=0 and (p.org_id=pol_org.id or find_in_set(p.org_id,pol_org.ancestors)>0))";
-        String sameInstitution = owner + "=p.scope_id and (p.data_range=1"
-                + " or (p.data_range=2 and exists(select 1 from sys_user_scope_org pol_custom where pol_custom.member_id=p.id"
-                + " and pol_custom.scope_id=" + owner + " and pol_custom.org_id=" + department + "))"
-                + " or (p.data_range=3 and p.org_id=" + department + ")"
-                + " or (p.data_range=4 and " + departmentDescendants + ")"
-                + " or (p.data_range=5 and " + creator + "=" + actor + "))";
+        String sameInstitution;
+        if (resource.departmentColumn() == null) {
+            sameInstitution = owner + "=p.scope_id";
+        } else {
+            String department = qualifier + "." + resource.departmentColumn();
+            String departmentDescendants = resource.ancestorsColumn() != null
+                    ? "(p.org_id=" + department + " or find_in_set(p.org_id," + qualifier + "." + resource.ancestorsColumn() + ")>0)"
+                    : "exists(select 1 from sys_org pol_org where pol_org.id=" + department + " and pol_org.scope_id=" + owner
+                        + " and pol_org.deleted=0 and (p.org_id=pol_org.id or find_in_set(p.org_id,pol_org.ancestors)>0))";
+            sameInstitution = owner + "=p.scope_id and (p.data_range=1"
+                    + " or (p.data_range=2 and exists(select 1 from sys_user_scope_org pol_custom where pol_custom.member_id=p.id"
+                    + " and pol_custom.scope_id=" + owner + " and pol_custom.org_id=" + department + "))"
+                    + " or (p.data_range=3 and p.org_id=" + department + ")"
+                    + " or (p.data_range=4 and " + departmentDescendants + ")"
+                    + " or (p.data_range=5 and " + creator + "=" + actor + "))";
+        }
         String institutions = "p.data_range=6 and exists(select 1 from sys_scope pol_child where pol_child.id=" + owner
                 + " and (pol_child.id=p.scope_id or find_in_set(p.scope_id,pol_child.ancestors)>0))";
         String range = "exists(select 1 from " + profileSource + " p where p.user_id=" + actor

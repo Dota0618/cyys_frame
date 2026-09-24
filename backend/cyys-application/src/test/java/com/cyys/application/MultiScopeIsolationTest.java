@@ -100,7 +100,7 @@ class MultiScopeIsolationTest extends IsolationTestSupport {
         var made=ok("POST","/departments",token,"scope-a",Map.of("name","new","code","new")).body().path("data");
         assertThat(made.path("scopeId").asText()).isEqualTo("scope-a");
         assertThat(jdbc.queryForObject("select created_by from sys_org where id=?",String.class,made.path("id").asText())).isEqualTo("u-alice");
-        assertThat(count("select count(*) from sys_data_audit where actor_id='u-alice' and scope_id='scope-a' and operation='CREATE'")).isEqualTo(1);
+        assertThat(count("select count(*) from sys_data_audit where user_id='u-alice' and scope_id='scope-a' and operation='CREATE'")).isEqualTo(1);
     }
 
     @Test
@@ -157,7 +157,7 @@ class MultiScopeIsolationTest extends IsolationTestSupport {
         allow("role-platform","platform:data:operate",true);
         assertThat(call("POST","/departments",token,null,Map.of("name","platform","code","platform")).status()).isEqualTo(403);
         ok("POST","/departments",token,"scope-b",Map.of("name","platform","code","platform"));
-        assertThat(count("select count(*) from sys_data_audit where actor_id='u-platform' and scope_id='scope-b'")).isEqualTo(1);
+        assertThat(count("select count(*) from sys_data_audit where user_id='u-platform' and scope_id='scope-b'")).isEqualTo(1);
         jdbc.update("update sys_menu set status=0 where code='platform:data:read-all'");
         assertThat(call("GET","/global",token,null,null).status()).isEqualTo(403);
     }

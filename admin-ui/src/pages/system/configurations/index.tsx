@@ -5,10 +5,10 @@ import {
 } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
-import { Alert, Button, Popconfirm } from 'antd';
+import { Alert, Button } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import {
-  configurationDetail, createConfiguration, deleteConfiguration, listConfigurations, updateConfiguration,
+  configurationDetail, createConfiguration, listConfigurations, updateConfiguration,
 } from '@/services/system/configurations';
 import type { Configuration, CreateConfiguration, UpdateConfiguration } from '@/types/api';
 import { ApiError, StaleRequest } from '@/utils/request';
@@ -51,14 +51,6 @@ export default function ConfigurationsPage() {
       access.canEditConfigurations && <a key="edit" onClick={() => {
         void configurationDetail(row.id).then(setEditing).catch(() => {});
       }}>修改</a>,
-      access.canDeleteConfigurations && <Popconfirm key="delete" title="删除该配置？"
-        description="删除后不再提供此配置值，请确认使用方允许删除。" okText="删除" cancelText="取消"
-        onConfirm={async () => {
-          try {
-            await deleteConfiguration(row.id, row.version);
-            void action.current?.reload();
-          } catch { /* 统一请求层已提示；保留当前记录。 */ }
-        }}><a>删除</a></Popconfirm>,
     ].filter(Boolean) },
   ];
 

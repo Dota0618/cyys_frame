@@ -26,23 +26,24 @@ import java.util.List;
 public class PasswordService {
     private final SysUserMapper users;
     private final PlatformSecurityService platform;
-    private final LoginProperties settings;
+    private final SystemSecuritySettings securitySettings;
     private final DataAuditService audit;
     private final TransactionTemplate transactions;
 
     @Transactional(propagation=Propagation.NEVER)
     public void change(ChangePasswordCommand command) {
-        PasswordPolicy.validateNew(command.newPassword());
+        var settings = securitySettings.current();
+        PasswordPolicy.validateNew(command.newPassword(), settings.strength());
         PasswordPolicy.validateBytes(command.currentPassword());
         String actor=ScopeContext.get().loginId();
         String stamp=currentStamp();
         // 错误计数独立提交，再向客户端返回失败，避免事务回滚抹掉限流计数。
         ApiException rejected=transactions.execute(status -> {
             var account=require(actor);
-            ApiException failure=verifyOperator(account,stamp,command.currentPassword());
+            ApiException failure=verifyOperator(account,stamp,command.currentPassword(), settings);
             if(failure!=null) return failure;
             if(command.newPassword().equals(command.currentPassword())) return new ApiException(400,"新密码不能与原密码相同");
-            replace(account,command.newPassword(),actor,"CHANGE_PASSWORD");
+            replace(account,command.newPassword(),actor,"CHANGE_PASSWORD", settings.strength());
             return null;
         });
         if(rejected!=null) throw rejected;
@@ -84,7 +85,8 @@ public class PasswordService {
         return null;
     }
 
-    private ApiException verifyOperator(SysUser account,String stamp,String password) {
+    private ApiException verifyOperator(SysUser account,String stamp,String password,
+                                         SystemSecuritySettings.PasswordSettings settings) {
         var sessionFailure=verifySession(account,stamp);
         if(sessionFailure!=null) return sessionFailure;
         var now=LocalDateTime.now();
@@ -93,18 +95,27 @@ public class PasswordService {
         try { matches=BCrypt.checkpw(password,account.getPasswordHash()); }
         catch(IllegalArgumentException invalidHash) { matches=false; }
         if(matches) return null;
-        int failures=account.getPwdLockTime()!=null?1:account.getPwdErrorCount()+1;
-        boolean lock=failures>=settings.getLoginMaxErrorCount();
-        requireOne(users.recordPasswordFailure(account.getId(),failures,lock?now.plusMinutes(settings.getLockMinutes()):null));
+        int previous = account.getPwdLockTime() != null && account.getPwdLockTime().isAfter(now)
+                ? java.util.Optional.ofNullable(account.getPwdErrorCount()).orElse(0)
+                : (account.getPwdLockTime() == null
+                ? java.util.Optional.ofNullable(account.getPwdErrorCount()).orElse(0) : 0);
+        int failures = settings.lockAttempts() == 0 ? 0 : previous + 1;
+        boolean lock = settings.lockAttempts() > 0 && failures >= settings.lockAttempts();
+        requireOne(users.recordPasswordFailure(account.getId(), failures,
+                lock ? now.plusHours(settings.lockHours()) : null));
         return new ApiException(lock?423:400,lock?"密码错误次数过多，已暂时锁定":"当前密码不正确");
     }
 
-    private void replace(SysUser target,String password,String actor,String operation) {
-        requireOne(users.replacePassword(target.getId(),PasswordPolicy.hash(password),actor));
+    private void replace(SysUser target,String password,String actor,String operation, int strength) {
+        requireOne(users.replacePassword(target.getId(),PasswordPolicy.hash(password, strength),actor));
         if ("CHANGE_PASSWORD".equals(operation)) audit.ownPasswordChanged();
         else audit.platformSuccess("account",target.getId(),operation);
         // 每次使用新盐；现有 IdentityService 逐请求比较散列/改密时间指纹，旧会话立即失效。
         // 不在提交后按账号批量登出，以免误踢提交后刚建立的新密码会话。
+    }
+
+    private void replace(SysUser target,String password,String actor,String operation) {
+        replace(target, password, actor, operation, 0);
     }
 
     private String currentStamp() { return (String)StpUtil.getTokenSession().get(ScopeHandlerInterceptor.CREDENTIAL_STAMP); }

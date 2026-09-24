@@ -35,20 +35,4 @@ public interface ReleaseMapper {
             + "where id=#{id} and version=#{version} and deleted=0")
     int softDelete(@Param("id") String id, @Param("version") int version, @Param("actor") String actor);
 
-    @Select("<script>select id,release_number as title,null as scope_id,null as scope_name,null as department_id,null as department_name,updated_by as deleted_by,null as deleted_by_name,updated_at as deleted_at,created_at,version from sys_version where deleted=1 "
-            + "<if test='search!=null and search!=&quot;&quot;'>and release_number like concat('%',#{search},'%')</if> "
-            + "order by created_at desc,id desc</script>")
-    com.baomidou.mybatisplus.core.metadata.IPage<com.cyys.admin.recycle.dto.RecycleRecord> recycled(
-            com.baomidou.mybatisplus.extension.plugins.pagination.Page<com.cyys.admin.recycle.dto.RecycleRecord> page,
-            @Param("search") String search);
-
-    @Select("select " + COLUMNS + " from sys_version where id=#{id} and deleted=1 for update")
-    Release lockRecycled(String id);
-
-    @Update("update sys_version set deleted=0,version=version+1,updated_by=#{actor},updated_at=CURRENT_TIMESTAMP "
-            + "where id=#{id} and version=#{version} and deleted=1")
-    int restore(@Param("id") String id, @Param("version") int version, @Param("actor") String actor);
-
-    @Delete("delete from sys_version where id=#{id} and version=#{version} and deleted=1")
-    int purge(@Param("id") String id, @Param("version") int version);
 }

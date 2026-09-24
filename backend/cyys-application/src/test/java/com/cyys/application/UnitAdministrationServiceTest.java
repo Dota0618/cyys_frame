@@ -1,36 +1,37 @@
 package com.cyys.application;
 
 import com.cyys.admin.auth.mapper.DataAuthorizationMapper;
+import com.cyys.admin.auth.service.PlatformSecurityService;
 import com.cyys.admin.auth.service.UnitAdministrationService;
-import com.cyys.admin.user.mapper.SysUserRoleMapper;
 import com.cyys.common.satoken.*;
 import com.cyys.common.web.ApiException;
 import org.junit.jupiter.api.*;
 import java.util.List;
+import java.util.Set;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class UnitAdministrationServiceTest {
     private final DataAuthorizationMapper authorization = mock(DataAuthorizationMapper.class);
-    private final SysUserRoleMapper roles = mock(SysUserRoleMapper.class);
-    private final UnitAdministrationService service = new UnitAdministrationService(authorization, roles);
+    private final PlatformSecurityService security = mock(PlatformSecurityService.class);
+    private final UnitAdministrationService service = new UnitAdministrationService(authorization, security);
     @BeforeEach void context() { ScopeContext.set(new RequestIdentity("actor", "unit-a", List.of(), List.of())); }
     @AfterEach void clear() { ScopeContext.clear(); }
 
     @Test void administrationRequiresBothOperationAndInstitutionRange() {
-        when(roles.selectPermissionCodes("actor")).thenReturn(
-                List.of("role:create", "role:grant"));
+        when(security.permissionCeiling()).thenReturn(
+                Set.of("role:create", "role:grant"));
         when(authorization.hasInstitutionWideRange("actor", "unit-a")).thenReturn(true);
         assertThat(service.authorize("role:create", true)).contains("role:create", "role:grant");
         verify(authorization).hasInstitutionWideRange("actor", "unit-a");
     }
     @Test void operationAloneCannotManageInstitutionAuthorization() {
-        when(roles.selectPermissionCodes("actor")).thenReturn(
-                List.of("user:data-permission"));
+        when(security.permissionCeiling()).thenReturn(
+                Set.of("user:data-permission"));
         assertThatThrownBy(() -> service.authorize("user:data-permission", false)).isInstanceOf(ApiException.class);
     }
     @Test void operationPermissionAloneDoesNotAllowSelfElevation() {
-        when(roles.selectPermissionCodes("actor")).thenReturn(List.of("user:data-permission"));
+        when(security.permissionCeiling()).thenReturn(Set.of("user:data-permission"));
         when(authorization.hasInstitutionWideRange("actor", "unit-a")).thenReturn(false);
         assertThatThrownBy(() -> service.authorize("user:data-permission", false)).isInstanceOf(ApiException.class);
         when(authorization.hasInstitutionWideRange("actor", "unit-a")).thenReturn(true);

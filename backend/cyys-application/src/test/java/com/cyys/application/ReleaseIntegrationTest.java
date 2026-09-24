@@ -39,7 +39,7 @@ class ReleaseIntegrationTest extends IsolationTestSupport {
     @AfterEach void clearReleases() throws Exception {
         jdbc.update("delete from sys_file_binding where scope_id='GLOBAL' and resource='RELEASE' and record_id in (select id from sys_version where created_by='u-platform')");
         jdbc.update("delete from sys_version where created_by='u-platform'");
-        jdbc.update("delete from sys_data_audit where actor_id='u-platform' and resource='release'");
+        jdbc.update("delete from sys_data_audit where user_id='u-platform' and resource='release'");
         for(String key:jdbc.queryForList("select object_key from sys_file_entry where scope_id in ('scope-a','scope-b')",String.class)) {
             assertThat(key).matches("[a-f0-9]{32}"); Files.deleteIfExists(root.resolve(key));
         }

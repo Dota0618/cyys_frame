@@ -7,6 +7,13 @@ export interface UserInfo {
   navigation?: NavigationMenu[];
 }
 export interface LoginResult { token: string; userInfo: UserInfo }
+export interface PublicConfiguration {
+  SYSTEM_NAME?: string;
+  SYSTEM_PROVINCE_CODE?: string;
+  PWD_STRENGTH?: string;
+  PWD_LOCK_NUM?: string;
+  PWD_LOCK_HOUR?: string;
+}
 export type ConfigurationType = 'SYSTEM' | 'THIRD_PARTY';
 export interface Configuration {
   id: string; name: string; value: string | null; type: ConfigurationType;
@@ -28,6 +35,7 @@ export interface DictionaryItem {
   id: string; basicId: string; paramKey: string; paramValue: string;
   desp?: string; sort: number; version: number;
 }
+export interface DictionaryOption { value: string; label: string; disabled?: boolean }
 export interface CreateDictionaryItem { paramKey: string; paramValue: string; desp?: string; sort?: number }
 export interface UpdateDictionaryItem { version: number; paramValue: string; desp?: string; sort?: number }
 export interface Page<T> { records: T[]; total: number; current: number; size: number }
@@ -72,19 +80,26 @@ export interface PlatformMenu {
 export interface CreatePlatformMenu extends Omit<PlatformMenu, 'id' | 'version'> {}
 export interface EditPlatformMenu extends Omit<PlatformMenu, 'code' | 'type'> {}
 export interface AuditRecord {
-  id: string; actorId: string; scopeId: string; resource: string; recordId: string;
-  operation: string; authorizedView: string; outcome: string; occurredAt: string;
+  id: string; userId: string; loginName?: string; realName?: string; scopeId: string;
+  resource: string; recordId: string; operation: string; operationLabel?: string;
+  operationDisabled?: boolean; authorizedView: string; outcome: string; outcomeLabel?: string;
+  outcomeDisabled?: boolean; occurredAt: string;
 }
+export interface AuditOptions { operations: DictionaryOption[]; outcomes: DictionaryOption[] }
 
 export interface LoginAuditRecord {
   id: string;
   loginName: string;
+  realName?: string;
   userId?: string;
   scopeId?: string;
   clientIp?: string;
   outcome: string;
+  outcomeLabel?: string;
+  outcomeDisabled?: boolean;
   reason?: string;
   occurredAt: string;
 }
+export interface LoginAuditOptions { outcomes: DictionaryOption[] }
 export interface CreateMember { loginName: string; password: string; displayName: string; orgId?: string; dataPermission?: MemberDataPermissionInput }
 export interface EditMember { version: number; displayName: string; orgId?: string; status: number; dataPermission?: MemberDataPermissionInput }

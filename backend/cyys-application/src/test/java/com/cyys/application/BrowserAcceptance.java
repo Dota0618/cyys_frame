@@ -55,8 +55,8 @@ class BrowserAcceptance extends IsolationTestSupport {
         }
         jdbc.update("delete from sys_role_menu where menu_id in (select id from sys_menu where code='g4-browser-menu')");
         jdbc.update("delete from sys_menu where code='g4-browser-menu'");
-        jdbc.update("delete from sys_data_audit where scope_id='GLOBAL' and actor_id='u-platform'");
-        jdbc.update("delete from sys_data_audit where scope_id='GLOBAL' and (actor_id='g4-release-editor' or actor_id in (select id from sys_user where login_name like 'g4-%'))");
+        jdbc.update("delete from sys_data_audit where scope_id='GLOBAL' and user_id='u-platform'");
+        jdbc.update("delete from sys_data_audit where scope_id='GLOBAL' and (user_id='g4-release-editor' or user_id in (select id from sys_user where login_name like 'g4-%'))");
     }
 
     @Test void actualBrowserFlows() throws Exception {

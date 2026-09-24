@@ -38,7 +38,7 @@ class DataScopePolicyTest {
     }
 
     @Test void registeredJoinTablesAreIndividuallyFilteredWithAliases() {
-        String sql = rewrite("select n.id,d.name from sys_org_notice n left join sys_org d on d.id=n.org_id where n.deleted=0");
+        String sql = rewrite("select n.id,d.name from sys_org_notice n left join sys_org d on d.scope_id=n.scope_id where n.deleted=0");
         assertThat(sql).contains("n.scope_id = 'a'", "d.scope_id = 'a'");
         verify(provider).predicate(argThat(p -> p.resource().table().equals("sys_org_notice")), any(), eq("n"));
         verify(provider).predicate(argThat(p -> p.resource().table().equals("sys_org")), any(), eq("d"));
@@ -89,7 +89,7 @@ class DataScopePolicyTest {
         var policy = registry.policy(statement("select * from sys_org_notice", SqlCommandType.SELECT));
         scopes.authorize(policy, ScopeContext.get());
         String predicate = scopes.predicate(policy, ScopeContext.get(), "n");
-        assertThat(predicate).contains("n.scope_id='a'", "p.data_range=0", "p.data_range=5", "p.data_range=6")
+        assertThat(predicate).contains("n.scope_id='a'", "p.data_range=0", "p.data_range=6")
                 .doesNotContain("sys_role", "sys_menu", "pol_m.code");
         verify(lookups, never()).hasPermission(any(), any());
     }

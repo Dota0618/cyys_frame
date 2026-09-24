@@ -7,4 +7,5 @@ import jakarta.validation.constraints.Size;
 
 public record AuditQuery(@Min(1) long page, @Min(1) @Max(200) long size,
                     @Size(max = 64) String resource,
-                    @Size(max = 20) String operation) {}
+                    @Size(max = 20) String operation,
+                    @Size(max = 20) String outcome) {}

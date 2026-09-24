@@ -23,7 +23,7 @@ import java.util.Objects;
 public class AuthService {
     private final SysUserMapper userMapper;
     private final IdentityService identityService;
-    private final LoginProperties loginProperties;
+    private final SystemSecuritySettings securitySettings;
     private final LoginAuditService loginAuditService;
     private final TransactionTemplate transactions;
     private final PasswordService passwords;
@@ -37,7 +37,8 @@ public class AuthService {
             throw new ApiException(400, "密码的 UTF-8 长度不能超过 72 字节");
         }
         // 密码失败先提交计数，再抛请求错误；成功身份在事务提交后才创建会话。
-        LoginAttempt attempt = Objects.requireNonNull(transactions.execute(status -> authenticate(command, clientIp)));
+        SystemSecuritySettings.PasswordSettings settings = securitySettings.current();
+        LoginAttempt attempt = Objects.requireNonNull(transactions.execute(status -> authenticate(command, clientIp, settings)));
         if (attempt.failure() != null) {
             throw attempt.failure();
         }
@@ -63,11 +64,11 @@ public class AuthService {
         }
     }
 
-    private LoginAttempt authenticate(LoginCmd command, String clientIp) {
+    private LoginAttempt authenticate(LoginCmd command, String clientIp, SystemSecuritySettings.PasswordSettings settings) {
         String loginName = command.loginName().trim();
         SysUser user = userMapper.selectForLogin(loginName);
         if (user == null) {
-            loginAuditService.record(loginName, null, null, clientIp, "FAILURE", "INVALID_CREDENTIALS");
+            loginAuditService.record(loginName, null, null, null, clientIp, "FAILURE", "INVALID_CREDENTIALS");
             return rejected(401, "账号或密码错误");
         }
         if (!Integer.valueOf(1).equals(user.getStatus())) {
@@ -90,9 +91,13 @@ public class AuthService {
             return rejected(401, "账号或密码错误");
         }
         if (!passwordMatches) {
-            int nextCount = user.getPwdLockTime() != null ? 1 : user.getPwdErrorCount() + 1;
-            boolean locked = nextCount >= loginProperties.getLoginMaxErrorCount();
-            LocalDateTime lockedUntil = locked ? now.plusMinutes(loginProperties.getLockMinutes()) : null;
+            int previousCount = user.getPwdLockTime() != null && user.getPwdLockTime().isAfter(now)
+                    ? java.util.Optional.ofNullable(user.getPwdErrorCount()).orElse(0)
+                    : (user.getPwdLockTime() == null
+                    ? java.util.Optional.ofNullable(user.getPwdErrorCount()).orElse(0) : 0);
+            int nextCount = settings.lockAttempts() == 0 ? 0 : previousCount + 1;
+            boolean locked = settings.lockAttempts() > 0 && nextCount >= settings.lockAttempts();
+            LocalDateTime lockedUntil = locked ? now.plusHours(settings.lockHours()) : null;
             requireUpdated(userMapper.recordPasswordFailure(user.getId(), nextCount, lockedUntil));
             recordRejected(command, user, clientIp,
                     locked ? "LOCKED" : "FAILURE", locked ? "PASSWORD_LOCKED" : "INVALID_CREDENTIALS");
@@ -103,11 +108,11 @@ public class AuthService {
         try {
             snapshot = identityService.forLogin(user, command.scopeId());
         } catch (ApiException denied) {
-            loginAuditService.record(loginName, user.getId(), null, clientIp, "FAILURE", "SCOPE_DENIED");
+            loginAuditService.record(loginName, user.getRealName(), user.getId(), null, clientIp, "FAILURE", "SCOPE_DENIED");
             return new LoginAttempt(null, denied);
         }
         requireUpdated(userMapper.recordLoginSuccess(user.getId(), now, clientIp));
-        loginAuditService.record(loginName, user.getId(), snapshot.identity().scopeId(), clientIp, "SUCCESS", null);
+        loginAuditService.record(loginName, user.getRealName(), user.getId(), snapshot.identity().scopeId(), clientIp, "SUCCESS", null);
         user.setLastLoginTime(now);
         return new LoginAttempt(snapshot, null);
     }
@@ -123,7 +128,7 @@ public class AuthService {
         } catch (ApiException denied) {
             // 无法确认归属时保留无单位的安全记录，不信任登录请求中的单位。
         }
-        loginAuditService.record(user.getLoginName(), user.getId(), verifiedScope, clientIp, outcome, reason);
+        loginAuditService.record(user.getLoginName(), user.getRealName(), user.getId(), verifiedScope, clientIp, outcome, reason);
     }
 
     public LoginVO.UserInfo me() {

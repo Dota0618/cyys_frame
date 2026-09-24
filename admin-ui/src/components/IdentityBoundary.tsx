@@ -95,6 +95,7 @@ function IdentityContent({ children }: PropsWithChildren) {
 
   const routeAccess: Record<string, boolean> = {
     '/system/recycle': access.canReadRecycle,
+    '/system/recycle-config': access.canReadRecycleConfig,
     '/system/scopes': access.canReadScopes,
     '/system/users': access.canReadUsers,
     '/system/departments': access.canReadDepartments,

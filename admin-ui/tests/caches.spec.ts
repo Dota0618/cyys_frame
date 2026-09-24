@@ -18,7 +18,7 @@ test('缓存登记列表、真实刷新与当前单位审计', async ({ page }) 
   await expect(page.getByText('用户显示名称缓存已更新', { exact: true })).toBeVisible();
   const audit = await direct(page, 'GET', '/api/admin/audits?resource=cache&operation=REFRESH');
   expect(audit.status).toBe(200);
-  expect(audit.body.data.records[0]).toMatchObject({ scopeId: 'scope-a', actorId: 'u-alice', recordId: 'user-display' });
+  expect(audit.body.data.records[0]).toMatchObject({ scopeId: 'scope-a', userId: 'u-alice', loginName: 'alice', realName: 'alice', recordId: 'user-display' });
   expect((await direct(page, 'POST', `${PATH}/sessions/refresh`)).status).toBe(404);
   await page.screenshot({ path: 'test-results/caches.png', fullPage: true });
 });

@@ -1,15 +1,33 @@
 import { ProFormText } from '@ant-design/pro-components';
+import { useModel } from '@umijs/max';
 
-/** 新建账号、个人改密、管理员重置使用同一密码输入规则；密码不做 trim。 */
-export default function NewPasswordFields({ name = 'newPassword', label = '新密码', confirm = true }: {
-  name?: string; label?: string; confirm?: boolean;
+/** 密码不做 trim；调用方可覆盖系统组合强度。 */
+export default function NewPasswordFields({ name = 'newPassword', label = '新密码', confirm = true, strength: strengthOverride }: {
+  name?: string; label?: string; confirm?: boolean; strength?: number;
 }) {
+  const { initialState } = useModel('@@initialState');
+  const configuredStrength = Number(initialState?.publicConfigurations?.PWD_STRENGTH || 0);
+  const strength = strengthOverride === undefined
+    ? (Number.isFinite(configuredStrength) ? Math.min(2, Math.max(0, Math.trunc(configuredStrength))) : 0)
+    : Math.min(2, Math.max(0, Math.trunc(strengthOverride)));
+  const strengthMessage = strength >= 2
+    ? '至少 8 位，且必须包含大写字母、小写字母和数字。'
+    : strength >= 1
+      ? '至少 8 位，且必须包含字母和数字。'
+      : '至少 8 位。';
   return <>
     <ProFormText.Password name={name} label={label} fieldProps={{ autoComplete: 'new-password', maxLength: 72 }}
-      extra="至少 12 位；中文等多字节字符合计不能超过 72 字节。"
+      extra={`${strengthMessage} 中文等多字节字符合计不能超过 72 字节。`}
       rules={[
         { required: true, whitespace: true, message: '请输入密码' },
-        { min: 12, message: '密码至少 12 位' },
+        { min: 8, message: '密码至少 8 位' },
+        { validator: async (_, value?: string) => {
+          if (!value) return;
+          if (strength >= 1 && !/[\p{L}]/u.test(value)) throw new Error('密码必须包含字母');
+          if (strength >= 1 && !/\p{Nd}/u.test(value)) throw new Error('密码必须包含数字');
+          if (strength >= 2 && !/\p{Lu}/u.test(value)) throw new Error('密码必须包含大写字母');
+          if (strength >= 2 && !/\p{Ll}/u.test(value)) throw new Error('密码必须包含小写字母');
+        } },
         { validator: async (_, value?: string) => {
           if (value && new TextEncoder().encode(value).length > 72) throw new Error('密码不能超过 72 个 UTF-8 字节');
         } },

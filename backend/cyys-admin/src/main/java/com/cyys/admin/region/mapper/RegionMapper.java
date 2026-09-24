@@ -11,17 +11,30 @@ import org.apache.ibatis.annotations.*;
 public interface RegionMapper {
     String COLUMNS="r.id,r.parent_id,r.city_code,r.name,r.short_name,r.zip_code,r.longitude,r.latitude,r.level,r.sort,r.version";
     String FILTER="from param_region r where r.deleted=0 "
-            + "<choose><when test='parent != null'>and r.parent_id=#{parent}</when><otherwise>and r.parent_id is null</otherwise></choose> "
+            + "<choose><when test='parent != null'>and r.parent_id=#{parent}</when>"
+            + "<when test='rootId != null'>and r.id=#{rootId}</when>"
+            + "<otherwise>and r.parent_id is null</otherwise></choose> "
             + "<if test='name != null and name != &quot;&quot;'>and r.name like concat('%',#{name},'%')</if> ";
 
     @Select("<script>select " + COLUMNS + ",exists(select 1 from param_region c where c.parent_id=r.id and c.deleted=0) as has_children "
             + FILTER
             + "order by r.sort,r.id</script>")
-    IPage<Region> page(Page<Region> page,@Param("parent") String parent,@Param("name") String name);
+    IPage<Region> page(Page<Region> page,@Param("parent") String parent,@Param("rootId") String rootId,@Param("name") String name);
 
     @Select("<script>select " + COLUMNS + " " + FILTER + "order by r.sort,r.id limit #{limit}</script>")
     @Options(timeout = 15)
-    java.util.List<Region> export(@Param("parent") String parent, @Param("name") String name, @Param("limit") int limit);
+    java.util.List<Region> export(@Param("parent") String parent, @Param("rootId") String rootId,
+                                  @Param("name") String name, @Param("limit") int limit);
+
+    @Select("select " + COLUMNS + " from param_region r where r.city_code=#{cityCode} and r.deleted=0")
+    Region byCityCode(@Param("cityCode") String cityCode);
+
+    @Select("<script>with recursive ancestors as ("
+            + "select id,parent_id from param_region where id=#{id} and deleted=0 "
+            + "union all "
+            + "select r.id,r.parent_id from param_region r join ancestors a on a.parent_id=r.id where r.deleted=0"
+            + ") select count(*) from ancestors where id=#{rootId}</script>")
+    int visibleInRoot(@Param("id") String id, @Param("rootId") String rootId);
 
     @Select("select " + COLUMNS + ",exists(select 1 from param_region c where c.parent_id=r.id and c.deleted=0) as has_children "
             + "from param_region r where r.id=#{id} and r.deleted=0")

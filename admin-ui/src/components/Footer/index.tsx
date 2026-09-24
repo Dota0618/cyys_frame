@@ -1,5 +1,6 @@
 import packageJson from '../../../package.json';
 import { createStyles } from 'antd-style';
+import { useModel } from '@umijs/max';
 import React from 'react';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -48,11 +49,13 @@ const useStyles = createStyles(({ token, css }) => ({
 
 const Footer: React.FC = () => {
   const { styles } = useStyles();
+  const { initialState } = useModel('@@initialState');
   const year = new Date().getFullYear();
+  const systemName = initialState?.settings?.title || 'CYYS';
 
   return (
     <div className={styles.footer}>
-      <div className={styles.copyright}>CYYS &copy; {year}</div>
+      <div className={styles.copyright}>{systemName} &copy; {year}</div>
       <a
         className={styles.link}
         href={packageJson.template.repository}

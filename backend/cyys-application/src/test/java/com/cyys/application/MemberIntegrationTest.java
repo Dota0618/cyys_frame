@@ -96,6 +96,6 @@ class MemberIntegrationTest extends IsolationTestSupport {
         allow("role-platform","platform:data:operate",true);
         var created=users("POST","",token,"scope-b",body);
         assertThat(created.status()).as(created.raw()).isEqualTo(200);
-        assertThat(count("select count(*) from sys_data_audit where resource='user' and scope_id='scope-b' and actor_id='u-platform'")).isEqualTo(1);
+        assertThat(count("select count(*) from sys_data_audit where resource='user' and scope_id='scope-b' and user_id='u-platform'")).isEqualTo(1);
     }
 }

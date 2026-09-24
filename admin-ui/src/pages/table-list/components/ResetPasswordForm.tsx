@@ -26,6 +26,6 @@ export default function ResetPasswordForm({ account, onClose }: { account: Membe
       } catch { return false; }
     }}>
     <p>这会重置账号的登录密码，并使其原有登录失效。请通过合适的方式将新密码交给账号本人。</p>
-    <NewPasswordFields />
+    <NewPasswordFields strength={0} />
   </ModalForm>;
 }

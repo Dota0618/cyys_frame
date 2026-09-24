@@ -23,13 +23,15 @@
 | `department` | 记录 `DepartmentLabel`：id、name 为 String | 部门 ID | 实际所属单位 | `DepartmentCacheSource` |
 | `dictionary-item` | 记录 `DictionaryOption`：value、label 为 String，disabled 为 boolean | 字典内部名称＋value | 系统共享 | `DictionaryItemCacheSource` |
 | `dictionary-options` | 列表 `List<DictionaryOption>`，仅有效候选 | 字典内部名称；列表项按 value 匹配 | 系统共享 | `DictionaryOptionsCacheSource` |
+| `configuration-values` | Hash 字符串值 | 参数名称 | 系统共享 | `ConfigurationLookupService` |
 
 | 缓存组 | 已使用处 | 提交后失效入口 |
 |---|---|---|
 | 用户 | `OrgNoticeReadView.userName`、`DepartmentView.leaderName/leaderActive`、`UserDisplayService.names`、`RecycleRecord.deletedByName` | `MemberService.create/edit`，仅对应用户 ID |
 | 单位 | `ScopeInfo.name`：登录资料、当前用户资料、右上角单位列表、工作台；`MemberView.scopeName`：用户列表、详情；`RecycleRecord.scopeName` | `ScopeManagementService.create/update`，仅对应单位 ID；当前没有单位删除入口 |
-| 部门 | `OrgNoticeView.departmentName`；`MemberView.orgName`：用户列表、详情、导出；`RecycleRecord.departmentName`，按记录实际单位取值 | `DepartmentService` 新增、修改、删除，失效对应单位部门组 |
-| 字典 | `OrgNoticeView`、`SystemNoticeView`、`ReleaseView` 的类型名称/状态；`OrgNoticeOptions.types`、系统通知/版本候选列表 | `DictionaryService` 分类和字典项增删改，同时失效记录与列表缓存 |
+| 部门 | `MemberView.orgName`：用户列表、详情、导出；`RecycleRecord.departmentName`，按记录实际单位取值 | `DepartmentService` 新增、修改、删除，失效对应单位部门组 |
+| 字典 | `OrgNoticeView`、`SystemNoticeView`、`ReleaseView` 的类型名称/状态；`OrgNoticeOptions.types`、`AuditView` 的操作/结果名称、`AuditOptions` 候选列表；系统通知/版本候选列表 | `DictionaryService` 分类和字典项增删改，同时失效记录与列表缓存 |
+| 全局参数 | 配置管理列表/详情、公共配置接口、地区根节点和密码策略 | `ConfigurationService` 新增、修改后按参数名称失效；支持手动刷新全局参数缓存 |
 
 ## 用法
 

@@ -1,5 +1,7 @@
 import { api } from '@/utils/request';
-import type { Page, LoginAuditRecord } from '@/types/api';
+import type { Page, LoginAuditOptions, LoginAuditRecord } from '@/types/api';
+
+export const loginAuditOptions = () => api<LoginAuditOptions>('/api/admin/login-audits/options');
 
 export const listLoginAudits = (
   page: number,

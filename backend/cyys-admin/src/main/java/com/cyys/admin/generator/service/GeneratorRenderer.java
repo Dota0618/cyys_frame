@@ -15,7 +15,7 @@ import java.util.zip.*;
 /** Fixed, versioned source templates. User input is data, never a template or output path. */
 @Component
 public class GeneratorRenderer {
-    public static final String VERSION="2026-09-22.1";
+    public static final String VERSION="2026-09-23.1";
     private static final Set<String> RESERVED=Set.of("id","scope_id","org_id","department_id","parent_id","children","version","deleted","created_by","created_at","updated_by","updated_at");
     private static final Set<String> CLASS_NAMES=Set.of("Object","String","Integer","Boolean","BigDecimal","LocalDate","LocalDateTime","List","Map","Page","R","ApiException","System","Override","QueryWrapper",
             "IPage","DataAuditService","SysOrgMapper","DictionaryOption","DictionaryOptionMapper","ScopeContext","RequiredArgsConstructor","Service","Transactional","BaseMapper","ProtectedMapper","Mapper","Select","Update","Param","JsonFormat","DepartmentOption","LinkedHashMap","TableName","DataResourceDefinition","TableId","IdType","TableField","FieldFill","FieldStrategy","Version","TableLogic");
@@ -63,7 +63,7 @@ public class GeneratorRenderer {
         v.put("PARENT_VIEW_VALUE",tree?"row.getParentId(),":"");
         v.put("PARENT_ASSIGN",tree?"row.setParentId(command.parentId());\n        if(command.parentId()!=null) { var parent=require(command.parentId(),true); if(!parent.getOrgId().equals(command.departmentId())) throw new ApiException(409,\"父节点必须属于同一部门\"); }":"");
         v.put("PARENT_DELETE",tree?"if(mapper.hasChildren(id,ScopeContext.get().requireScopeId())) throw new ApiException(409,\"存在下级，不能删除\");":"");
-        v.put("PARENT_SQL",tree?"parent_id varchar(32),\n    ":"");
+        v.put("PARENT_SQL",tree?"parent_id varchar(32) COMMENT '父记录编号',\n    ":"");
         v.put("PARENT_INDEX",tree?"KEY idx_"+c.feature()+"_parent (scope_id,parent_id,deleted),":"");
         v.put("IMMUTABLE",tree?"\"org_id\",\"parent_id\"":"\"org_id\"");
         // Child existence is a dependency guard: checking all same-unit children cannot expose their content.
@@ -82,7 +82,7 @@ public class GeneratorRenderer {
             create.add(validation(f)+type+" "+p); view.add((f.type()==GeneratorFieldType.DECIMAL?"@JsonFormat(shape=JsonFormat.Shape.STRING) ":"")+type+" "+p); values.add("row.get"+cap+"()");
             assign.append("row.set").append(cap).append("(command.").append(p).append("());\n        ");
             if(f.type()==GeneratorFieldType.DICTIONARY) dict.append("if(command.").append(p).append("()!=null && !java.util.Objects.equals(command.").append(p).append("(),previous==null?null:previous.get").append(cap).append("()) && dictionaries.eligible(").append(quote(f.dictionary())).append(",command.").append(p).append("())==null) throw new ApiException(409,\"字典选项已失效\");\n        ");
-            sql.add("    `"+f.column()+"` "+sqlType(f)+(f.required()?" NOT NULL":""));
+            sql.add("    `"+f.column()+"` "+sqlType(f)+(f.required()?" NOT NULL":"")+" COMMENT "+sqlComment(f.label()));
             ts.add(p+(f.required()?"":"?")+": "+tsType(f)+(f.required()?"":" | null")+";");
             form.append(formField(f));
             if(f.inList() || f.searchable()) table.append("{ title: ").append(quote(f.label())).append(", dataIndex: ").append(quote(p)).append(", hideInTable: ").append(!f.inList()).append(", search: ").append(f.searchable()).append(f.type()==GeneratorFieldType.BOOLEAN?", renderText: (value: boolean) => value ? '是' : '否'":"").append(" },\n    ");
@@ -168,6 +168,9 @@ public class GeneratorRenderer {
     }
     private static String sqlText(String value) {
         return "CONVERT(0x"+java.util.HexFormat.of().formatHex(value.getBytes(StandardCharsets.UTF_8))+" USING utf8mb4)";
+    }
+    private static String sqlComment(String value) {
+        return "'"+value.replace("\\", "\\\\").replace("'", "\\'")+"'";
     }
     private String formField(GeneratorField f) {
         String p=property(f.column());

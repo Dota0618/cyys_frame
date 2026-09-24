@@ -12,6 +12,7 @@
 | 后端 | 功能权限、用户数据范围和 Mapper 隔离 | [功能权限与数据范围](backend/data-permission.md) |
 | 后端 | 表关系、SQL、排序、写入校验 | [数据库与 SQL](backend/database-query.md) |
 | 后端 | 关联名称、字段注解、记录/列表缓存及已接入清单 | [缓存使用](backend/cache-usage.md) |
+| 后端 | 全局参数、系统名称、地区根节点和密码安全参数 | [全局参数规则](backend/global-configuration.md) |
 | 后端 | 文件、Nginx 本地路径、RustFS/S3、OSS 及存储切换 | [文件存储与配置切换](backend/storage.md) |
 | 前端 | API、分页、权限显示和单位切换 | [请求与单位切换](frontend/request-context.md) |
 | 前端 | 新增/编辑表单、字段类型和输入反馈 | [表单模型与输入反馈](frontend/form-validation.md) |

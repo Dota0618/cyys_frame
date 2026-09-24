@@ -36,7 +36,7 @@ class CacheValueIntegrationTest extends HttpTestSupport {
         jdbc.update("insert into param_basic(id,name,system_name,sort) values('g4-cache-types','缓存测试类型','CACHE_TEST_TYPES',0)");
         jdbc.update("insert into param_basic_type(id,basic_id,param_key,param_value,sort) values('g4-cache-item','g4-cache-types','1','中文类型',0)");
         jdbc.update("insert into sys_org(id,scope_id,name,code,leader_id,created_by) values('g4-cache-dept','scope-a','缓存部门','cache-dept','u-bob','u-alice')");
-        jdbc.update("insert into sys_org_notice(id,scope_id,org_id,title,type,type_label,content,created_by,created_at,updated_by,updated_at) values('g4-cache-notice','scope-a','g4-cache-dept','缓存通知','1','旧值','正文','u-alice',CURRENT_TIMESTAMP,'u-alice',CURRENT_TIMESTAMP)");
+        jdbc.update("insert into sys_org_notice(id,scope_id,title,type,type_label,content,created_by,created_at,updated_by,updated_at) values('g4-cache-notice','scope-a','缓存通知','1','旧值','正文','u-alice',CURRENT_TIMESTAMP,'u-alice',CURRENT_TIMESTAMP)");
         jdbc.update("insert into sys_org_notice_ref(scope_id,notice_id,user_id) values('scope-a','g4-cache-notice','u-bob')");
         jdbc.update("insert into sys_notice(id,title,type,type_label,content,is_show,created_by,updated_by) values('g4-cache-system','缓存系统通知','missing','不应回退的旧值','正文',1,'u-alice','u-alice')");
         jdbc.update("insert into sys_version(id,release_number,date_update,type,type_label,content,created_by,updated_by) values('g4-cache-release','CACHE',CURRENT_DATE,'missing','不应回退的旧值','正文','u-alice','u-alice')");
@@ -76,16 +76,16 @@ class CacheValueIntegrationTest extends HttpTestSupport {
         assertThat(request("GET","/api/test/cache-values",null,"scope-a",null).status()).isEqualTo(401);
     }
 
-    @Test void actualNoticeReadersAndDepartmentsUseAnnotationsAndInvalidationKeepsOtherUsers() throws Exception {
+    @Test void actualNoticeReadersUseAnnotationsAndInvalidationKeepsOtherUsers() throws Exception {
         String token=token("alice");
         var readers=request("GET","/api/admin/org-notices/g4-cache-notice/readers",token,"scope-a",null);
         assertThat(readers.status()).as(readers.raw()).isEqualTo(200);
         assertThat(readers.body().at("/data/records/0/userName").asText()).isEqualTo("停用用户乙");
         var detail=request("GET","/api/admin/org-notices/g4-cache-notice",token,"scope-a",null);
         assertThat(detail.status()).as(detail.raw()).isEqualTo(200);
-        assertThat(detail.body().at("/data/notice/departmentName").asText()).isEqualTo("缓存部门");
+        assertThat(detail.body().at("/data/notice").has("departmentId")).isFalse();
+        assertThat(detail.body().at("/data/notice").has("departmentName")).isFalse();
         request("GET","/api/admin/org-notices/g4-cache-notice",token,"scope-a",null);
-        verify(departments,times(1)).labels("scope-a",List.of("g4-cache-dept"));
         String key=keys.platform(BusinessCacheGroups.USER_NAMES.id());
         redis.opsForHash().put(key,"another","another-value");
         tx.executeWithoutResult(status->{

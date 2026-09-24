@@ -12,6 +12,10 @@ export default (initialState?: { user?: UserInfo }) => {
 
   return {
     canReadRecycle: has('recycle:read'),
+    canReadRecycleConfig: has('recycle:config:read'),
+    canCreateRecycleConfig: has('recycle:config:create'),
+    canEditRecycleConfig: has('recycle:config:update'),
+    canDeleteRecycleConfig: has('recycle:config:delete'),
     canReadUsers: has('user:read'),
     canReadScopes: has('platform:scope:read'),
     canCreateScopes: has('platform:scope:create'),
@@ -37,7 +41,6 @@ export default (initialState?: { user?: UserInfo }) => {
     canReadConfigurations: has('configuration:read'),
     canCreateConfigurations: has('configuration:create'),
     canEditConfigurations: has('configuration:update'),
-    canDeleteConfigurations: has('configuration:delete'),
     canReadDictionaries: has('dictionary:read'),
     canCreateDictionaries: has('dictionary:create'),
     canEditDictionaries: has('dictionary:update'),

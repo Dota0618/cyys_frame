@@ -1,6 +1,7 @@
 package com.cyys.admin.auth.controller;
 
 import com.cyys.admin.auth.dto.LoginAuditQuery;
+import com.cyys.admin.auth.dto.LoginAuditOptions;
 import com.cyys.admin.auth.service.LoginAuditService;
 import com.cyys.common.web.R;
 import jakarta.validation.constraints.Max;
@@ -20,6 +21,12 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 @RequiredArgsConstructor
 public class LoginAuditController {
     private final LoginAuditService service;
+
+    @GetMapping("/options")
+    @SaCheckPermission("login-audit:read")
+    public R<LoginAuditOptions> options() {
+        return R.ok(service.options());
+    }
 
     @GetMapping
     @SaCheckPermission("login-audit:read")

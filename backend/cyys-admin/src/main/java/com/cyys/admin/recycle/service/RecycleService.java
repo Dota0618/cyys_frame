@@ -4,28 +4,19 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.cyys.admin.recycle.dto.*;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.web.ApiException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class RecycleService {
-    private final Map<String, RecycleResource> resources;
-
-    public RecycleService(List<RecycleResource> registrations) {
-        Map<String, RecycleResource> registered = new TreeMap<>();
-        for (var resource : registrations) {
-            var definition = resource.definition();
-            if (!definition.code().matches("[a-z][a-z0-9-]{0,49}")
-                    || registered.putIfAbsent(definition.code(), resource) != null) {
-                throw new IllegalArgumentException("回收站资源代码无效或重复");
-            }
-        }
-        resources = Collections.unmodifiableMap(registered);
-    }
+    private final ConfiguredRecycleResourceService configured;
 
     public List<RecycleResourceView> resources() {
-        return resources.values().stream().map(RecycleResource::definition)
+        return configured.active().stream().map(RecycleResource::definition)
                 .filter(definition -> has(definition.readPermission()))
                 .map(definition -> new RecycleResourceView(definition.code(), definition.name(),
                         definition.searchLabel(), definition.description(), definition.scopeRequired(),
@@ -54,7 +45,7 @@ public class RecycleService {
     }
 
     private RecycleResource require(String code) {
-        var resource = resources.get(code);
+        var resource = configured.find(code);
         if (resource == null) throw new ApiException(404, "回收站资源不存在");
         requirePermission(resource.definition().readPermission());
         if (resource.definition().scopeRequired()) ScopeContext.get().requireScopeId();

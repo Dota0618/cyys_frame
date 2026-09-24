@@ -47,14 +47,15 @@ const safeRedirect = () => {
 };
 
 export default function Login() {
-  const { setInitialState } = useModel('@@initialState');
+  const { initialState, setInitialState } = useModel('@@initialState');
   const { styles } = useStyles();
   const { message } = App.useApp();
   const [error, setError] = useState('');
+  const systemName = initialState?.settings?.title || 'CYYS';
   return (
     <div className={styles.container}>
       <Helmet>
-        <title>登录 - CYYS</title>
+        <title>登录 - {systemName}</title>
       </Helmet>
       <div className={styles.lang} data-lang>
         <SelectLang />
@@ -64,8 +65,8 @@ export default function Login() {
           name="cyys-login"
           contentStyle={{ minWidth: 280, maxWidth: '75vw' }}
           logo={<img alt="logo" src="/logo.svg" />}
-          title="CYYS"
-          subTitle="CYYS 管理平台"
+          title={systemName}
+          subTitle={`${systemName} 管理平台`}
           onFinish={async (values) => {
             setError('');
             try {

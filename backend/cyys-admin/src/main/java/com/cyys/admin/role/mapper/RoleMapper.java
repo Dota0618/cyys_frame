@@ -29,7 +29,9 @@ public interface RoleMapper {
             + "where m.status=1 and m.deleted=0 order by m.sort,m.id")
     List<RoleMenuOption> menus();
 
-    @Select("select menu_id from sys_role_menu where role_id=#{role} and deleted=0 order by menu_id")
+    @Select("select rm.menu_id from sys_role_menu rm "
+            + "join sys_menu m on m.id=rm.menu_id and m.status=1 and m.deleted=0 "
+            + "where rm.role_id=#{role} and rm.deleted=0 order by rm.menu_id")
     List<String> menuIds(@Param("role") String role);
 
     @Select("<script>select m.id,m.parent_id as parentId,m.name,m.code,m.type from sys_menu m "

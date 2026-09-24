@@ -2,7 +2,7 @@ import { UserOutlined } from '@ant-design/icons';
 import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import { SettingDrawer } from '@ant-design/pro-components';
 import type { RunTimeLayoutConfig } from '@umijs/max';
-import { history, Link } from '@umijs/max';
+import { Helmet, history, Link } from '@umijs/max';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import React from 'react';
@@ -18,9 +18,10 @@ import {
   OfflineBanner,
 } from '@/components';
 import { currentUser } from '@/services/auth';
+import { publicConfigurations } from '@/services/system/configurations';
 import IdentityBoundary from '@/components/IdentityBoundary';
 import ScopeSwitch from '@/components/ScopeSwitch';
-import type { UserInfo } from '@/types/api';
+import type { PublicConfiguration, UserInfo } from '@/types/api';
 import { clearSession, session } from '@/utils/session';
 import defaultSettings from '../config/defaultSettings';
 import createAccess from '@/access';
@@ -31,10 +32,17 @@ const loginPath = '/user/login';
 export async function getInitialState(): Promise<{
   settings?: Partial<LayoutSettings>;
   user?: UserInfo;
+  publicConfigurations?: PublicConfiguration;
   revision?: number;
   switching?: boolean;
   settingDrawerOpen?: boolean;
 }> {
+  let publicConfig: PublicConfiguration = {};
+  try {
+    publicConfig = await publicConfigurations();
+  } catch {
+    // 公共配置不可用时继续使用构建时默认值，不阻断登录页。
+  }
   let user: UserInfo | undefined;
   if (session().token) {
     try {
@@ -46,7 +54,8 @@ export async function getInitialState(): Promise<{
   return {
     user,
     revision: session().revision,
-    settings: defaultSettings,
+    publicConfigurations: publicConfig,
+    settings: { ...defaultSettings, title: publicConfig.SYSTEM_NAME || defaultSettings.title },
     settingDrawerOpen: false,
   };
 }
@@ -56,6 +65,7 @@ export const layout: RunTimeLayoutConfig = ({
   initialState,
   setInitialState,
 }) => {
+  const systemName = initialState?.settings?.title || defaultSettings.title;
   return {
     menuDataRender: (items) => navigationTree(initialState?.user?.navigation || [], items, createAccess(initialState)),
     menuItemRender: (item, dom) => {
@@ -126,6 +136,9 @@ export const layout: RunTimeLayoutConfig = ({
       // if (initialState?.loading) return <PageLoading />;
       return (
         <>
+          <Helmet>
+            <title>{systemName}</title>
+          </Helmet>
           <IdentityBoundary>{children}</IdentityBoundary>
           <SettingDrawer
             disableUrlParams

@@ -7,6 +7,8 @@ import com.cyys.admin.audit.service.DataAuditService;
 import com.cyys.admin.region.dto.*;
 import com.cyys.admin.region.mapper.RegionMapper;
 import com.cyys.admin.region.model.Region;
+import com.cyys.admin.configuration.service.ConfigurationKeys;
+import com.cyys.admin.configuration.service.ConfigurationLookupService;
 import com.cyys.common.satoken.ScopeContext;
 import com.cyys.common.export.BoundedXlsx;
 import com.cyys.common.web.ApiException;
@@ -23,12 +25,13 @@ import java.util.*;
 public class RegionService {
     private final RegionMapper regions;
     private final DataAuditService audit;
+    private final ConfigurationLookupService configurations;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public byte[] export(ExportRegionsCommand command) {
         String parentId = blankToNull(command.parentId());
-        if (parentId != null) require(parentId, false);
-        var rows = regions.export(parentId, command.name(), BoundedXlsx.MAX_ROWS + 1);
+        String rootId = visibleRootId(parentId);
+        var rows = regions.export(parentId, rootId, command.name(), BoundedXlsx.MAX_ROWS + 1);
         if (rows.size() > BoundedXlsx.MAX_ROWS) throw new ApiException(422, "最多导出 5000 条，请缩小地区或名称筛选范围");
         byte[] result;
         try {
@@ -45,13 +48,14 @@ public class RegionService {
     @Transactional(readOnly=true)
     public IPage<RegionView> page(long page,long size,String parent,String name) {
         String parentId=blankToNull(parent);
-        if(parentId!=null) require(parentId,false);
+        String rootId = visibleRootId(parentId);
         var paging=new Page<Region>(page,size); paging.setOptimizeCountSql(false);
-        return regions.page(paging,parentId,name).convert(RegionView::from);
+        return regions.page(paging,parentId,rootId,name).convert(RegionView::from);
     }
 
     @Transactional(readOnly=true)
     public RegionView detail(String id) {
+        requireVisible(id);
         return RegionView.from(require(id,false));
     }
 
@@ -59,6 +63,9 @@ public class RegionService {
     public RegionView create(CreateRegionCommand command) {
         var row=new Region();
         row.setId(IdWorker.getIdStr()); row.setParentId(blankToNull(command.parentId()));
+        if (row.getParentId() == null && configuredRoot() != null)
+            throw new ApiException(409, "已配置系统地区，只能在系统地区下新增下级");
+        requireVisible(row.getParentId());
         row.setLevel(row.getParentId()==null?0:Math.addExact(require(row.getParentId(),true).getLevel(),1));
         row.setCityCode(command.cityCode().strip()); row.setName(command.name().strip());
         row.setShortName(blankToNull(command.shortName())); row.setZipCode(blankToNull(command.zipCode()));
@@ -72,8 +79,13 @@ public class RegionService {
 
     @Transactional
     public RegionView update(String id,UpdateRegionCommand command) {
+        requireVisible(id);
         var row=require(id,true);
         if(!row.getVersion().equals(command.version())) throw new ApiException(409,"地区已变化，请刷新后重试");
+        String configuredCode = configurations.value(ConfigurationKeys.SYSTEM_PROVINCE_CODE);
+        if (configuredCode != null && !configuredCode.isBlank()
+                && id.equals(configuredRoot()) && !configuredCode.strip().equals(command.cityCode().strip()))
+            throw new ApiException(409, "系统地区根节点编码不能修改");
         row.setCityCode(command.cityCode().strip()); row.setName(command.name().strip());
         row.setShortName(blankToNull(command.shortName())); row.setZipCode(blankToNull(command.zipCode()));
         row.setLongitude(command.longitude()); row.setLatitude(command.latitude());
@@ -91,6 +103,7 @@ public class RegionService {
         var ordered=commands.stream().sorted(Comparator.comparing(RegionVersionReference::id)).toList();
         for(var command:ordered) {
             var row=require(command.id(),true);
+            requireVisible(row.getId());
             if(!row.getVersion().equals(command.version())) throw new ApiException(409,"地区已变化，请刷新后重试");
             if(regions.firstChild(row.getId())!=null) throw new ApiException(409,"地区存在下级，不能删除");
         }
@@ -104,6 +117,28 @@ public class RegionService {
         var row=lock?regions.lock(id):regions.detail(id);
         if(row==null) throw new ApiException(404,"地区不存在");
         return row;
+    }
+    private void requireVisible(String id) {
+        if (id == null) return;
+        String rootId = configuredRoot();
+        if (rootId != null && regions.visibleInRoot(id, rootId) != 1)
+            throw new ApiException(404, "地区不存在");
+    }
+    private String visibleRootId(String parentId) {
+        String rootId = configuredRoot();
+        if (rootId == null) {
+            if (parentId != null) require(parentId, false);
+            return null;
+        }
+        if (parentId == null) return rootId;
+        requireVisible(parentId);
+        return null;
+    }
+    private String configuredRoot() {
+        String code = configurations.value(ConfigurationKeys.SYSTEM_PROVINCE_CODE);
+        if (code == null || code.isBlank()) return null;
+        Region root = regions.byCityCode(code.strip());
+        return root == null ? "" : root.getId();
     }
     private static String blankToNull(String value) { return value==null||value.isBlank()?null:value.strip(); }
     private static String actor() { return ScopeContext.get().loginId(); }

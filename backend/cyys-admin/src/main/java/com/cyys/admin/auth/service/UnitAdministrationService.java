@@ -1,7 +1,6 @@
 package com.cyys.admin.auth.service;
 
 import com.cyys.admin.auth.mapper.DataAuthorizationMapper;
-import com.cyys.admin.user.mapper.SysUserRoleMapper;
 import com.cyys.common.mybatis.DataPolicyRegistry;
 import com.cyys.common.mybatis.DataTransactionGuard;
 import com.cyys.common.satoken.ScopeContext;
@@ -16,13 +15,13 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class UnitAdministrationService {
     private final DataAuthorizationMapper authorization;
-    private final SysUserRoleMapper roles;
+    private final PlatformSecurityService security;
 
     public Set<String> authorize(String permission, boolean grantRoles) {
         var identity = ScopeContext.get();
         String scope = identity.requireScopeId();
         DataTransactionGuard.bind(identity, DataPolicyRegistry.View.CURRENT_SCOPE);
-        var permissions = Set.copyOf(roles.selectPermissionCodes(identity.loginId()));
+        var permissions = security.permissionCeiling();
         if (!permissions.contains(permission) || (grantRoles && !permissions.contains("role:grant")))
             throw new ApiException(403, "没有此操作的授权管理权限");
         if (!authorization.hasInstitutionWideRange(identity.loginId(), scope))

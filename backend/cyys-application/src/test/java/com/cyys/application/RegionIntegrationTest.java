@@ -30,7 +30,7 @@ class RegionIntegrationTest extends HttpTestSupport {
     }
     @AfterEach void clearRegions() {
         jdbc.update("delete from param_region where created_by='u-platform'");
-        jdbc.update("delete from sys_data_audit where actor_id='u-platform' and resource='region'");
+        jdbc.update("delete from sys_data_audit where user_id='u-platform' and resource='region'");
     }
 
     @Test void hierarchyVersionAndWholeBatchValidationPreserveExistingRecords() throws Exception {

@@ -13,7 +13,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @RequiredArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {
     private static final String[] PUBLIC_PATHS = {
-            "/api/auth/login", "/api/health", "/error", "/swagger-ui/**", "/v3/api-docs/**"
+            "/api/auth/login", "/api/system/configurations", "/api/health", "/error", "/swagger-ui/**", "/v3/api-docs/**"
     };
     private final ScopeHandlerInterceptor scopeHandlerInterceptor;
 

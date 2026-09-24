@@ -41,7 +41,7 @@ class GlobalConfigurationDictionaryIntegrationTest extends HttpTestSupport {
         jdbc.update("delete from param_basic_type where basic_id in (?,?)", FIRST, SECOND);
         jdbc.update("delete from param_basic where id in (?,?)", FIRST, SECOND);
         jdbc.update("delete from sys_configure where name like 'g4-config-%'");
-        jdbc.update("delete from sys_data_audit where actor_id='u-platform' and scope_id='GLOBAL' "
+        jdbc.update("delete from sys_data_audit where user_id='u-platform' and scope_id='GLOBAL' "
                 + "and resource in ('configuration','dictionary','dictionary-item')");
         jdbc.update("delete from sys_role_menu where menu_id like 'g4-global-%'");
         jdbc.update("delete from sys_menu where id like 'g4-global-%'");
@@ -103,8 +103,7 @@ class GlobalConfigurationDictionaryIntegrationTest extends HttpTestSupport {
             assertThat(List.of(outcomes.get(0).get(), outcomes.get(1).get())).containsExactlyInAnyOrder(200, 409);
         }
         assertThat(request("DELETE", CONFIG + "/" + id + "?version=0", token, null, null).status()).isEqualTo(409);
-        assertThat(request("DELETE", CONFIG + "/" + id + "?version=1", token, null, null).status()).isEqualTo(200);
-        assertThat(request("GET", CONFIG + "/" + id, token, null, null).status()).isEqualTo(404);
+        assertThat(request("GET", CONFIG + "/" + id, token, null, null).status()).isEqualTo(200);
     }
 
     @Test

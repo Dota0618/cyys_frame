@@ -2,6 +2,7 @@ package com.cyys.application;
 
 import com.cyys.admin.auth.dto.ScopeInfo;
 import com.cyys.admin.auth.service.IdentityService;
+import com.cyys.admin.auth.service.PlatformSecurityService;
 import com.cyys.admin.user.mapper.*;
 import com.cyys.admin.user.model.SysUser;
 import org.junit.jupiter.api.Test;
@@ -30,5 +31,26 @@ class UnifiedRoleIdentityTest {
         assertThat(second.roles()).isEqualTo(first.roles());
         assertThat(second.permissions()).isEqualTo(first.permissions());
         verify(roles, times(2)).selectPermissionCodes("user");
+    }
+
+    @Test void superAdminGetsAllActivePermissionsAndNavigation() {
+        var accounts = mock(SysUserMapper.class);
+        var profiles = mock(SysUserScopeMapper.class);
+        var roles = mock(SysUserRoleMapper.class);
+        var service = new IdentityService(accounts, profiles, roles);
+        var user = new SysUser(); user.setId("user");
+        var profile = new com.cyys.admin.user.model.SysUserScope(); profile.setUserId("user"); profile.setScopeId("a"); profile.setDataRange(0);
+        when(profiles.profile("user")).thenReturn(profile);
+        when(profiles.selectAvailableScopes("user")).thenReturn(List.of(new ScopeInfo("a", "A", "机构 A", true, "0")));
+        when(roles.selectRoleCodes("user")).thenReturn(List.of(PlatformSecurityService.SUPER_ADMIN));
+        when(roles.selectActivePermissionCodes()).thenReturn(List.of("role:grant", "feature:create"));
+        when(roles.selectAllNavigation()).thenReturn(List.of());
+
+        var identity = service.forLogin(user, "a").identity();
+
+        assertThat(identity.permissions()).containsExactly("role:grant", "feature:create");
+        verify(roles).selectActivePermissionCodes();
+        verify(roles, never()).selectPermissionCodes("user");
+        verify(roles).selectAllNavigation();
     }
 }

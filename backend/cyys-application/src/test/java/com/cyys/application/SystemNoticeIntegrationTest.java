@@ -31,7 +31,7 @@ class SystemNoticeIntegrationTest extends HttpTestSupport {
         jdbc.update("delete from sys_notice where created_by='u-platform'");
         jdbc.update("delete from param_basic_type where basic_id='98301'");
         jdbc.update("delete from param_basic where id='98301'");
-        jdbc.update("delete from sys_data_audit where actor_id='u-platform' and resource='system-notice'");
+        jdbc.update("delete from sys_data_audit where user_id='u-platform' and resource='system-notice'");
         jdbc.update("delete from sys_role_menu where menu_id like 'g4-system-notice-%'");
         jdbc.update("delete from sys_menu where id like 'g4-system-notice-%'");
     }

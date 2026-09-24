@@ -17,7 +17,7 @@ public final class LocalDeploymentFixture {
     static {
         OWNED.put("sys_file_part", "actor_id='rehearsal-user' and scope_id in " + SCOPES);
         OWNED.put("sys_file_entry", "created_by='rehearsal-user' and scope_id in " + SCOPES);
-        OWNED.put("sys_data_audit", "actor_id='rehearsal-user' and scope_id in ('GLOBAL','rehearsal-a','rehearsal-b')");
+        OWNED.put("sys_data_audit", "user_id='rehearsal-user' and scope_id in ('GLOBAL','rehearsal-a','rehearsal-b')");
         OWNED.put("sys_login_audit", "user_id='rehearsal-user' and login_name='local-rehearsal'");
         OWNED.put("sys_user_role", "id='rehearsal-grant' and user_id='rehearsal-user' and role_id='rehearsal-role' and scope_id='GLOBAL'");
         OWNED.put("sys_role_menu", "role_id='rehearsal-role' and menu_id in (" + menuIds() + ")");
@@ -30,6 +30,7 @@ public final class LocalDeploymentFixture {
         for (String table : List.of("sys_user_scope_org", "sys_configure", "param_basic", "param_basic_type",
                 "sys_file_dir", "sys_org_notice", "sys_org_notice_ref", "sys_file_binding", "sys_notice",
                 "sys_version", "param_region", "sys_serial_rule", "sys_serial_counter")) OWNED.put(table, "1=0");
+        OWNED.put("sys_recycle_resource", "1=0");
     }
     public static void main(String[] args) throws Exception {
         if (args.length != 1 || !Set.of("seed", "clear", "snapshot").contains(args[0])) throw new IllegalArgumentException("seed|clear|snapshot");

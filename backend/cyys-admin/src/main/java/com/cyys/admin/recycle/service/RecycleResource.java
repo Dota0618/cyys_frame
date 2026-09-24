@@ -3,7 +3,7 @@ package com.cyys.admin.recycle.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.cyys.admin.recycle.dto.*;
 
-/** 业务模块通过 Spring Bean 接入；只使用固定 Mapper，写入加入调用方事务。 */
+/** 统一回收站资源适配器，由数据库登记配置生成。 */
 public interface RecycleResource {
     RecycleDefinition definition();
     IPage<RecycleRecord> page(long page, long size, String search);

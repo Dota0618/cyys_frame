@@ -20,6 +20,9 @@ public interface SysUserRoleMapper {
     @Select("select distinct r.code " + VALID_GRANT + USER_GRANT + "order by r.code")
     List<String> selectRoleCodes(String userId);
 
+    @Select("select code from sys_menu where deleted=0 and status=1 and type=3 order by code")
+    List<String> selectActivePermissionCodes();
+
     @Select("select distinct m.code " + VALID_GRANT
             + "join sys_role_menu rm on rm.role_id=r.id and rm.deleted=0 "
             + "join sys_menu m on m.id=rm.menu_id and m.deleted=0 and m.status=1 and m.type=3 "
@@ -31,4 +34,9 @@ public interface SysUserRoleMapper {
             + "join sys_menu m on m.id=rm.menu_id and m.deleted=0 and m.status=1 and m.visible=1 and m.type in (1,2) "
             + USER_GRANT + "order by m.sort,m.id")
     List<NavigationMenu> selectNavigation(String userId);
+
+    @Select("select distinct m.id,m.parent_id,m.name,m.path,m.type,m.sort,m.icon "
+            + "from sys_menu m where m.deleted=0 and m.status=1 and m.visible=1 and m.type in (1,2) "
+            + "order by m.sort,m.id")
+    List<NavigationMenu> selectAllNavigation();
 }

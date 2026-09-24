@@ -26,6 +26,8 @@ public class CacheManagementService {
             "系统共享", List.of("单位展示记录（ID、名称、简称，含停用单位）"), "单位变更后仅使该单位记录失效；手动刷新整个单位缓存组。");
     private static final CacheActionView DICTIONARY = new CacheActionView(BusinessCacheGroups.DICTIONARIES.id(), "字典缓存",
             "系统共享", List.of("字典选项", "字典项名称与失效状态"), "字典分类、字典项增删改后自动失效；刷新影响全系统共享字典。");
+    private static final CacheActionView CONFIGURATION = new CacheActionView(BusinessCacheGroups.CONFIGURATIONS.id(), "全局参数缓存",
+            "系统共享", List.of("全局参数值"), "全局参数修改后自动失效；手动刷新影响所有前端和安全策略参数。");
     private final CacheGroupService groups;
     private final DataAuthorizationMapper authorization;
     private final DataAuditService audit;
@@ -36,6 +38,7 @@ public class CacheManagementService {
         var result = new java.util.ArrayList<CacheActionView>();
         result.add(USER_DISPLAY);
         if (canManageDictionary()) result.add(DICTIONARY);
+        if (authorization.hasPermission(ScopeContext.get().loginId(), "configuration:update")) result.add(CONFIGURATION);
         if (authorization.hasPermission(ScopeContext.get().loginId(), "department:update")) result.add(DEPARTMENT);
         if (authorization.hasPermission(ScopeContext.get().loginId(), "platform:scope:update")) result.add(SCOPE);
         return List.copyOf(result);
@@ -54,6 +57,11 @@ public class CacheManagementService {
             case "dictionary" -> {
                 if (!canManageDictionary()) throw new ApiException(403, "没有系统共享字典的管理权限");
                 yield BusinessCacheGroups.DICTIONARIES;
+            }
+            case "configuration" -> {
+                if (!authorization.hasPermission(ScopeContext.get().loginId(), "configuration:update"))
+                    throw new ApiException(403, "没有全局参数缓存管理权限");
+                yield BusinessCacheGroups.CONFIGURATIONS;
             }
             case "department" -> {
                 if (!authorization.hasPermission(ScopeContext.get().loginId(), "department:update"))

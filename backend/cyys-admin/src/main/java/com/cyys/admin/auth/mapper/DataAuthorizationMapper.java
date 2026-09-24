@@ -8,6 +8,9 @@ import org.apache.ibatis.annotations.*;
 @Mapper
 @ManualDataScope
 public interface DataAuthorizationMapper {
+    @Select("select code from sys_menu where status=1 and deleted=0 and type=3 order by code")
+    java.util.List<String> activePermissionCodes();
+
     @Select("select distinct m.code " + com.cyys.admin.user.mapper.SysUserRoleMapper.VALID_GRANT
             + "join sys_role_menu rm on rm.role_id=r.id and rm.deleted=0 "
             + "join sys_menu m on m.id=rm.menu_id and m.status=1 and m.deleted=0 and m.type=3 "

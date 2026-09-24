@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyys.admin.configuration.model.Configure;
 import com.cyys.common.mybatis.ManualDataScope;
 import org.apache.ibatis.annotations.*;
+import java.util.List;
 
 @Mapper
 @ManualDataScope
@@ -21,6 +22,10 @@ public interface ConfigureMapper {
     @Select("select id,name,`value`,type,desp,sort,version from sys_configure where id=#{id} and deleted=0")
     Configure detail(String id);
 
+    @Select("<script>select name,`value` from sys_configure where deleted=0 and name in "
+            + "<foreach collection='names' item='name' open='(' separator=',' close=')'>#{name}</foreach></script>")
+    List<Configure> values(@Param("names") List<String> names);
+
     @Insert("insert into sys_configure(id,name,`value`,type,desp,sort,created_by,updated_by) "
             + "values(#{row.id},#{row.name},#{row.value},#{row.type},#{row.desp},#{row.sort},#{actor},#{actor})")
     int create(@Param("row") Configure row, @Param("actor") String actor);
@@ -31,7 +36,4 @@ public interface ConfigureMapper {
             + "where id=#{row.id} and version=#{row.version} and deleted=0")
     int update(@Param("row") Configure row, @Param("actor") String actor);
 
-    @Update("update sys_configure set deleted=1,version=version+1,updated_by=#{actor},updated_at=CURRENT_TIMESTAMP "
-            + "where id=#{id} and version=#{version} and deleted=0")
-    int softDelete(@Param("id") String id, @Param("version") int version, @Param("actor") String actor);
 }

@@ -76,7 +76,7 @@ export default function CreateForm({
           },
         ]}
       />
-      <NewPasswordFields name="password" label="初始密码" confirm={false} />
+      <NewPasswordFields name="password" label="初始密码" confirm={false} strength={0} />
       <ProFormText
         name="displayName"
         label="姓名"

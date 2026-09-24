@@ -7,11 +7,10 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("sys_org_notice")
-@DataResourceDefinition(name="org_notice",immutableColumns={"org_id"})
+@DataResourceDefinition(name="org_notice",departmentColumn="")
 public class OrgNotice {
     @TableId(type=IdType.ASSIGN_ID) private String id;
     @TableField(fill=FieldFill.INSERT,updateStrategy=FieldStrategy.NEVER) private String scopeId;
-    @TableField(updateStrategy=FieldStrategy.NEVER) private String orgId;
     private String title;
     @TableField(updateStrategy=FieldStrategy.ALWAYS) private String type;
     @TableField(updateStrategy=FieldStrategy.ALWAYS) private String typeLabel;

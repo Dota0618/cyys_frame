@@ -1,0 +1,23 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 248px);
+  gap: 16px;
+  align-items: start;
+}
+
+.main,
+.directory {
+  min-width: 0;
+}
+
+.tree {
+  max-height: calc(100dvh - 360px);
+  min-height: 220px;
+  overflow: auto;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

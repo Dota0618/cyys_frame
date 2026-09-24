@@ -17,7 +17,7 @@ class PasswordIntegrationTest extends HttpTestSupport {
 
     @AfterEach void clearAccountAudit() {
         jdbc.update("delete from sys_data_audit where scope_id='GLOBAL' and resource='account' "
-                + "and actor_id in ('u-alice','u-platform') and record_id in ('u-alice','u-bob','u-platform')");
+                + "and user_id in ('u-alice','u-platform') and record_id in ('u-alice','u-bob','u-platform')");
     }
 
     @Test void ordinaryAccountChangesOwnPasswordWithoutPlatformGrantAndInvalidatesOldSession() throws Exception {
@@ -28,7 +28,7 @@ class PasswordIntegrationTest extends HttpTestSupport {
         assertThat(login("alice",PASSWORD,null).status()).isEqualTo(401);
         assertThat(login("alice",NEW_PASSWORD,null).status()).isEqualTo(200);
         assertThat(jdbc.queryForObject("select count(*) from sys_data_audit where scope_id='GLOBAL' and resource='account' "
-                + "and actor_id='u-alice' and record_id='u-alice' and operation='CHANGE_PASSWORD' and authorized_view='ACCOUNT_SELF'",Integer.class))
+                + "and user_id='u-alice' and record_id='u-alice' and operation='CHANGE_PASSWORD' and authorized_view='ACCOUNT_SELF'",Integer.class))
                 .isEqualTo(1);
     }
 
@@ -39,7 +39,7 @@ class PasswordIntegrationTest extends HttpTestSupport {
             assertThat(jdbc.queryForObject("select pwd_error_count from sys_user where id='u-alice'",Integer.class)).isEqualTo(attempt);
         }
         assertThat(change(token,PASSWORD,NEW_PASSWORD).status()).isEqualTo(423);
-        assertThat(jdbc.queryForObject("select count(*) from sys_data_audit where scope_id='GLOBAL' and resource='account' and actor_id='u-alice'",Integer.class))
+        assertThat(jdbc.queryForObject("select count(*) from sys_data_audit where scope_id='GLOBAL' and resource='account' and user_id='u-alice'",Integer.class))
                 .isZero();
     }
 

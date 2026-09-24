@@ -70,7 +70,7 @@ public final class DataPolicyRegistry {
         DataResource resource;
         try {
             resource = new DataResource(definition.name().isBlank() ? tableName.value() : definition.name(), tableName.value(), definition.scopeColumn(),
-                    definition.departmentColumn(), blankToNull(definition.ancestorsColumn()), definition.actorColumn(),
+                    blankToNull(definition.departmentColumn()), blankToNull(definition.ancestorsColumn()), definition.actorColumn(),
                     blankToNull(definition.versionColumn()), Set.of(definition.immutableColumns()));
         } catch (IllegalArgumentException exception) {
             throw denied("数据资源字段定义无效");

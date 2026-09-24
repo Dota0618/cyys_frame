@@ -279,8 +279,8 @@ class FileIntegrationTest extends IsolationTestSupport {
             for(String key:partKeys(expired)) assertThat(root.resolve(key)).doesNotExist();
             for(String key:partKeys(ready)) assertThat(root.resolve(key)).doesNotExist();
             assertThat(root.resolve(partKeys(live).getFirst())).exists();
-            assertThat(count("select count(*) from sys_data_audit where actor_id='system:file-cleanup' and operation='EXPIRE_UPLOAD'")).isEqualTo(1);
-            assertThat(count("select count(*) from sys_data_audit where actor_id='system:file-cleanup' and operation='CLEAN_UPLOAD'")).isEqualTo(2);
+            assertThat(count("select count(*) from sys_data_audit where user_id='system:file-cleanup' and operation='EXPIRE_UPLOAD'")).isEqualTo(1);
+            assertThat(count("select count(*) from sys_data_audit where user_id='system:file-cleanup' and operation='CLEAN_UPLOAD'")).isEqualTo(2);
         } finally { Files.deleteIfExists(unknown); }
     }
 
@@ -318,7 +318,7 @@ class FileIntegrationTest extends IsolationTestSupport {
         single.runBatch();
         cleanup.runBatch(); assertThat(state(b)).isEqualTo("FAILED");
         try(var objects=Files.list(root)) { assertThat(objects.count()).isZero(); }
-        assertThat(count("select count(*) from sys_data_audit where scope_id='scope-b' and actor_id='system:file-cleanup' and operation='CLEAN_UPLOAD'")).isEqualTo(1);
+        assertThat(count("select count(*) from sys_data_audit where scope_id='scope-b' and user_id='system:file-cleanup' and operation='CLEAN_UPLOAD'")).isEqualTo(1);
         as("u-alice","scope-a");
         try { assertThatThrownBy(cleanup::runBatch).isInstanceOf(IllegalStateException.class); assertThat(ScopeContext.get().loginId()).isEqualTo("u-alice"); }
         finally { ScopeContext.clear(); }

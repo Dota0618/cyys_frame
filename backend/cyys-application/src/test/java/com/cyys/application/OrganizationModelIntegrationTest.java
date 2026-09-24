@@ -45,7 +45,7 @@ class OrganizationModelIntegrationTest extends HttpTestSupport {
     @AfterEach void removeOrganizationFixtures() {
         jdbc.update("delete from sys_file_entry where id='g1-org-file' and object_key='organization-acceptance-object'");
         jdbc.update("delete from sys_org_notice where scope_id='scope-b' and created_by='u-alice'");
-        jdbc.update("delete from sys_data_audit where actor_id='u-platform' or actor_id='u-alice'");
+        jdbc.update("delete from sys_data_audit where user_id='u-platform' or user_id='u-alice'");
         for (String id : createdRoles) {
             jdbc.update("delete from sys_user_role where role_id=?", id);
             jdbc.update("delete from sys_role_menu where role_id=?", id);
@@ -83,7 +83,7 @@ class OrganizationModelIntegrationTest extends HttpTestSupport {
         ok("GET", "/api/admin/platform/dictionaries", alice, "scope-b", null);
 
         var notice = ok("POST", "/api/admin/org-notices", alice, "scope-b", Map.of(
-                "departmentId","g1-b-department","title","机构通知验收","content","验收内容","attachments",List.of()));
+                "title","机构通知验收","content","验收内容","attachments",List.of()));
         assertThat(notice.raw()).contains("机构通知验收");
         assertThat(ok("GET", "/api/admin/org-notices", alice, "scope-b", null).raw()).contains("机构通知验收");
 
