@@ -1,6 +1,7 @@
 package com.cyys.admin.cache.mapper;
 
 import com.cyys.admin.cache.model.CacheRefreshItem;
+import com.cyys.common.mybatis.ManualDataScope;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -10,6 +11,7 @@ import org.apache.ibatis.annotations.Update;
 import java.util.List;
 
 @Mapper
+@ManualDataScope
 public interface CacheRefreshItemMapper {
     @Select("select id,name,version from sys_cache_refresh where deleted=0 order by name,id")
     List<CacheRefreshItem> list();
