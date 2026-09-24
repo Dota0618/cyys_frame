@@ -95,7 +95,9 @@ public class FileService {
     public FileView upload(MultipartFile source, String directoryId) {
         String name = source.getOriginalFilename().strip();
         var target = storage.active();
-        long maxBytes = Math.min(target.maxBytes(), runtimeSettings.current().fileMaxBytes());
+        var runtime = runtimeSettings.current();
+        runtime.fileTypes().requireAllowed(name);
+        long maxBytes = Math.min(target.maxBytes(), runtime.fileMaxBytes());
         if (source.getSize() > maxBytes) throw new ApiException(413, "文件超过允许大小");
         // 先登记对象位置，再写物理文件；崩溃后仍有 UPLOADING 记录供核对，不产生无主路径。
         FileEntry file = transactions.execute(status -> {

@@ -14,6 +14,11 @@
 - `MAINTENANCE_MODE` 只允许 0、1；1 时显示维护提示并限制普通账号登录。
 - `PASSWORD_EXPIRE_DAYS` 设置密码有效期，单位为天；0 表示永不过期。
 - `FILE_MAX_SIZE_MB` 设置单个文件最大大小，单位为 MB。
+- `FILE_FILES` 设置普通文件允许的扩展名，使用逗号分隔。
+- `FILE_MEDIA` 设置音频和视频文件允许的扩展名，使用逗号分隔。
+- `FILE_IMAGES` 设置图片文件允许的扩展名，使用逗号分隔。
+- `FILE_FILES`、`FILE_MEDIA`、`FILE_IMAGES` 任一有值时，上传文件的最终扩展名必须出现在三者合并后的白名单中；三者都为空时不限制文件类型。
+- 文件类型规则同时应用于直传和断点续传；前端选择器同步使用公共配置，后端校验为最终约束。
 - `EXPORT_MAX_ROWS` 设置单次同步导出最大行数，最大为 5000。
 - `AUDIT_RETENTION_DAYS` 设置审计记录保留天数；0 表示不自动清理，当前暂不执行后台清理任务。
 - `CONTACT_PHONE` 设置页脚显示的系统联系电话；为空时不显示。
@@ -32,6 +37,9 @@
 | `MAINTENANCE_MODE` | `0` | 维护模式 |
 | `PASSWORD_EXPIRE_DAYS` | `0` | 密码有效期 |
 | `FILE_MAX_SIZE_MB` | `20` | 单文件大小上限 |
+| `FILE_FILES` | 空 | 普通文件扩展名白名单 |
+| `FILE_MEDIA` | 空 | 音频和视频文件扩展名白名单 |
+| `FILE_IMAGES` | 空 | 图片文件扩展名白名单 |
 | `EXPORT_MAX_ROWS` | `5000` | 单次导出行数上限 |
 | `AUDIT_RETENTION_DAYS` | `365` | 审计保留天数；当前暂不自动清理 |
 | `CONTACT_PHONE` | 空 | 页脚联系电话 |

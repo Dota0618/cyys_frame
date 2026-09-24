@@ -111,6 +111,10 @@ public class ConfigurationService {
             requireNonNegativeInteger(name, value);
         if (ConfigurationKeys.FILE_MAX_SIZE_MB.equals(name))
             requirePositiveInteger(name, value);
+        if (ConfigurationKeys.FILE_FILES.equals(name)
+                || ConfigurationKeys.FILE_MEDIA.equals(name)
+                || ConfigurationKeys.FILE_IMAGES.equals(name))
+            FileTypePolicy.validate(name, value);
         if (ConfigurationKeys.EXPORT_MAX_ROWS.equals(name))
             requireIntegerRange(name, value, 1, BoundedXlsx.MAX_ROWS, "必须是 1 到 " + BoundedXlsx.MAX_ROWS + " 的整数");
     }

@@ -1,12 +1,30 @@
 import { Alert, Button, Upload } from 'antd';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useModel } from '@umijs/max';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { ManagedFile } from '@/services/system/files';
 import { completeUpload, cleanupUpload, startUpload, uploadFile, uploadLimits, uploadPart, uploadProgress } from '@/services/system/files';
+import type { PublicConfiguration } from '@/types/api';
 import { ApiError, StaleRequest } from '@/utils/request';
 import { session, setDirty } from '@/utils/session';
 
+const configuredExtensions = (configuration?: PublicConfiguration) => {
+  const values = [configuration?.FILE_FILES, configuration?.FILE_MEDIA, configuration?.FILE_IMAGES];
+  return [...new Set(values.flatMap((value) => (value || '').split(/[,;\s]+/)
+    .map((item) => item.trim().toLowerCase().replace(/^\.+/, ''))
+    .filter(Boolean)))];
+};
+
+const fileExtension = (name: string) => {
+  const dot = name.lastIndexOf('.');
+  return dot > 0 && dot < name.length - 1 ? name.slice(dot + 1).toLowerCase() : '';
+};
+
 /** 通用上传入口：选择文件、校验、暂停、服务端续传；成功时只通知消费页面刷新。 */
 export default function FileUpload({ resumeId, directoryId, onChanged, onUploaded }: { resumeId?: string; directoryId?: string; onChanged: () => void; onUploaded?: (file: ManagedFile) => void }) {
+  const { initialState } = useModel('@@initialState');
+  const allowedExtensions = useMemo(() => configuredExtensions(initialState?.publicConfigurations), [initialState?.publicConfigurations]);
+  const allowedExtensionSet = useMemo(() => new Set(allowedExtensions), [allowedExtensions]);
+  const accept = allowedExtensions.length ? allowedExtensions.map((extension) => `.${extension}`).join(',') : undefined;
   const dirtyOwner = useId();
   const running = useRef<AbortController | null>(null);
   const mounted = useRef(true);
@@ -75,7 +93,14 @@ export default function FileUpload({ resumeId, directoryId, onChanged, onUploade
   };
 
   return <div>
-    <Upload showUploadList={false} disabled={busy} beforeUpload={(file) => { void begin(file); return Upload.LIST_IGNORE; }}>
+    <Upload accept={accept} showUploadList={false} disabled={busy} beforeUpload={(file) => {
+      if (allowedExtensionSet.size && !allowedExtensionSet.has(fileExtension(file.name))) {
+        setFeedback({ type: 'error', title: '不允许上传该文件类型' });
+        return Upload.LIST_IGNORE;
+      }
+      void begin(file);
+      return Upload.LIST_IGNORE;
+    }}>
       <Button disabled={busy}>{resumeId ? '选择原文件继续' : '上传文件'}</Button>
     </Upload>
     {busy && <Button onClick={() => running.current?.abort()}>暂停上传</Button>}

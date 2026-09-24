@@ -16,6 +16,9 @@ export interface PublicConfiguration {
   COPYRIGHT_TEXT?: string;
   MAINTENANCE_MODE?: string;
   CONTACT_PHONE?: string;
+  FILE_FILES?: string;
+  FILE_MEDIA?: string;
+  FILE_IMAGES?: string;
 }
 export type ConfigurationType = 'SYSTEM' | 'THIRD_PARTY';
 export interface Configuration {

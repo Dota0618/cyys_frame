@@ -18,7 +18,11 @@ public class SystemRuntimeSettings {
                 flag(ConfigurationKeys.MAINTENANCE_MODE),
                 boundedInt(ConfigurationKeys.PASSWORD_EXPIRE_DAYS, 0, 0, Integer.MAX_VALUE),
                 megabytes(ConfigurationKeys.FILE_MAX_SIZE_MB),
-                boundedInt(ConfigurationKeys.EXPORT_MAX_ROWS, BoundedXlsx.MAX_ROWS, 1, BoundedXlsx.MAX_ROWS));
+                boundedInt(ConfigurationKeys.EXPORT_MAX_ROWS, BoundedXlsx.MAX_ROWS, 1, BoundedXlsx.MAX_ROWS),
+                FileTypePolicy.from(
+                        configurations.value(ConfigurationKeys.FILE_FILES),
+                        configurations.value(ConfigurationKeys.FILE_MEDIA),
+                        configurations.value(ConfigurationKeys.FILE_IMAGES)));
     }
 
     private String text(String key) {
@@ -54,5 +58,6 @@ public class SystemRuntimeSettings {
     }
 
     public record RuntimeSettings(String copyrightText, String contactPhone, boolean maintenanceMode,
-                                  int passwordExpireDays, long fileMaxBytes, int exportMaxRows) {}
+                                  int passwordExpireDays, long fileMaxBytes, int exportMaxRows,
+                                  FileTypePolicy fileTypes) {}
 }

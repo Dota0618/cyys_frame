@@ -43,6 +43,7 @@ public class ResumableUploadService {
     @Transactional
     public FileUploadView start(FileUploadStartCmd command) {
         var limits = limits();
+        runtimeSettings.current().fileTypes().requireAllowed(command.name());
         if (command.bytes() > limits.resumableBytes()) throw new ApiException(413, "文件超过允许大小");
         long count = (command.bytes() - 1) / limits.partBytes() + 1;
         if (count != command.hashes().size()) throw new ApiException(400, "分片清单与文件大小不匹配");
@@ -71,6 +72,7 @@ public class ResumableUploadService {
     @Transactional
     public FileUploadView put(String id, int index, MultipartFile source) {
         FileEntry file = owned(id, true);
+        runtimeSettings.current().fileTypes().requireAllowed(file.getName());
         uploading(file);
         List<FilePartMapper.Part> entries = entries(file);
         if (index < 0 || index >= entries.size()) throw new ApiException(400, "分片编号无效");
@@ -96,6 +98,7 @@ public class ResumableUploadService {
     public FileView complete(String id) {
         FileEntry file = owned(id, true);
         if ("READY".equals(file.getState())) return FileView.from(file);
+        runtimeSettings.current().fileTypes().requireAllowed(file.getName());
         uploading(file);
         var entries = entries(file);
         if (entries.isEmpty() || entries.stream().anyMatch(part -> !part.ready())) throw new ApiException(409, "仍有分片未上传");
