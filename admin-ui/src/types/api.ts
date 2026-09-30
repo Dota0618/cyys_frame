@@ -73,10 +73,10 @@ export interface RoleMenuOption {
 export interface RoleOptions { menus: RoleMenuOption[] }
 export interface RoleDetail { role: Role; menuIds: string[]; editable: boolean }
 export interface CreateRole {
-  code: string; name: string; status: number; sort: number;
+  name: string; status: number; sort: number;
   remark?: string; menuIds: string[];
 }
-export interface EditRole extends Omit<CreateRole, 'code'> { id: string; version: number }
+export interface EditRole extends CreateRole { id: string; version: number }
 export interface PlatformMenu {
   id: string; parentId: string; name: string; code: string; type: number;
   path?: string; component?: string; redirect?: string; icon?: string; sort: number;

@@ -323,7 +323,7 @@ test('全局只读权限隐藏写操作；撤销平台授权清除配置/字典�
   const menus = await api(page, 'GET', '/api/admin/platform/roles/create-options');
   const menuIds = menus.menus.filter((menu: any) => ['platform:scope:access', 'configuration:read', 'dictionary:read'].includes(menu.code)).map((menu: any) => menu.id);
   expect(menuIds).toHaveLength(3);
-  const role = await api(page, 'POST', '/api/admin/platform/roles', { code: 'G4_BROWSER_GLOBAL_ROLE', name: '浏览器全局只读', status: 1, sort: 0, menuIds });
+  const role = await api(page, 'POST', '/api/admin/platform/roles', { name: '浏览器全局只读', status: 1, sort: 0, menuIds });
   await api(page, 'PUT', '/api/admin/platform/roles/accounts/u-bob/roles', { roleIds: [role.id] });
   const configuration = await config(page, 'auth');
   const category = await dictionary(page, '990042400001', 'auth');

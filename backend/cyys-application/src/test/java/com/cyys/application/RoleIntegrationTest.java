@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class RoleIntegrationTest extends IsolationTestSupport {
     static final String ROLES = "/api/admin/roles";
+    private final List<String> createdRoleIds = new ArrayList<>();
 
     @BeforeEach
     void rolePermissions() {
@@ -26,8 +28,7 @@ class RoleIntegrationTest extends IsolationTestSupport {
 
     @AfterEach
     void cleanupManagedRoles() {
-        List<String> ids = jdbc.queryForList("select id from sys_role where scope_id='scope-a' and code like 'G4%'", String.class);
-        for (String id : ids) {
+        for (String id : createdRoleIds) {
             jdbc.update("delete from sys_user_role where role_id=?", id);
             jdbc.update("delete from sys_role_menu where role_id=?", id);
             jdbc.update("delete from sys_role where id=?", id);
@@ -59,11 +60,13 @@ class RoleIntegrationTest extends IsolationTestSupport {
         platformUser();
         String token = token("alice");
         var create = Map.of(
-                "code", "G4_EDITOR", "name", "测试编辑角色", "status", 1, "sort", 3,
+                "name", "测试编辑角色", "status", 1, "sort", 3,
                 "remark", "integration", "menuIds", List.of("permission-read"));
         var created = roles("POST", "", token, "scope-a", create);
         assertThat(created.status()).as(created.raw()).isEqualTo(200);
         String id = created.body().at("/data/id").asText();
+        createdRoleIds.add(id);
+        assertThat(created.body().at("/data/code").asText()).isNotBlank();
         assertThat(created.body().at("/data/scopeId").asText()).isEqualTo("scope-a");
         assertThat(created.body().path("data").has("dataRange")).isFalse();
 
@@ -87,10 +90,10 @@ class RoleIntegrationTest extends IsolationTestSupport {
     @Test
     void saveRechecksGrantCeilingAndOperationPermission() throws Exception {
         String token = token("alice");
-        var beyond = Map.of("code", "G4_BEYOND", "name", "越权角色", "status", 1, "sort", 0,
+        var beyond = Map.of("name", "越权角色", "status", 1, "sort", 0,
                 "menuIds", List.of("permission-write"));
         assertThat(roles("POST", "", token, "scope-a", beyond).status()).isEqualTo(403);
-        var crossDepartment = Map.of("code", "G4_CROSS", "name", "跨单位角色", "status", 1, "sort", 0,
+        var crossDepartment = Map.of("name", "跨单位角色", "status", 1, "sort", 0,
                 "menuIds", List.of("permission-read"), "orgIds", List.of("g1-b-root"));
         assertThat(roles("POST", "", token, "scope-a", crossDepartment).status()).isEqualTo(400);
 

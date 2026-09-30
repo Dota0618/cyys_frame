@@ -49,7 +49,7 @@ class OrganizationModelIntegrationTest extends HttpTestSupport {
         for (String id : createdRoles) {
             jdbc.update("delete from sys_user_role where role_id=?", id);
             jdbc.update("delete from sys_role_menu where role_id=?", id);
-            jdbc.update("delete from sys_role where id=? and code='ORG_QA_ROLE'", id);
+            jdbc.update("delete from sys_role where id=?", id);
         }
         jdbc.update("update sys_scope set parent_id='scope-a',ancestors='scope-a' where id='scope-b'");
         if (extraInstitution != null) jdbc.update("delete from sys_scope where id=? and remark='CYYS organization acceptance fixture'", extraInstitution);
@@ -88,7 +88,7 @@ class OrganizationModelIntegrationTest extends HttpTestSupport {
         assertThat(ok("GET", "/api/admin/org-notices", alice, "scope-b", null).raw()).contains("机构通知验收");
 
         String readPermission = jdbc.queryForObject("select id from sys_menu where code='user:read'",String.class);
-        var created = ok("POST", "/api/admin/roles", admin, null, Map.of("code","ORG_QA_ROLE","name","统一角色验收",
+        var created = ok("POST", "/api/admin/roles", admin, null, Map.of("name","统一角色验收",
                 "status",1,"sort",0,"menuIds",List.of(readPermission)));
         String role = created.body().at("/data/id").asText(); createdRoles.add(role);
         var parentRoles = ok("GET", "/api/admin/roles", alice, "scope-a", null).body().at("/data/records");

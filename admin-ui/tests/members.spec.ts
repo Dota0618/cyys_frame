@@ -207,7 +207,7 @@ test('角色管理按授予上限配置菜单权限和自定义部门范围', as
 
   await page.getByRole('button', { name: '新增角色' }).click();
   const create = page.getByRole('dialog', { name: '新增角色' });
-  await create.getByLabel('角色编码', { exact: true }).fill('G4_BROWSER_ROLE');
+  await expect(create.getByLabel('角色编码', { exact: true })).toHaveCount(0);
   await create.getByLabel('角色名称', { exact: true }).fill('浏览器角色');
   await create.getByText('自定义部门', { exact: true }).first().click();
   await create.locator('.ant-tree-treenode').filter({ hasText: 'g1-a-child' }).locator('.ant-tree-checkbox').click();
@@ -251,15 +251,15 @@ test('平台菜单、GLOBAL 角色和账号授权使用真实接口', async ({ p
   await expect(page.getByText('平台角色', { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: '新增平台角色' }).click();
   const roleDialog = page.getByRole('dialog', { name: '新增平台角色' });
-  await roleDialog.getByLabel('角色编码', { exact: true }).fill('G4_BROWSER_PLATFORM_ROLE');
+  await expect(roleDialog.getByLabel('角色编码', { exact: true })).toHaveCount(0);
   await roleDialog.getByLabel('角色名称', { exact: true }).fill('浏览器平台角色');
   await roleDialog.getByRole('button', { name: '确 定' }).click();
   await expect(roleDialog).not.toBeVisible();
-  const roleRow = page.locator('tr[data-row-key]').filter({ hasText: 'G4_BROWSER_PLATFORM_ROLE' });
+  const roleRow = page.locator('tr[data-row-key]').filter({ hasText: '浏览器平台角色' });
   await expect(roleRow).toBeVisible();
 
   const roleId = (await direct(page, 'GET', '/api/admin/platform/roles?size=200')).body.data.records
-    .find((role: { code: string }) => role.code === 'G4_BROWSER_PLATFORM_ROLE').id;
+    .find((role: { name: string }) => role.name === '浏览器平台角色').id;
   await page.getByRole('tab', { name: '账号授权' }).click();
   const accountRow = page.locator('tr[data-row-key="u-bob"]');
   await accountRow.getByText('授权', { exact: true }).click();

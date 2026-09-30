@@ -61,7 +61,7 @@ public class RoleService {
         validateSelections(command.menuIds(), ceiling);
         var role = new SysRole();
         role.setId(IdWorker.getIdStr());
-        role.setCode(command.code());
+        role.setCode("ROLE_" + role.getId());
         apply(role, command.name(), command.status(), command.sort(), command.remark());
         try {
             requireOne(mapper.create(role, actor()));

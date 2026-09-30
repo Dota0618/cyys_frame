@@ -36,14 +36,12 @@ import { roleTreeData } from '@/utils/roles';
 import { setDirty } from '@/utils/session';
 
 const emptyOptions: RoleOptions = { menus: [] };
-function RoleFields({ options, editing }: { options: RoleOptions; editing?: boolean }) {
+function RoleFields({ options }: { options: RoleOptions }) {
   const tree = useMemo(() => roleTreeData(options.menus.map((menu) => ({
     ...menu, name: menu.name,
   }))), [options.menus]);
   return (
     <ManagementSplit navigation={<div>
-      {!editing && <ProFormText name="code" label="角色编码" fieldProps={{ maxLength: 64 }}
-        rules={[{ required: true, whitespace: true }]} />}
       <ProFormText name="name" label="角色名称" fieldProps={{ maxLength: 50 }}
         rules={[{ required: true, whitespace: true }]} />
       <ProFormRadio.Group name="status" label="状态"
@@ -168,7 +166,10 @@ export default function RolesPage() {
         title="修改角色"
         width={920}
         open={!!editing}
-        initialValues={editing ? { ...editing.role, menuIds: editing.menuIds } : undefined}
+        initialValues={editing ? {
+          name: editing.role.name, status: editing.role.status, sort: editing.role.sort,
+          remark: editing.role.remark, menuIds: editing.menuIds,
+        } : undefined}
         modalProps={compactModalProps}
         onValuesChange={() => setDirty(true)}
         onOpenChange={(open) => {
@@ -184,7 +185,7 @@ export default function RolesPage() {
             return true;
           } catch { return false; }
         }}
-      ><RoleFields options={updateOptions} editing /></ModalForm>
+      ><RoleFields options={updateOptions} /></ModalForm>
     </PageContainer>
   );
 }

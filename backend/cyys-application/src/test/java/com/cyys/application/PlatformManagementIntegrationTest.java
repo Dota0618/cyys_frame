@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -19,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PlatformManagementIntegrationTest extends HttpTestSupport {
     static final String MENUS = "/api/admin/platform/menus";
     static final String ROLES = "/api/admin/platform/roles";
+    private final List<String> createdRoleIds = new ArrayList<>();
     static final List<String> MANAGEMENT = List.of("menu:read", "menu:create", "menu:update", "menu:delete",
             "platform:role:read", "platform:role:create", "platform:role:update", "platform:role:delete",
             "platform:role:grant");
@@ -35,9 +37,11 @@ class PlatformManagementIntegrationTest extends HttpTestSupport {
     @AfterEach
     void cleanupPlatformRecords() {
         jdbc.update("delete from sys_data_audit where scope_id='GLOBAL'");
-        jdbc.update("delete from sys_user_role where role_id in (select id from sys_role where code like 'G4P_%')");
-        jdbc.update("delete from sys_role_menu where role_id in (select id from sys_role where code like 'G4P_%')");
-        jdbc.update("delete from sys_role where code like 'G4P_%'");
+        for (String id : createdRoleIds) {
+            jdbc.update("delete from sys_user_role where role_id=?", id);
+            jdbc.update("delete from sys_role_menu where role_id=?", id);
+            jdbc.update("delete from sys_role where id=?", id);
+        }
         jdbc.update("delete from sys_role_menu where menu_id in (select id from sys_menu where code like 'g4p:%')");
         jdbc.update("delete from sys_menu where code like 'g4p:%'");
     }
@@ -80,11 +84,12 @@ class PlatformManagementIntegrationTest extends HttpTestSupport {
     void platformRoleCrudEnforcesPermissionCeilingAndGlobalScope() throws Exception {
         String token = token("platform");
         List<String> menuIds = List.of(menuId("platform:scope:access"), menuId("platform:role:read"));
-        var create = Map.of("code", "G4P_AUDITOR", "name", "平台审计员", "status", 1, "sort", 3,
+        var create = Map.of("name", "平台审计员", "status", 1, "sort", 3,
                 "remark", "integration", "menuIds", menuIds);
         var created = request("POST", ROLES, token, null, JSON.writeValueAsString(create));
         assertThat(created.status()).as(created.raw()).isEqualTo(200);
         String id = created.body().at("/data/id").asText();
+        createdRoleIds.add(id);
         assertThat(jdbc.queryForObject("select scope_id from sys_role where id=?", String.class, id)).isEqualTo("GLOBAL");
         assertThat(jdbc.queryForObject("select count(*) from information_schema.columns where table_schema=database() and table_name='sys_role' and column_name='data_range'", Integer.class)).isZero();
 
@@ -128,11 +133,12 @@ class PlatformManagementIntegrationTest extends HttpTestSupport {
         List<String> menuIds = java.util.stream.Stream.concat(
                 java.util.stream.Stream.of(menuId("platform:scope:access")), MANAGEMENT.stream().map(this::menuId))
                 .distinct().toList();
-        var create = Map.of("code", "G4P_SECOND", "name", "第二平台管理员", "status", 1, "sort", 1,
+        var create = Map.of("name", "第二平台管理员", "status", 1, "sort", 1,
                 "remark", "", "menuIds", menuIds);
         var created = request("POST", ROLES, token, null, JSON.writeValueAsString(create));
         String roleId = created.body().at("/data/id").asText();
         assertThat(created.status()).as(created.raw()).isEqualTo(200);
+        createdRoleIds.add(roleId);
 
         assertThat(request("PUT", ROLES + "/accounts/u-bob/roles", token, null,
                 JSON.writeValueAsString(Map.of("roleIds", List.of(roleId)))).status()).isEqualTo(200);
@@ -149,11 +155,12 @@ class PlatformManagementIntegrationTest extends HttpTestSupport {
         List<String> menuIds = java.util.stream.Stream.concat(
                 java.util.stream.Stream.of(menuId("platform:scope:access")), MANAGEMENT.stream().map(this::menuId))
                 .distinct().toList();
-        var create = Map.of("code", "G4P_CONCURRENT", "name", "并发平台管理员", "status", 1, "sort", 2,
+        var create = Map.of("name", "并发平台管理员", "status", 1, "sort", 2,
                 "remark", "", "menuIds", menuIds);
         var created = request("POST", ROLES, platformToken, null, JSON.writeValueAsString(create));
         String roleId = created.body().at("/data/id").asText();
         assertThat(created.status()).as(created.raw()).isEqualTo(200);
+        createdRoleIds.add(roleId);
         assertThat(request("PUT", ROLES + "/accounts/u-bob/roles", platformToken, null,
                 JSON.writeValueAsString(Map.of("roleIds", List.of(roleId)))).status()).isEqualTo(200);
         String bobToken = token("bob");

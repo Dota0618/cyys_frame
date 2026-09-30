@@ -26,6 +26,25 @@ class UnifiedRoleServiceTest {
     }
     @AfterEach void clear() { ScopeContext.clear(); }
 
+    @Test void createsRolesWithoutClientCodesAndPreservesSelectedPermissions() {
+        when(mapper.lockMenus(List.of("read-menu"))).thenReturn(
+                List.of(new RoleMenuOption("read-menu", null, "查看用户", "user:read", 3)));
+        when(mapper.create(any(), eq("actor"))).thenReturn(1);
+        when(mapper.addMenu(any(), any(), eq("read-menu"), eq("actor"))).thenReturn(1);
+        var command = new CreateRoleCommand("管理员", 1, 0, null, List.of("read-menu"));
+        RoleView first = service.create(command);
+        RoleView second = service.create(command);
+        assertThat(first.code()).isNotBlank().hasSizeLessThanOrEqualTo(64)
+                .isNotIn("SUPER_ADMIN", "TENANT_OWNER", "TENANT_ADMIN");
+        assertThat(second.code()).isNotBlank().isNotEqualTo(first.code());
+        var saved = org.mockito.ArgumentCaptor.forClass(SysRole.class);
+        verify(mapper, times(2)).create(saved.capture(), eq("actor"));
+        assertThat(saved.getAllValues()).extracting(SysRole::getCode)
+                .containsExactly(first.code(), second.code());
+        verify(mapper).addMenu(any(), eq(first.id()), eq("read-menu"), eq("actor"));
+        verify(mapper).addMenu(any(), eq(second.id()), eq("read-menu"), eq("actor"));
+    }
+
     @Test void cannotReplaceRolesOfMorePrivilegedAccount() {
         when(mapper.accountRoleIds("target")).thenReturn(List.of("administrator"));
         when(mapper.permissions(List.of("administrator"))).thenReturn(List.of(new RolePermission("menu:update")));
