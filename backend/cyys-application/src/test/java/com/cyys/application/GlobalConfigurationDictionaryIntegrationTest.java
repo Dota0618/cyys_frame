@@ -78,12 +78,12 @@ class GlobalConfigurationDictionaryIntegrationTest extends HttpTestSupport {
         String id = createConfig(token, "g4-config-auth", "keep");
         // 即使单位角色关联同名操作权限，也不能变成 GLOBAL 管理授权。
         jdbc.update("insert into sys_role_menu(id,role_id,menu_id) values"
-                + "('g4-global-unit-read','role-a','g4-global-configuration-read')");
+                + "('g4-global-unit-read','role-a',(select id from sys_menu where code='configuration:read'))");
         String ordinary = token("alice");
         assertThat(request("GET", CONFIG, ordinary, "scope-a", null).status()).isEqualTo(403);
         assertThat(request("POST", DICT, ordinary, "scope-a", dictionaryCommand(FIRST)).status()).isEqualTo(403);
         assertThat(request("GET", CONFIG, null, null, null).status()).isEqualTo(401);
-        jdbc.update("delete from sys_role_menu where role_id='role-platform' and menu_id='g4-global-configuration-update'");
+        jdbc.update("delete from sys_role_menu where role_id='role-platform' and menu_id=(select id from sys_menu where code='configuration:update')");
         assertThat(request("PUT", CONFIG + "/" + id, token, null,
                 JSON.writeValueAsString(Map.of("version", 0, "value", "changed", "type", "SYSTEM"))).status()).isEqualTo(403);
         assertThat(jdbc.queryForObject("select `value` from sys_configure where id=?", String.class, id)).isEqualTo("keep");

@@ -14,7 +14,7 @@
 - 新模块在 `backend/pom.xml` 登记，并由 `cyys-application/pom.xml` 添加装配依赖。
 - 新业务的单元测试放在所属模块的 `src/test/java`，跨模块集成测试放在启动模块的 `src/test/java`。
 - 不为尚未开展的业务创建空模块。
-- SQL 迁移放 `migrations`，脚本放 `scripts`，部署文件放 `deploy`，前端放 `admin-ui`。
+- SQL 迁移放 `migrations`，新库使用[单文件初始化](../../migrations/README.md)；脚本放 `scripts`，部署文件放 `deploy`，前端放 `admin-ui`。
 - 构建和运行日志只放 `backend/logs`。
 - 不向项目根、`backend` 根或 `backend/.m2` 写临时文件。
 - 保留 Maven `target` 的正常构建布局。

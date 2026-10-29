@@ -56,7 +56,7 @@ class PasswordIntegrationTest extends HttpTestSupport {
         assertThat(reset(admin,"u-bob").status()).isEqualTo(200);
         assertThat(jdbc.queryForObject("select status from sys_user where id='u-bob'",Integer.class)).isZero();
         assertThat(jdbc.queryForObject("select pwd_error_count from sys_user where id='u-bob'",Integer.class)).isZero();
-        jdbc.update("update sys_role_menu set deleted=1 where role_id='role-platform' and menu_id='g1-reset'");
+        jdbc.update("update sys_role_menu set deleted=1 where role_id='role-platform' and menu_id=(select id from sys_menu where code='platform:account:reset-password')");
         assertThat(reset(admin,"u-alice").status()).isEqualTo(403);
     }
 
@@ -64,7 +64,7 @@ class PasswordIntegrationTest extends HttpTestSupport {
         permission("role-a","g1-reset","platform:account:reset-password",false);
         assertThat(reset(token("alice"),"u-bob").status()).isEqualTo(403);
         platformUser();
-        jdbc.update("insert into sys_role_menu(id,role_id,menu_id) values('g1-reset-platform','role-platform','g1-reset')");
+        jdbc.update("insert into sys_role_menu(id,role_id,menu_id) select 'g1-reset-platform','role-platform',id from sys_menu where code='platform:account:reset-password'");
         var reply=request("POST","/api/admin/platform/accounts/u-bob/password",token("platform"),null,
                 JSON.writeValueAsString(Map.of("newPassword",NEW_PASSWORD,"adminPassword",PASSWORD)));
         assertThat(reply.status()).as(reply.raw()).isEqualTo(400);

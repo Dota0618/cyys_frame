@@ -41,7 +41,7 @@ Ant 检查仍扫描全部 `src`。保留但未启用的官方示例页当前有 
 
 ## 外部输入
 
-将 `.env.example` 复制到仓库之外，例如 `/etc/cyys/release.env`，权限限部署账号，填写已确认的数据库地址、文件根目录和镜像版本。不会自动创建 MySQL 或 Redis。数据库需要支持当前正式迁移；Flyway 仍是应用启动时唯一的迁移执行者，禁止另设一套手工重复跑 SQL 的初始化容器。
+将 `.env.example` 复制到仓库之外，例如 `/etc/cyys/release.env`，权限限部署账号，填写已确认的数据库地址、文件根目录和镜像版本。不会自动创建 MySQL 或 Redis。框架只保留[单文件 V1 初始化](../migrations/README.md)，旧迁移链全部删除；新库无需另行导入菜单或开发数据，已有库按初始化说明完成基线切换或增量升级后再部署。Flyway 仍是应用启动时唯一的迁移执行者，禁止另设一套手工重复跑 SQL 的初始化容器。
 
 - 数据库/Redis 密码是独立文件；TLS 提供实际域名的完整证书链和私钥。文件通过 Compose secrets 挂载，Spring 使用 `configtree:/run/secrets/` 加载密码。密码不写进环境文件、镜像参数或前端。
 - 普通 Compose 对文件型 secrets 使用宿主机 bind mount，不依赖 `uid/gid/mode` 字段改变宿主机权限。容器运行 UID/GID 均为 `10001:10001`；密码/私钥文件须由该 UID 可读且对无关用户不可读（例如相应所有者及 `0400`），目录和证书按实际主机权限安排。不要为了启动将密钥改成全局可读。
@@ -69,7 +69,7 @@ docker compose --env-file /etc/cyys/release.env -f deploy/compose.yml ps
 docker compose --env-file /etc/cyys/release.env -f deploy/compose.yml logs --tail=100 api web
 ```
 
-启动会执行未执行的正式 Flyway 迁移。`depends_on` 仅控制启动顺序，不证明应用或数据库就绪；`/api/health` 只证明应用可响应，不能代替登录、权限、数据库及文件检查。开放访问前核对迁移历史、普通用户/机构管理员/系统管理员、机构树范围限制、旧附件读取和当前导出；保存实际结果。
+新库启动执行合并后的 V1；已有库的升级须按[同步边界](../migrations/README.md#同步到其他项目)另行准备兼容的增量迁移，不能把新库初始化当作升级脚本。`depends_on` 仅控制启动顺序，不证明应用或数据库就绪；`/api/health` 只证明应用可响应，不能代替登录、权限、数据库及文件检查。开放访问前核对迁移历史、普通用户/机构管理员/系统管理员、机构树范围限制、旧附件读取和当前导出；保存实际结果。
 
 静态路由对业务路径刷新回到 `index.html`，缺失 JS/CSS 返回 404；`/api/` 始终走后端，不回退成前端 HTML。Nginx 自身的代理故障和请求过大返回 JSON；后端错误保留原状态和响应。文件仍由后端授权传输，本版本不启用公开 alias 或 X-Accel-Redirect。需要实测 HTTPS、深层路径刷新、404/401/403/413/502、分片与下载、API 重建后的 DNS 解析；未完成这些检查前不得标记部署验收通过。
 
@@ -87,7 +87,7 @@ docker compose --env-file /etc/cyys/release.env -f deploy/compose.yml logs --tai
 
 2026-09-20 17:02：本机 API 在基础数据导入后重新启动，健康 200、Flyway 校验 V18。现在测试库有保留数据，以上要求空库的全量测试及样本恢复脚本会拒绝；不要为执行它们删除导入数据。普通日常登录需要另行受控初始化身份，交付不含默认管理员。
 
-2026-09-21：本机 `cyys-local-acceptance` 已更新为 `cyys-framework-api:menu-tree-20260921` / `cyys-framework-web:menu-tree-20260921-2`，地址 `https://localhost/`。使用用户另行授权建立的本机账号，镜像和源码不内置账号密码。正式迁移推进到 V19；中文菜单目录通过 `migrations/dev-data/menu-tree.sql` 单事务初始化，已有权限主键及用户授权保留。单位表没有预置假单位，首次进入“组织管理 → 单位管理”按实际需要创建。升级前数据库备份、上一版 `.env` 和旧镜像保留在本机受控位置；本次未新增源码快照。Nginx 对外禁止 actuator，应用启动与真实登录/API 请求用于本次可用性核对。
+2026-09-21：本机 `cyys-local-acceptance` 已更新为 `cyys-framework-api:menu-tree-20260921` / `cyys-framework-web:menu-tree-20260921-2`，地址 `https://localhost/`。使用用户另行授权建立的本机账号，镜像和源码不内置账号密码。正式迁移推进到 V19；当时中文菜单目录单事务初始化（现已合并到新版 V1），已有权限主键及用户授权保留。单位表没有预置假单位，首次进入“组织管理 → 单位管理”按实际需要创建。升级前数据库备份、上一版 `.env` 和旧镜像保留在本机受控位置；本次未新增源码快照。Nginx 对外禁止 actuator，应用启动与真实登录/API 请求用于本次可用性核对。
 
 2026-09-21 后续界面调整：API/Web 当前均为 `split-layout-20260921` 标签，增加导航图标返回、菜单和字典左右管理布局及屏幕内紧凑编辑。没有新迁移，数据库仍为 V19。原 `.env` 保存为本机忽略文件 `.env.before-split-20260921`，原镜像保留；后端打包、前端类型/生产构建、Ant 基线和本机定向布局检查通过。布局检查覆盖 1366×768 和 1280×600，保存了系统管理目录的官方设置图标；未更改字典内容或账号授权。
 

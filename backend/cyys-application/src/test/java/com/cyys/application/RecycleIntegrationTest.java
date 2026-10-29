@@ -37,7 +37,7 @@ class RecycleIntegrationTest extends HttpTestSupport {
         jdbc.update("delete from sys_version where id like 'g1-recycle-%'");
         jdbc.update("delete from sys_file_entry where id='g1-recycle-file'");
         jdbc.update("delete from sys_data_audit where user_id in ('u-alice','u-bob')");
-        jdbc.update("update sys_menu set status=1 where created_by='migration-v27'");
+        jdbc.update("update sys_menu set status=1 where id in ('perm-recycle-read','perm-recycle-restore','perm-recycle-purge')");
     }
 
     @Test void metadataAndEveryEndpointEnforceResourceAndActionPermissions() throws Exception {

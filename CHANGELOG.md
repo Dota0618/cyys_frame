@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 ## [Unreleased]
 
 ### Changed
+- 单租户新库初始化合并为 `migrations/system/V1__init_system_schema.sql`，包含当前 27 张表、菜单、系统字典及必要配置；删除 V3–V42、开发身份/菜单 SQL 和对应旧样本测试。仅适用于新库，已有项目的同步边界见[初始化说明](migrations/README.md#同步到其他项目)。
 - 新增普通角色的编码由服务端自动生成，新增表单不再填写编码；保留已有角色编码和内置管理员逻辑。
 - `SUPER_ADMIN` 角色可授予全部启用的操作权限；新增功能无需逐项补充角色授权，数据范围和最后管理员保护保持不变。
 - 新增通用数据回收站，首批接入单位通知、系统通知和版本记录；支持资源搜索、批量恢复和彻底删除，独立权限、原数据范围、版本锁及事务审计。通知/版本软删除保留附件关系，彻底删除只解除引用。V27 仅登记菜单与权限，不自动授予角色。

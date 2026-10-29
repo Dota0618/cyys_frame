@@ -11,6 +11,7 @@ I often build Java applications for standalone projects, and I see many that are
 
 - 日常部署开发环境：运行 `./scripts/deploy-dev.ps1 web` 更新前端，`api` 更新后端，见[使用说明](deploy/development.md)。
 - 首次准备环境和构建：见[目录与构建](docs/development/project-build.md)。
+- 新库仅由应用自动执行 [V1 初始化文件](migrations/system/V1__init_system_schema.sql)，已包含当前结构、菜单及必要基础数据；执行方式和旧库同步边界见[数据库初始化说明](migrations/README.md)。
 - 地区使用平台共享的逐级分页与旧字段。成员/地区同步 XLSX 导出各需独立权限，最多 5000 条、服务端固定字段；成员导出使用当前单位和操作对应的行范围，生成后复核授权及可见性。全部单位只读视图不导出。
 - 通用流水号按用户要求已实现，使用数据库事务和唯一约束保证单位/业务/周期计数；服务器配置规则，业务 Service 调用，无任意取号 HTTP 接口。旧“系统编号”实际是微信 AppID/AppSecret 配置，随微信接入暂缓。
 - 个人改密需验证原密码；平台管理员重置只输入目标账号的新密码与确认，不再输入管理员自身密码。改密/重置后旧会话失效。
@@ -34,14 +35,14 @@ backend/
   pom.xml
   cyys-common/       普通 JAR，web/satoken/mybatis 等技术能力
   cyys-admin/        普通 JAR，功能内按 controller/model/dto/service/mapper 放置
-  cyys-business/     唯一运行应用，application 装配和未来的 modules 业务
-migrations/          system/business 版本脚本，dev-data 为显式本地开发数据
+  cyys-application/  唯一运行应用，负责启动、配置和模块装配
+migrations/          system/V1 单文件初始化，后续 system/business 共用版本序列
 admin-ui/            唯一前端，Umi Max / Ant Design Pro，独立构建
 deploy/              部署材料
 docs/                改造记录、按需开发规则
 ```
 
-依赖方向保持 `business -> admin -> common`，business 也可直接使用 common。Mapper 扫描在启动装配中按 `@Mapper` 限定。部门功能包为 department，已有 SysOrg 实体和 sys_org 表保留名称。
+依赖方向保持 `application -> admin -> common`，业务模块与 admin 平级并由 application 装配。Mapper 扫描在启动装配中按 `@Mapper` 限定。部门功能包为 department，已有 SysOrg 实体和 sys_org 表保留名称。
 
 ## 构建与验证
 
@@ -56,9 +57,9 @@ Start-Process -FilePath "$env:MAVEN_HOME\bin\mvn.cmd" -ArgumentList @(
   -RedirectStandardError "F:\git\frame\cyys-framework\backend\logs\verify-err.log"
 ```
 
-数据库测试直接连接现有 MySQL，不使用 H2，也不自动创建数据库。本机测试连接配置在 `backend/cyys-business/src/test/resources/application-test.xml`；也可执行 `scripts/verify.ps1 -Clean` 统一构建并记录日志。必须选择用于验证的空 schema，或此前由本套测试初始化且已清理的 schema；启动预检发现未知表或已有业务数据会立即拒绝，且发生在 Flyway 和测试写入之前。该测试配置只用于当前本地验收，正式运行仍使用外部参数。
+数据库测试直接连接明确指定的独立 MySQL，不使用 H2，也不自动创建数据库。本机测试连接配置在 `backend/cyys-application/src/test/resources/application-test.xml`；也可执行 `scripts/verify.ps1 -Clean` 统一构建并记录日志。必须选择用于验证的空 schema，或此前由本套测试初始化且已清理的 schema；启动预检允许 V1 的原始内置数据，发现未知表或已有业务数据会立即拒绝，且发生在 Flyway 和测试写入之前。该测试配置只用于本地验收，正式运行仍使用外部参数。
 
-测试通过 HTTP 调用随机端口的实际应用、真实 Mapper 和 Flyway 脚本；每例结束只清理该组记录和缓存键，测试类结束清理测试单位。正式结构及已执行的 V1、V3–V18 历史保留。旧结构演练只创建和清理专属测试表；测试材料不进入应用 JAR。运行同库测试前先停止本机演练 API，避免并发写库。当前库已导入用户选定的基础数据，空库集成/浏览器测试会拒绝，不能清空这些数据来重跑。实际测试与迁移结果见 [改造进度](docs/migration/progress.md)。
+测试通过 HTTP 调用随机端口的实际应用、真实 Mapper 和 Flyway 脚本；每例结束只清理该组记录和缓存键，测试类结束清理测试单位。新库只执行合并后的 V1，旧迁移链及其专属样本测试已移除；测试材料不进入应用 JAR。运行同库测试前先停止本机演练 API，避免并发写库。当前业务库保留已有基础数据，空库集成/浏览器测试会拒绝，不能清空这些数据来重跑。历史测试与迁移结果见 [改造进度](docs/migration/progress.md)。
 
 出站 HTTP 统一注入 Boot `RestClient.Builder`，默认连接/读取期限为 3 秒/15 秒，可用 `CYYS_HTTP_CONNECT_TIMEOUT`、`CYYS_HTTP_READ_TIMEOUT` 调整（1 毫秒至 2 分钟）。`CYYS_HTTP_MAX_RESPONSE_BYTES` 默认 1048576，最大 16 MiB；禁止自动重定向和 Cookie 共享。正常信任库/主机名校验保持启用，私有 CA 使用外部 SSL Bundle。对应规则见 [API 与 HTTP 边界](docs/development/backend/api-command-validation.md)，不代表供应商 API 已接入。
 
@@ -95,13 +96,13 @@ npm run dev
 | CYYS_REDIS_HOST / CYYS_REDIS_PORT | Redis 地址，默认 127.0.0.1:6379 |
 | CYYS_REDIS_DATABASE / CYYS_REDIS_PASSWORD | Redis 数据库序号（默认 0）及连接密码 |
 
-准备数据库及初始化身份前，先读 [迁移说明](migrations/README.md)。未被 Flyway 纳管的旧库会被拒绝，应用不会自动 baseline 或删表重建。
+准备数据库及初始身份前，先读[数据库初始化说明](migrations/README.md)。只保留新版 V1，旧迁移链全部删除；空库启动应用即可完成初始化，无需另行导入菜单或开发 SQL，没有默认账号和密码。已有库同步前须完成基线切换或增量升级；应用不会自动 baseline 或删表重建。
 
 配置就绪并完成构建后：
 
 ```powershell
 . "F:\git\frame\scripts\use-local-toolchain.ps1"
-java -jar "F:\git\frame\cyys-framework\backend\cyys-business\target\cyys-business.jar"
+java -jar "F:\git\frame\cyys-framework\backend\cyys-application\target\cyys-application.jar"
 ```
 
 当前公开接口：
@@ -134,7 +135,7 @@ java -jar "F:\git\frame\cyys-framework\backend\cyys-business\target\cyys-busines
 
 平台菜单和平台角色入口允许不选择业务单位，但每次操作仍实时验证 `platform:scope:access` 及对应 GLOBAL 操作权限。停用关键权限、停用或改权平台角色、替换账号 GLOBAL 授权时使用同一数据库锁串行检查，拒绝移除最后一名可用平台管理员。
 
-后台导航按“目录 → 菜单”显示中文树；菜单维护采用左侧目录/菜单树、右侧当前层级列表，菜单下的按钮权限在右侧维护。角色使用“目录 → 菜单 → 按钮权限”的复选框树，按钮可以单独取消，保存后不会因父菜单被选中而重新勾上。菜单图标使用现有 Select 和官方图标库，支持中文/名称搜索、预览、清空；导航只解析本地登记的图标，不执行下发代码。侧栏只展示已授予且可见的菜单，并匹配本地登记的路由及操作权限。初次目录数据见 `migrations/dev-data/menu-tree.sql`。
+后台导航按“目录 → 菜单”显示中文树；菜单维护采用左侧目录/菜单树、右侧当前层级列表，菜单下的按钮权限在右侧维护。角色使用“目录 → 菜单 → 按钮权限”的复选框树，按钮可以单独取消，保存后不会因父菜单被选中而重新勾上。菜单图标使用现有 Select 和官方图标库，支持中文/名称搜索、预览、清空；导航只解析本地登记的图标，不执行下发代码。侧栏只展示已授予且可见的菜单，并匹配本地登记的路由及操作权限。初次目录数据已包含在唯一 V1 中，后续通过菜单和角色管理维护。
 
 单位和用户入口位于“组织管理”。未选择单位时，用户管理提示选择或创建单位；有跨单位只读权限时可查看全部单位成员。地区管理使用左侧按需加载的地区树与右侧当前层级列表，新增、编辑和删除后刷新树与列表。
 

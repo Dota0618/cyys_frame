@@ -2,17 +2,30 @@ package com.cyys.application;
 
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.core.io.ClassPathResource;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
-/** 在 Flyway 和测试数据写入之前，拒绝业务库、未知表结构及未清理的失败测试。 */
+/** 在 Flyway 和测试数据写入之前，仅接受空库或只含原始初始化数据的测试库。 */
 public class MySqlTestDatabaseGuard implements ApplicationContextInitializer<ConfigurableApplicationContext> {
-    private static final Set<String> TABLES = Set.of("sys_scope", "sys_user", "sys_user_scope",
-            "sys_role", "sys_user_role", "sys_menu", "sys_role_menu", "sys_org", "flyway_schema_history");
-    private static final Set<String> PHASE3_TABLES = Set.of("sys_role_org", "sys_data_audit");
-    private static final Set<String> PHASE4_TABLES = Set.of("sys_configure", "param_basic", "param_basic_type");
+    private static final Set<String> TABLES = Set.of(
+            "sys_scope", "sys_user", "sys_user_scope", "sys_user_scope_org", "sys_role", "sys_user_role",
+            "sys_menu", "sys_role_menu", "sys_org", "sys_data_audit", "sys_login_audit", "sys_configure",
+            "param_basic", "param_basic_type", "param_region", "sys_file_entry", "sys_file_part", "sys_file_dir",
+            "sys_file_binding", "sys_org_notice", "sys_org_notice_ref", "sys_notice", "sys_version",
+            "sys_serial_rule", "sys_serial_counter", "sys_recycle_resource", "sys_cache_definition",
+            "flyway_schema_history");
+    private static final Pattern INSERT = Pattern.compile("INSERT INTO `(\\w+)` \\((.+)\\) VALUES");
+    private static final Pattern VALUE = Pattern.compile("'((?:''|\\\\.|[^'])*)'|\\bNULL\\b|-?\\d+");
 
     @Override
     public void initialize(ConfigurableApplicationContext context) {
@@ -37,66 +50,70 @@ public class MySqlTestDatabaseGuard implements ApplicationContextInitializer<Con
                 }
             }
             if (actualTables.isEmpty()) return;
-            var upgradedTables = new HashSet<>(TABLES);
-            upgradedTables.addAll(PHASE3_TABLES);
-            var phase4Tables = new HashSet<>(upgradedTables);
-            phase4Tables.addAll(PHASE4_TABLES);
-            var loginAuditTables = new HashSet<>(phase4Tables);
-            loginAuditTables.add("sys_login_audit");
-            var fileTables = new HashSet<>(loginAuditTables);
-            fileTables.addAll(Set.of("sys_file_entry", "sys_file_part"));
-            var directoryTables = new HashSet<>(fileTables);
-            directoryTables.add("sys_file_dir");
-            var noticeTables=new HashSet<>(directoryTables);
-            noticeTables.addAll(Set.of("sys_org_notice","sys_org_notice_ref","sys_file_binding"));
-            var systemNoticeTables=new HashSet<>(noticeTables);
-            systemNoticeTables.add("sys_notice");
-            var releaseTables=new HashSet<>(systemNoticeTables);
-            releaseTables.add("sys_version");
-            var regionTables=new HashSet<>(releaseTables);
-            regionTables.add("param_region");
-            var serialTables=new HashSet<>(regionTables);
-            serialTables.addAll(Set.of("sys_serial_rule","sys_serial_counter"));
-            var recycleTables = new HashSet<>(serialTables);
-            recycleTables.add("sys_recycle_resource");
-            var memberRangeTables = new HashSet<>(serialTables);
-            memberRangeTables.remove("sys_role_org");
-            memberRangeTables.add("sys_user_scope_org");
-            var recycleMemberRangeTables = new HashSet<>(memberRangeTables);
-            recycleMemberRangeTables.add("sys_recycle_resource");
-            if (!actualTables.equals(memberRangeTables) && !actualTables.equals(TABLES) && !actualTables.equals(upgradedTables)
-                    && !actualTables.equals(phase4Tables) && !actualTables.equals(loginAuditTables)
-                    && !actualTables.equals(fileTables) && !actualTables.equals(directoryTables)
-                    && !actualTables.equals(noticeTables) && !actualTables.equals(systemNoticeTables)
-                    && !actualTables.equals(releaseTables) && !actualTables.equals(regionTables) && !actualTables.equals(serialTables)
-                    && !actualTables.equals(recycleTables) && !actualTables.equals(recycleMemberRangeTables)) {
+            if (!actualTables.equals(TABLES)) {
                 throw new IllegalStateException("测试拒绝未知或未纳管的数据库结构；不会删表或自动 baseline。");
             }
+            var seeds = initializationRows();
             try (var statement = connection.createStatement()) {
                 for (String table : actualTables) {
                     if (table.equals("flyway_schema_history")) continue;
-                    String seedFilter = table.equals("sys_menu")
-                            ? " where not ((id='perm-user-data-permission' and code='user:data-permission' and type=3 and created_by='migration-v21')"
-                              + " or (created_by='migration-v27' and ((id='nav-menu-data-recycle' and code='nav:menu:data-recycle' and type=2)"
-                              + " or (id='perm-recycle-read' and code='recycle:read' and type=3)"
-                              + " or (id='perm-recycle-restore' and code='recycle:restore' and type=3)"
-                              + " or (id='perm-recycle-purge' and code='recycle:purge' and type=3)))"
-                              + " or (created_by='migration-v28' and ((id='nav-menu-recycle-config' and code='nav:menu:recycle-config' and type=2)"
-                              + " or (id='perm-recycle-config-read' and code='recycle:config:read' and type=3)"
-                              + " or (id='perm-recycle-config-create' and code='recycle:config:create' and type=3)"
-                              + " or (id='perm-recycle-config-update' and code='recycle:config:update' and type=3)"
-                              + " or (id='perm-recycle-config-delete' and code='recycle:config:delete' and type=3))))" : "";
-                    try (var rows = statement.executeQuery("select 1 from " + table + seedFilter + " limit 1")) {
-                        if (rows.next()) {
-                            throw new IllegalStateException("测试拒绝含已有数据的 schema（" + table
-                                    + "）；不会清空业务数据或自动处理残留测试记录。");
+                    var expected = seeds.getOrDefault(table, Map.of());
+                    try (var rows = statement.executeQuery("select * from " + table)) {
+                        while (rows.next()) {
+                            var seed = expected.get(rows.getString("id"));
+                            boolean matches = seed != null;
+                            if (matches) {
+                                for (var field : seed.entrySet()) {
+                                    if (!java.util.Objects.equals(field.getValue(), rows.getString(field.getKey()))) {
+                                        matches = false;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (!matches) {
+                                throw new IllegalStateException("测试拒绝含已有数据或已修改初始化数据的 schema（" + table
+                                        + "）；不会清空业务数据或自动处理残留测试记录。");
+                            }
                         }
                     }
                 }
             }
-        } catch (SQLException exception) {
+        } catch (SQLException | IOException exception) {
             throw new IllegalStateException("MySQL 测试库预检失败；请核对目标、连接和结构，尚未执行测试写入。",
                     exception);
         }
+    }
+
+    /** 初始化数据直接取自唯一 V1，避免另行维护一份种子清单。 */
+    private static Map<String, Map<String, Map<String, String>>> initializationRows() throws IOException {
+        var result = new HashMap<String, Map<String, Map<String, String>>>();
+        String table = null;
+        List<String> columns = List.of();
+        var resource = new ClassPathResource("db/migration/system/V1__init_system_schema.sql");
+        for (String line : resource.getContentAsString(StandardCharsets.UTF_8).lines().toList()) {
+            var insert = INSERT.matcher(line);
+            if (insert.matches()) {
+                table = insert.group(1);
+                columns = List.of(insert.group(2).replace("`", "").split(", "));
+                result.put(table, new HashMap<>());
+            } else if (table != null && line.startsWith("    (")) {
+                var values = new ArrayList<String>();
+                var matcher = VALUE.matcher(line);
+                while (matcher.find()) {
+                    values.add(matcher.group(1) != null
+                            ? matcher.group(1).replace("''", "'").replace("\\\\", "\\")
+                            : matcher.group().equals("NULL") ? null : matcher.group());
+                }
+                if (values.size() != columns.size()) {
+                    throw new IOException("无法读取 V1 初始化行：" + table);
+                }
+                var row = new HashMap<String, String>();
+                for (int i = 0; i < columns.size(); i++) row.put(columns.get(i), values.get(i));
+                result.get(table).put(row.get("id"), row);
+                if (line.endsWith(";")) table = null;
+            }
+        }
+        if (result.size() != 6) throw new IOException("V1 初始化数据清单不完整。");
+        return result;
     }
 }

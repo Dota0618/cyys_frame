@@ -85,10 +85,10 @@ class RegionIntegrationTest extends HttpTestSupport {
         try(var empty=new XSSFWorkbook(new ByteArrayInputStream(export(admin,"{\"name\":\"不存在\"}").body()))) {
             assertThat(empty.getSheetAt(0).getLastRowNum()).isZero();
         }
-        jdbc.update("delete from sys_role_menu where role_id='role-platform' and menu_id='g1-region-export'");
+        jdbc.update("delete from sys_role_menu where role_id='role-platform' and menu_id=(select id from sys_menu where code='region:export')");
         assertThat(request("GET",ROOT,admin,null,null).status()).isEqualTo(200);
         assertThat(export(admin,"{}").statusCode()).isEqualTo(403);
-        jdbc.update("insert into sys_role_menu(id,role_id,menu_id) values('g1-region-unit','role-a','g1-region-export')");
+        jdbc.update("insert into sys_role_menu(id,role_id,menu_id) select 'g1-region-unit','role-a',id from sys_menu where code='region:export'");
         assertThat(export(token("alice"),"{}").statusCode()).isEqualTo(403);
     }
 

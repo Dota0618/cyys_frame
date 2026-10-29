@@ -104,8 +104,12 @@ abstract class HttpTestSupport {
     }
 
     void permission(String roleId, String id, String code, boolean platformOnly) {
-        jdbc.update("insert into sys_menu(id,code,name,type) values(?,?,?,3)",
-                id, code, code);
+        var existing = jdbc.queryForList("select id from sys_menu where code=?", String.class, code);
+        if (existing.isEmpty()) {
+            jdbc.update("insert into sys_menu(id,code,name,type) values(?,?,?,3)", id, code, code);
+        } else {
+            id = existing.getFirst();
+        }
         jdbc.update("insert into sys_role_menu(id,role_id,menu_id) values(?,?,?)",
                 com.baomidou.mybatisplus.core.toolkit.IdWorker.getIdStr(), roleId, id);
     }
