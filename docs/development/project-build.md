@@ -43,9 +43,11 @@ if (!(Test-Path -LiteralPath backend/.m2/settings.xml)) {
 在 `backend` 目录执行；日志重定向遵循本机工具规则。
 
 ```text
-mvn -s .m2/settings.xml clean install
+mvn -s .m2/settings.xml -DskipTests install
 mvn -s .m2/settings.xml -pl cyys-application spring-boot:run
 ```
+
+测试范围按[验证与保存](verification.md)选择。持久文件、配置或备份位于构建目录时，遵循[开发部署说明](../../deploy/development.md#排查与恢复)保护这些文件，不执行 Maven `clean`。
 
 集成测试和运行服务前，按[部署说明](../../deploy/README.md)准备数据库、Redis 等环境。
 
