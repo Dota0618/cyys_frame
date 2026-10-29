@@ -18,6 +18,7 @@ I'm L.C.I live in China.
 | 发布与恢复 | [部署说明](deploy/README.md) |
 | 文件存储配置 | [存储规则](docs/development/backend/storage.md)、[本地配置示例](deploy/storage-local.yml.example) |
 | 检查与保存 | [验证与保存](docs/development/verification.md) |
+| 版本与任务资料 | [版本目录](docs/versions/README.md) |
 
 ## 目录
 
@@ -31,6 +32,7 @@ migrations/          数据库初始化与版本迁移
 scripts/             构建、验证和部署命令
 deploy/              部署配置与说明
 docs/development/    当前开发规则与模板清单
+docs/versions/       按版本或独立任务归集的方案、变更与验证资料
 ```
 
 业务模块与 `cyys-admin` 平级，由 `cyys-application` 装配；依赖关系和新增模块方式见目录与构建说明。

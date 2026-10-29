@@ -3,6 +3,7 @@
 - 日常开发部署读取[部署 Skill](deploy/skills/cyys-deploy-dev/SKILL.md)，直接运行部署命令；首次配置或失败时再排查环境。
 - 开发或修改代码前读取[当前开发范围](docs/development/current-scope.md)。
 - 编码前按[规则索引](docs/development/README.md)读取本次涉及的规则。
+- 版本和独立任务资料按[版本目录](docs/versions/README.md)归集。
 - 新增业务模块、调整目录或修改构建方式前读取[目录与构建](docs/development/project-build.md)。
 - 验证代码和提交前读取[验证与保存](docs/development/verification.md)。
 - 前端开发先读取[前端入口](admin-ui/AGENTS.md)。

@@ -1,6 +1,7 @@
 # ==== Development documentation ====
 /docs/*
 !/docs/development/
+!/docs/versions/
 /admin-ui/docs/
 
 # ==== Java / Maven ====
