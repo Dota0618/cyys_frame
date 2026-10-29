@@ -13,4 +13,4 @@
 - 表单遵循[表单规则](../docs/development/frontend/form-validation.md)。
 - 工具链遵循所在工作区约定，组件查询使用锁定版本的 `npm run antd -- <command> --format json`。
 - 不采用技能中的全局安装或自动升级建议。
-- 只查询本次涉及的组件；Pro 组件查[模板清单](../docs/migration/ant-design-pro-baseline.md)。
+- 只查询本次涉及的组件；Pro 组件查[模板清单](../docs/development/frontend/ant-design-pro-baseline.md)。

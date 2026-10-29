@@ -1,6 +1,6 @@
 # 官方模板与组件复用
 
-- 以官方 Ant Design Pro 为基线，先查[模板清单](../../migration/ant-design-pro-baseline.md)。
+- 以官方 Ant Design Pro 为基线，先查[模板清单](ant-design-pro-baseline.md)。
 - 优先复用 Pro 组件和项目已有组件。
 - antd 用法通过项目 CLI 按锁定版本查询，Pro 组件查官方文档。
 - 仅在现有能力缺失且业务需要时自建组件。

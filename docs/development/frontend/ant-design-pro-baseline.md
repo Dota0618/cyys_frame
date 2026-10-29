@@ -1,6 +1,6 @@
 # Ant Design Pro 模板清单
 
-基线：[官方预览](https://preview.pro.ant.design/)使用的 Ant Design Pro 6.0.1，[源码提交 2db826c](https://github.com/ant-design/ant-design-pro/tree/2db826cb350e46206252197f416a0a22f2b9bbfe)。原始源码及 LICENSE 保存在 `baselines/ant-design-pro-preview-2db826c.zip`；接入工程为 `admin-ui/`，依赖版本由 package.json 和 package-lock.json 锁定。
+基线：[官方预览](https://preview.pro.ant.design/)使用的 Ant Design Pro 6.0.1，[源码提交 2db826c](https://github.com/ant-design/ant-design-pro/tree/2db826cb350e46206252197f416a0a22f2b9bbfe)。模板源码位于 `admin-ui/`，依赖版本由 package.json 和 package-lock.json 锁定。
 
 ## 已接入入口
 
@@ -14,7 +14,7 @@
 
 实际路由只登记在 `config/routes.ts`。原始完整路由目录保留在 `config/routes.templates.ts`，供查找模板，不参与运行。
 
-2026-09-20 最终全源码 Ant lint 检出保留示例页 35 条 warning（30 条弃用、5 条用法），已启用页面无这些告警。`scripts/antd-template-baseline.json` 按具体文件摘要和具体告警登记现状，`check-antd-findings.ps1` 拒绝新增告警、模板内容变化、路由变更或不完整扫描；不能把结果写成“全源码零告警”。启用示例页前须修正对应用法并重新评估基线，不自动接受扫描结果。
+Ant lint 基线由 `scripts/antd-template-baseline.json` 维护，按文件摘要和具体告警登记允许的模板告警。`check-antd-findings.ps1` 拒绝新增告警、模板内容变化、路由变更或不完整扫描。启用示例页前须修正对应用法并重新评估基线，不自动接受扫描结果。
 
 ## 可按需复用的模板
 
@@ -36,4 +36,4 @@
 
 - `antd` 基础组件：项目 Ant Design CLI 6.6.4，`npm run antd -- info Table --format json` 等命令按实际 antd 版本查询。官方 Skill 位于 `admin-ui/.agents/skills/antd/SKILL.md`，仅在相关任务中读取；CLI 作为开发依赖锁定，不参与网页运行。
 - ProTable、ProForm、ProLayout 等：[Pro Components](https://pro-components.antdigital.dev/)及本工程对应模板源码。
-- 页面选型先看上表；组件使用约定见 [前端复用规则](../development/frontend/template-reuse.md)。
+- 页面选型先看上表；组件使用约定见 [前端复用规则](template-reuse.md)。
