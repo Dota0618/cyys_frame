@@ -29,7 +29,19 @@ export default defineConfig({
     appConfig: {},
     configProvider: {
       variant: 'filled',
-      theme: { token: { fontFamily: 'AlibabaSans, sans-serif' } },
+      theme: {
+        token: { fontFamily: 'AlibabaSans, sans-serif', fontSize: 14, controlHeight: 32 },
+        components: {
+          Menu: { itemHeight: 40, itemMarginBlock: 4, itemMarginInline: 4,
+            itemBorderRadius: 6, subMenuItemBorderRadius: 6, iconSize: 16 },
+          Card: { bodyPadding: 12, bodyPaddingSM: 12, headerPadding: 12, headerPaddingSM: 12,
+            headerHeight: 44, headerHeightSM: 44, headerFontSize: 14, headerFontSizeSM: 14 },
+          Table: { cellPaddingBlock: 12, cellPaddingBlockMD: 10, cellPaddingBlockSM: 10,
+            cellPaddingInline: 12, cellPaddingInlineMD: 12, cellPaddingInlineSM: 12 },
+          Statistic: { contentFontSize: 24, titleFontSize: 14 },
+          Descriptions: { itemPaddingBottom: 12 },
+        },
+      },
     },
   },
   request: {},

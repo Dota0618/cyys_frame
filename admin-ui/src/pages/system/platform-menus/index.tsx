@@ -1,5 +1,5 @@
 import { PlusOutlined } from '@ant-design/icons';
-import { ModalForm, PageContainer, ProFormDigit, ProForm, ProFormDependency, ProFormRadio, ProFormSelect, ProFormText, ProFormTreeSelect, ProTable } from '@ant-design/pro-components';
+import { ModalForm, ProFormDigit, ProForm, ProFormDependency, ProFormRadio, ProFormSelect, ProFormText, ProFormTreeSelect } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, App, Button, Card, Checkbox, Popconfirm, Space, Tag, Tree } from 'antd';
@@ -14,7 +14,7 @@ import { menuRows } from '@/utils/menus';
 import type { MenuRow } from '@/utils/menus';
 import { menuIcon } from '@/utils/menuIcons';
 import MenuIconSelect from '@/components/MenuIconSelect';
-import { CompactFields, compactModalProps, ManagementSplit, compactFormProps } from '@/components/ManagementLayout';
+import { CompactFields, compactModalProps, ManagementSplit, compactFormProps, managementTableProps, PageContainer, PageTable as ProTable, usePageState } from '@/components/ManagementLayout';
 
 const menuTypes = [{ value: 1, label: '目录' }, { value: 2, label: '菜单' }, { value: 3, label: '按钮权限' }];
 const typeNames = new Map(menuTypes.map(item => [item.value, item.label]));
@@ -68,12 +68,12 @@ export default function PlatformMenusPage() {
   const access = useAccess();
   const { message } = App.useApp();
   const [menus, setMenus] = useState<PlatformMenu[]>([]);
-  const [selectedId, setSelectedId] = useState('0');
+  const [selectedId, setSelectedId] = usePageState('menus.selected', '0');
   const [editing, setEditing] = useState<PlatformMenu>();
   const [creating, setCreating] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [expanded, setExpanded] = useState<React.Key[]>(['0']);
+  const [expanded, setExpanded] = usePageState<React.Key[]>('menus.expanded', ['0']);
   const initialized = useRef(false);
   const reload = useCallback(async () => {
     setLoading(true); setLoadError('');
@@ -99,17 +99,17 @@ export default function PlatformMenusPage() {
         onConfirm={async () => { await deletePlatformMenu(row.id, row.version); void message.success('菜单已删除'); await reload(); }}><a>删除</a></Popconfirm>,
     ].filter(Boolean) },
   ];
-  return <PageContainer title="菜单管理" subTitle="左侧选择目录或菜单，右侧维护下级菜单和按钮权限。">
-    {loadError && <Alert type="error" showIcon title={loadError} style={{ marginBottom: 16 }} action={<Button onClick={() => void reload()}>重试</Button>} />}
+  return <PageContainer title="菜单管理">
+    {loadError && <Alert type="error" showIcon title={loadError} style={{ marginBottom: 12 }} action={<Button onClick={() => void reload()}>重试</Button>} />}
     <ManagementSplit navigation={<Card title="菜单树" size="small" extra={<Button type="link" size="small" loading={loading} onClick={() => void reload()}>刷新</Button>}>
       <Space style={{ marginBottom: 12 }}><Button size="small" onClick={() => setExpanded(['0', ...menus.filter(menu => menu.type !== 3).map(menu => menu.id)])}>展开</Button><Button size="small" onClick={() => setExpanded(['0'])}>收起</Button></Space>
-      <div style={{ maxHeight: 'calc(100dvh - 300px)', minHeight: 220, overflow: 'auto' }}>
+      <div style={{ maxHeight: '60dvh', overflow: 'auto' }}>
         <Tree aria-label="菜单树" blockNode showIcon selectedKeys={[selectedId]} expandedKeys={expanded} onExpand={keys => setExpanded(keys)}
           onSelect={keys => { if (keys.length) setSelectedId(String(keys[0])); }}
           treeData={[{ key: '0', title: '全部菜单', children: treeNodes(menuRows(menus.filter(menu => menu.type !== 3))) }]} />
       </div>
     </Card>}>
-      <ProTable<PlatformMenu> key={selectedId} rowKey="id" columns={columns} dataSource={menus.filter(menu => menu.parentId === selectedId)} loading={loading}
+      <ProTable<PlatformMenu> {...managementTableProps} key={selectedId} rowKey="id" columns={columns} dataSource={menus.filter(menu => menu.parentId === selectedId)} loading={loading}
         headerTitle={selected ? `${selected.name} · ${selected.type === 2 ? '下级菜单与按钮' : '下级菜单'}` : '顶级目录与菜单'}
         search={false} options={false} size="small" scroll={{ x: 680 }} pagination={{ defaultPageSize: 20, showSizeChanger: true }}
         toolBarRender={() => [

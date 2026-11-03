@@ -1,6 +1,7 @@
 param(
     [ValidatePattern('^[a-zA-Z0-9_-]+$')][string]$LogPrefix = ('release-' + (Get-Date -Format 'yyyyMMdd-HHmmss')),
-    [switch]$InstallDependencies
+    [switch]$InstallDependencies,
+    [string]$EnvFile
 )
 $ErrorActionPreference = 'Stop'
 . 'F:\git\frame\scripts\use-local-toolchain.ps1'
@@ -59,12 +60,12 @@ try {
             Invoke-Frontend 'npm-ci' @('ci','--no-audit','--no-fund')
         }
     }
-    Invoke-Stage 'backend-verify' { & (Join-Path $PSScriptRoot 'verify.ps1') -Clean -LogPrefix "${LogPrefix}_backend" }
+    Invoke-Stage 'backend-verify' { & (Join-Path $PSScriptRoot 'verify.ps1') -EnvFile $EnvFile -LogPrefix "${LogPrefix}_backend" }
     Invoke-Stage 'frontend-typecheck' { Invoke-Frontend 'typecheck' @('run','typecheck') }
     Invoke-Stage 'frontend-antd' { Invoke-Frontend 'antd' @('run','antd','--','lint','src','--format','json') }
     Invoke-Stage 'frontend-build' { Invoke-Frontend 'build' @('run','build') }
-    # BrowserAcceptance 在独立测试启动中拥有/清理自己的 MySQL 数据；与前一阶段不重叠。
-    Invoke-Stage 'real-backend-browser' { & (Join-Path $PSScriptRoot 'verify-ui.ps1') -SkipBuild -LogPrefix "${LogPrefix}_ui" }
+    # BrowserAcceptance 复用相同开发测试库；与前一阶段不重叠。
+    Invoke-Stage 'real-backend-browser' { & (Join-Path $PSScriptRoot 'verify-ui.ps1') -EnvFile $EnvFile -SkipBuild -LogPrefix "${LogPrefix}_ui" }
     Invoke-Stage 'artifact-structure' {
         & (Join-Path $PSScriptRoot 'check-release-artifacts.ps1')
         $jar = Join-Path $backend 'cyys-application\target\cyys-application.jar'

@@ -1,5 +1,5 @@
-import { compactFormProps, verticalFormItemProps } from '@/components/ManagementLayout';
-import { ModalForm, PageContainer, ProForm, ProFormDatePicker, ProFormText, ProFormTextArea, ProTable } from '@ant-design/pro-components';
+import { compactFormProps, verticalFormItemProps, managementTableProps, PageContainer, PageTable as ProTable } from '@/components/ManagementLayout';
+import { ModalForm, ProForm, ProFormDatePicker, ProFormText, ProFormTextArea } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Modal, Popconfirm } from 'antd';
@@ -55,9 +55,9 @@ export default function ReleasesPage() {
   ];
   const detail = editor?.detail;
   const row = detail?.release;
-  return <PageContainer title="版本更新" subTitle="平台统一维护，各单位共享。">
+  return <PageContainer title="版本更新">
     {error && <Alert type="error" title={error} showIcon />}
-    <ProTable<Release> rowKey="id" actionRef={action} columns={columns} headerTitle="版本列表"
+    <ProTable<Release> {...managementTableProps} rowKey="id" actionRef={action} columns={columns} headerTitle="版本列表"
       form={{ name: 'release-search' }} options={{ fullScreen: false, setting: false }}
       pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: [20, 50, 100, 200] }}
       request={async ({ current = 1, pageSize = 20, releaseNumber }) => {

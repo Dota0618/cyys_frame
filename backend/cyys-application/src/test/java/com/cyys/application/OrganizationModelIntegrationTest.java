@@ -8,7 +8,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import java.util.*;
 import static org.assertj.core.api.Assertions.*;
 
-/** 只允许在 MySqlTestDatabaseGuard 确认的空验收库运行，不连接含业务数据的开发库。 */
+/** 在现有开发测试库挂载临时机构，保留实际总单位及业务资料。 */
 @ActiveProfiles("test")
 @SpringBootTest(classes=CyysApplication.class, webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext(classMode=DirtiesContext.ClassMode.AFTER_CLASS)
@@ -17,7 +17,7 @@ class OrganizationModelIntegrationTest extends HttpTestSupport {
     private String extraInstitution;
 
     @BeforeEach void organizationFixtures() {
-        jdbc.update("update sys_scope set parent_id='scope-a',ancestors='scope-a' where id='scope-b'");
+        jdbc.update("update sys_scope set parent_id='scope-a',ancestors=? where id='scope-b'",MySqlTestFixtures.ancestorPath(jdbc,"scope-a"));
         jdbc.update("update sys_user_scope set data_range=6,display_name='上级管理员' where user_id='u-alice'");
         jdbc.update("update sys_user_scope set data_range=1,display_name='下级用户' where user_id='u-bob'");
         user("u-platform", "system-admin");
@@ -51,7 +51,7 @@ class OrganizationModelIntegrationTest extends HttpTestSupport {
             jdbc.update("delete from sys_role_menu where role_id=?", id);
             jdbc.update("delete from sys_role where id=?", id);
         }
-        jdbc.update("update sys_scope set parent_id='scope-a',ancestors='scope-a' where id='scope-b'");
+        jdbc.update("update sys_scope set parent_id='scope-a',ancestors=? where id='scope-b'",MySqlTestFixtures.ancestorPath(jdbc,"scope-a"));
         if (extraInstitution != null) jdbc.update("delete from sys_scope where id=? and remark='CYYS organization acceptance fixture'", extraInstitution);
     }
 
@@ -118,8 +118,9 @@ class OrganizationModelIntegrationTest extends HttpTestSupport {
                 "code","ORG_QA_SECOND_ROOT","name","第二总单位","parentId","0"))).status()).isEqualTo(409);
         assertThatThrownBy(() -> jdbc.update("insert into sys_scope(id,code,name,parent_id) values('g1-second-root','QA_SECOND_ROOT','第二总单位','0')"))
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
-        assertThat(request("PUT", "/api/admin/platform/scopes/scope-a", admin, null, JSON.writeValueAsString(Map.of(
-                "version",0,"name","总单位","enabled",false,"sort",0,"parentId","0"))).status()).isEqualTo(409);
+        var root = jdbc.queryForMap("select id,version from sys_scope where parent_id='0' and deleted=0");
+        assertThat(request("PUT", "/api/admin/platform/scopes/"+root.get("id"), admin, null, JSON.writeValueAsString(Map.of(
+                "version",root.get("version"),"name","总单位","enabled",false,"sort",0,"parentId","0"))).status()).isEqualTo(409);
         var institution = ok("POST", "/api/admin/platform/scopes", admin, null, Map.of("code","ORG_QA_EXTRA",
                 "name","其他分支","parentId","scope-a","remark","CYYS organization acceptance fixture"));
         extraInstitution = institution.body().at("/data/id").asText();
@@ -128,7 +129,7 @@ class OrganizationModelIntegrationTest extends HttpTestSupport {
                 JSON.writeValueAsString(Map.of("version",0,"name","父机构","enabled",true,"sort",0,"parentId","scope-b"))).status()).isEqualTo(400);
         ok("PUT", "/api/admin/platform/scopes/scope-b", admin, null,
                 Map.of("version",0,"name","移动后的下级","enabled",true,"sort",0,"parentId",extraInstitution,"remark","CYYS automated test fixture"));
-        assertThat(jdbc.queryForObject("select ancestors from sys_scope where id='scope-b'",String.class)).isEqualTo("scope-a,"+extraInstitution);
+        assertThat(jdbc.queryForObject("select ancestors from sys_scope where id='scope-b'",String.class)).isEqualTo(MySqlTestFixtures.ancestorPath(jdbc,extraInstitution));
         ok("PUT", "/api/admin/platform/scopes/scope-b", admin, "scope-b",
                 Map.of("version",1,"name","移动后的下级","enabled",false,"sort",0,"parentId",extraInstitution,"remark","CYYS automated test fixture"));
         assertThat(request("GET", "/api/auth/me", admin, "scope-b", null).status()).isEqualTo(403);

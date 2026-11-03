@@ -14,7 +14,7 @@
 
 实际路由只登记在 `config/routes.ts`。原始完整路由目录保留在 `config/routes.templates.ts`，供查找模板，不参与运行。
 
-Ant lint 基线由 `scripts/antd-template-baseline.json` 维护，按文件摘要和具体告警登记允许的模板告警。`check-antd-findings.ps1` 拒绝新增告警、模板内容变化、路由变更或不完整扫描。启用示例页前须修正对应用法并重新评估基线，不自动接受扫描结果。
+模板基线使用 `scripts/antd-template-baseline.json`，处理约定见[验证与保存](../verification.md)。
 
 ## 可按需复用的模板
 

@@ -1,4 +1,5 @@
-import { PageContainer, ProTable } from '@ant-design/pro-components';
+import { managementTableProps, PageContainer, PageTable as ProTable } from '@/components/ManagementLayout';
+
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Modal, Select } from 'antd';
@@ -33,9 +34,9 @@ function RecycleContent() {
     return () => { active = false; };
   }, [retry, selectedScope]);
   const resource = resources.find((item) => item.code === code);
-  return <PageContainer title="数据回收站" subTitle="恢复误删数据，或彻底删除不再需要的记录。">
+  return <PageContainer title="数据回收站">
     {error ? <Alert type="error" title="资源加载失败" showIcon action={<Button onClick={() => setRetry((value) => value + 1)}>重试</Button>} /> : <>
-      <Select aria-label="回收站资源" style={{ width: 240, marginBottom: 16 }} loading={loading}
+      <Select aria-label="回收站资源" style={{ width: 240, marginBottom: 12 }} loading={loading}
         placeholder="选择数据类型" value={code} onChange={setCode}
         options={resources.map((item) => ({ value: item.code, label: item.name }))} />
       {!loading && resources.length === 0 && <Alert type="info" title="暂无可访问的数据回收站" showIcon />}
@@ -85,9 +86,9 @@ function RecycleTable({ resource }: { resource: RecycleResource }) {
     ].filter(Boolean) },
   ];
   return <>
-    <Alert type="info" title={resource.description} showIcon style={{ marginBottom: 16 }} />
-    {error && <Alert type="error" title={error} showIcon style={{ marginBottom: 16 }} />}
-    <ProTable<RecycleRecord> actionRef={actionRef} rowKey="id" columns={columns}
+    <Alert type="info" title={resource.description} showIcon style={{ marginBottom: 12 }} />
+    {error && <Alert type="error" title={error} showIcon style={{ marginBottom: 12 }} />}
+    <ProTable<RecycleRecord> {...managementTableProps} actionRef={actionRef} rowKey="id" columns={columns}
       headerTitle={`${resource.name}回收站`} form={{ name: `recycle-${resource.code}-search` }}
       pagination={{ defaultPageSize: 20, pageSizeOptions: [10, 20, 50, 100] }}
       rowSelection={resource.canRestore || resource.canPurge ? {

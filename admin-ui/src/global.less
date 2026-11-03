@@ -54,8 +54,16 @@ body,
   filter: invert(80%);
 }
 
-.ant-layout {
-  min-height: 100vh;
+.ant-pro-layout {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+// ProLayout forces Layout backgrounds to transparent; paint only the outer layout.
+.ant-pro-layout > .ant-layout {
+  flex: 1;
+  background: var(--ant-color-bg-container) !important;
 }
 .ant-pro-sider.ant-layout-sider.ant-pro-sider-fixed {
   left: unset;
@@ -67,8 +75,70 @@ body,
   z-index: 1001;
 }
 
-.ant-pro-layout .ant-menu {
-  font-size: 12px;
+.ant-pro-layout .ant-pro-sider {
+  border-inline-end: 1px solid var(--ant-color-border-secondary);
+}
+
+.ant-pro-layout .ant-pro-layout-container {
+  background: var(--ant-color-bg-container);
+}
+
+.ant-pro-layout .ant-menu-item-selected {
+  font-weight: 500;
+}
+
+.ant-pro-layout .ant-pro-sider .ant-menu-item-selected::before {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--ant-color-primary);
+  content: '';
+}
+
+.ant-pro-layout .ant-pro-global-header {
+  margin-inline: 12px;
+
+  > div { min-width: 0; }
+
+  .ant-pro-global-header-logo-mix:not(.ant-pro-global-header-logo-mobile) {
+    flex: 0 0 196px;
+    min-width: 0;
+  }
+
+  .ant-pro-global-header-logo h1 {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .ant-pro-global-header-header-actions-avatar {
+    padding-inline: 4px;
+  }
+
+  .ant-pro-global-header-header-actions-avatar > div {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    height: 32px;
+    padding: 2px 4px;
+    line-height: 28px;
+  }
+}
+
+@media (max-width: 767px) {
+  .ant-pro-global-header .ant-pro-global-header-right-content {
+    min-width: 0 !important;
+  }
+
+  .ant-pro-global-header .scope-label,
+  .ant-pro-global-header-header-actions-avatar > div > span:last-child:not(.ant-avatar) {
+    display: none;
+  }
 }
 
 .ant-pro-layout .ant-layout-content.ant-pro-layout-content {
@@ -76,22 +146,90 @@ body,
 }
 
 .ant-pro-layout .ant-pro-page-container {
-  margin: 0;
-  padding: 8px;
-
-  .ant-page-header.ant-pro-page-container-warp-page-header {
-    margin: 0;
-    padding: 0;
-
-    .ant-page-header-breadcrumb,
-    .ant-page-header-heading {
-      display: none;
-    }
+  // QueryFilter ships with 24px padding and row gaps; keep list layouts consistent.
+  .ant-pro-table > .ant-pro-table-search {
+    margin-block-end: 12px;
   }
 
-  .ant-pro-page-container-children-container {
-    margin: 0;
+  .ant-pro-table-search .ant-pro-query-filter {
+    padding: 12px;
+  }
+
+  .ant-pro-query-filter .ant-pro-query-filter-row {
+    row-gap: 12px;
+  }
+
+  .ant-pro-query-filter-row-split:last-child {
+    margin-block-end: 0;
+  }
+
+  .ant-pro-table-search .ant-form-item {
+    margin-block: 0;
+  }
+
+  .ant-pro-table-search .ant-form-item-label {
+    padding-block-end: 0;
+  }
+
+  .ant-pro-query-filter-actions .ant-form-item-label {
+    display: none;
+  }
+
+  .ant-pro-table > .ant-pro-card > .ant-pro-card-body {
+    padding: 0 12px 12px;
+  }
+
+  .ant-pro-table-list-toolbar .ant-pro-table-list-toolbar-container {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 12px 0;
+  }
+
+  .ant-pro-table-list-toolbar-left {
+    min-width: 0;
+    margin-block: 0;
+  }
+
+  .ant-pro-table-list-toolbar-title {
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .ant-pro-table-list-toolbar-right {
+    flex-wrap: wrap;
+    gap: 8px;
+    max-width: 100%;
+  }
+
+  .ant-pro-table .ant-table-pagination {
+    margin-block-start: 12px;
+  }
+
+  .ant-table-cell {
+    vertical-align: middle;
+  }
+
+  .ant-pro-table .ant-table-tbody .ant-btn-link {
+    height: 24px;
     padding: 0;
+  }
+
+  .ant-card-head-wrapper {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding-block: 8px;
+  }
+
+  .ant-card-head-title {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .ant-card-extra {
+    max-width: 100%;
+    margin-inline-start: auto;
   }
 }
 
@@ -112,7 +250,7 @@ ol {
     &-tbody > tr {
       > th,
       > td {
-        white-space: pre;
+        white-space: normal;
         > span {
           display: block;
         }

@@ -1,10 +1,10 @@
 import { PlusOutlined } from '@ant-design/icons';
-import { ModalForm, ProFormDigit, ProFormText, ProTable } from '@ant-design/pro-components';
+import { ModalForm, ProFormDigit, ProFormText } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Popconfirm } from 'antd';
 import { useEffect, useRef, useState } from 'react';
-import { CompactFields, compactModalProps, compactFormProps } from '@/components/ManagementLayout';
+import { CompactFields, compactModalProps, compactFormProps, managementTableProps, PageTable as ProTable } from '@/components/ManagementLayout';
 import {
   createDictionaryItem, deleteDictionaryItem, dictionaryItemDetail, listDictionaryItems, updateDictionaryItem,
 } from '@/services/system/dictionaries';
@@ -52,7 +52,7 @@ export default function DictionaryItems({ dictionary }: { dictionary: Dictionary
 
   return <>
     {loadError && <Alert type="error" title={loadError} showIcon />}
-    <ProTable<DictionaryItem> actionRef={action} rowKey="id" columns={columns}
+    <ProTable<DictionaryItem> {...managementTableProps} actionRef={action} rowKey="id" columns={columns}
       size="small" scroll={{ x: 600 }}
       form={{ name: 'dictionary-item-search' }}
       headerTitle={`${dictionary.name}（${dictionary.id}）· 字典项`}

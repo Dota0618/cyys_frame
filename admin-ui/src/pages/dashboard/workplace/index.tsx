@@ -1,5 +1,6 @@
+import { PageContainer } from '@/components/ManagementLayout';
 import { UserOutlined } from '@ant-design/icons';
-import { PageContainer } from '@ant-design/pro-components';
+
 import { Link, useAccess, useModel } from '@umijs/max';
 import {
   Avatar,
@@ -13,7 +14,6 @@ import {
 } from 'antd';
 import EditableLinkGroup from './components/EditableLinkGroup';
 import useStyles from './style.style';
-import { session } from '@/utils/session';
 
 export default function Workplace() {
   const { styles } = useStyles();
@@ -26,36 +26,25 @@ export default function Workplace() {
     ? [{ title: '用户管理', href: '/system/users' }]
     : [];
   return (
-    <PageContainer
-      content={
-        <div className={styles.pageHeaderContent}>
-          <div className={styles.avatar}>
-            <Avatar size="large" icon={<UserOutlined />} />
-          </div>
+    <PageContainer>
+      <Card className={styles.summary}>
+        <div className={styles.summaryContent}>
+          <Avatar size={40} icon={<UserOutlined />} />
           <div className={styles.content}>
             <div className={styles.contentTitle}>你好，{user.displayName}</div>
             <div>{scope || '未选择'}</div>
           </div>
+          <Statistic title="可访问机构" value={user.scopes.length} />
         </div>
-      }
-      extraContent={
-        <div className={styles.extraContent}>
-          <div className={styles.statItem}>
-            <Statistic title="可访问机构" value={user.scopes.length} />
-          </div>
-        </div>
-      }
-    >
-      <Row gutter={24}>
+      </Card>
+      <Row gutter={[12, 12]}>
         <Col xl={16} lg={24} md={24} sm={24} xs={24}>
           <Card
-            className={styles.projectList}
             title="当前身份"
-            variant="borderless"
-            style={{ marginBottom: 24 }}
           >
             <Descriptions
-              column={1}
+              size="small"
+              column={{ xs: 1, sm: 2, md: 2 }}
               items={[
                 { key: 'account', label: '登录账号', children: user.loginName },
                 { key: 'name', label: '姓名', children: user.displayName },
@@ -70,9 +59,7 @@ export default function Workplace() {
         </Col>
         <Col xl={8} lg={24} md={24} sm={24} xs={24}>
           <Card
-            title="快速开始 / 便捷导航"
-            variant="borderless"
-            style={{ marginBottom: 24 }}
+            title="快捷入口"
           >
             {links.length ? (
               <EditableLinkGroup links={links} linkElement={Link} />

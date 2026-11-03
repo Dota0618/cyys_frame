@@ -1,32 +1,18 @@
 # API 命令与输入校验
 
-- admin 包使用 `com.cyys.admin.<功能>.<职责>`。
-- 独立业务模块的包以 `com.cyys.<业务>` 开头，与 `admin`、`common` 平级。
-- 业务模块内部按功能组织，再按需划分职责目录。
-- 启动模块使用 `com.cyys.application`，不放具体业务实现。
-- 按需使用 controller、model、dto、service、mapper，不创建空包或空层。
-- common 只提供技术能力，不查询 admin 业务表。
-- Controller 只调用一个主要 Service。
-- 请求体基础约束写在 DTO，由 Controller 的 `@Valid` 触发。
-- 路径和查询参数在 Controller 校验。
-- Service 校验跨字段、归属、业务状态和版本冲突。
-- Service 不重复非空、长度、格式等基础校验。
-- 持久化 Model 不重复请求校验，数据库保留完整性约束。
-- 业务异常在 Service 抛出，由全局处理器统一响应。
-- 保留现有响应编号，不增加异常分类方法。
-- DTO 按操作定义，只保留允许提交的字段。
-- 独立请求和响应类型单独放在功能的 `dto` 包。
-- 路径中的 ID 不在请求体重复传入。
-- 字段使用明确类型，稳定默认值由服务端赋值。
-- 返回只读 DTO，不暴露持久化 Model、密码或内部异常详情。
-- 跨业务操作由主要 Service 协调事务。
+包与分层按[项目结构](../project-structure.md)组织。
+
+- Controller 调用主要 Service；跨业务事务由该 Service 协调。
+- DTO 通过 `@Valid` 校验非空、长度和格式，Controller 校验路径及查询参数。
+- Service 校验跨字段、归属、状态和版本，Model 不重复请求校验。
+- DTO 按操作定义，单独放所属功能的 `dto` 包；请求只接收可修改字段，路径 ID 不在请求体重复。
+- 字段使用明确类型，默认值由服务端赋值；返回只读 DTO，排除密码及内部异常详情。
+- 业务异常统一处理，保留既有响应编号。
+- 新增和编辑共用选项查询；权限和范围按[权限规则](data-permission.md)执行。
 - 文件清理和密码错误计数保留分段事务。
-- 新增和编辑共用的选项保留一个查询方法。
-- 不默认增加 interface/Impl、Manager、Facade、Converter 层。
-- 权限和数据范围遵循[权限规则](data-permission.md)。
 
-## 已实现
+## 公共能力
 
-- 文件名校验：`@SafeFileName`。
-- 表格导出与下载：`BoundedXlsx`、`DownloadResponse`。
-- 出站 HTTP：Boot `RestClient.Builder`。
+- 文件名校验复用 `@SafeFileName`。
+- 表格导出和下载复用 `BoundedXlsx`、`DownloadResponse`。
+- 出站 HTTP 复用 Boot `RestClient.Builder`。

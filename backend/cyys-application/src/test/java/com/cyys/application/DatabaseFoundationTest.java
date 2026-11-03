@@ -82,7 +82,7 @@ class DatabaseFoundationTest extends HttpTestSupport {
 
 
     @Test
-    void flywayMigratesEmptySchemaOnceAndMenuTypeIsConstrained() {
+    void flywayKeepsOneInitializationRecordAndMenuTypeIsConstrained() {
         Integer count = jdbc.queryForObject("select count(*) from flyway_schema_history where version='1' and success=1", Integer.class);
         assertThat(count).isEqualTo(1);
         assertThatThrownBy(() -> jdbc.update("insert into sys_menu(id,name,code,type) values('bad','bad','bad',4)"))

@@ -1,8 +1,8 @@
-import { compactFormProps } from '@/components/ManagementLayout';
-import { ModalForm, PageContainer, ProFormDigit, ProFormText, ProTable } from '@ant-design/pro-components';
+import { compactFormProps, managementTableProps, ManagementSplit, PageContainer, PageTable as ProTable } from '@/components/ManagementLayout';
+import { ModalForm, ProFormDigit, ProFormText } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
-import { Alert, Button, Card, Col, Popconfirm, Row, Space } from 'antd';
+import { Alert, Button, Card, Popconfirm, Space } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { createRegion, deleteRegion, deleteRegions, exportRegions, listRegions, regionDetail, updateRegion } from '@/services/system/regions';
 import type { Region, RegionFields } from '@/services/system/regions';
@@ -48,18 +48,16 @@ export default function RegionsPage() {
       </Popconfirm>,
     ].filter(Boolean) },
   ];
-  return <PageContainer title="地区管理" subTitle="左侧选择地区，右侧管理其下级；导出当前层级筛选结果，不含更深层级。">
-    <Space wrap style={{ marginBottom: 16 }}>
+  return <PageContainer title="地区管理">
+    <Space wrap style={{ marginBottom: 12 }}>
       <Button type="link" onClick={() => navigate([])}>全部顶级地区</Button>
       {trail.map((region, index) => <Button key={region.id} type="link" onClick={() => navigate(trail.slice(0, index + 1))}>{region.name}</Button>)}
     </Space>
     {error && <Alert type="error" showIcon title={error} />}
-    <Row gutter={[16, 16]}>
-      <Col xs={24} lg={7}><Card title="地区树" extra={<Button type="link" onClick={() => setTreeVersion(version => version + 1)}>刷新</Button>}>
-        <div style={{ maxHeight: '70vh', overflow: 'auto' }}><RegionTree key={treeVersion} trail={trail} onSelect={navigate} onError={failed} /></div>
-      </Card></Col>
-      <Col xs={24} lg={17}>
-    <ProTable<Region> key={parent?.id || 'root'} rowKey="id" actionRef={action} columns={columns}
+    <ManagementSplit navigation={<Card title="地区树" size="small" extra={<Button type="link" size="small" onClick={() => setTreeVersion(version => version + 1)}>刷新</Button>}>
+        <div style={{ maxHeight: '60dvh', overflow: 'auto' }}><RegionTree key={treeVersion} trail={trail} onSelect={navigate} onError={failed} /></div>
+      </Card>}>
+    <ProTable<Region> {...managementTableProps} key={parent?.id || 'root'} rowKey="id" actionRef={action} columns={columns}
       scroll={{ x: 900 }}
       headerTitle={parent ? `${parent.name}的下级地区` : '顶级地区列表'} form={{ name: 'region-search' }}
       options={{ fullScreen: false, setting: false }}
@@ -93,8 +91,7 @@ export default function RegionsPage() {
             try { await deleteRegions(selected); changed(); } catch (failure) { failed(failure); }
           }}><Button danger disabled={!selected.length || selected.length > 100}>批量删除</Button></Popconfirm>,
       ].filter(Boolean)} />
-      </Col>
-    </Row>
+    </ManagementSplit>
     {editor && <ModalForm<RegionFields> {...compactFormProps} name="region-editor" title={editor.detail ? '编辑地区' : '新增地区'} open
       omitNil={false} initialValues={editor.detail || { sort: 0 }} modalProps={{ destroyOnHidden: true }}
       onValuesChange={() => setDirty(true)} onOpenChange={(open) => { if (!open) { setEditor(undefined); setDirty(false); } }}

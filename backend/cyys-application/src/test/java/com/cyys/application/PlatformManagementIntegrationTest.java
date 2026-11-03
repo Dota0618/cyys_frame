@@ -36,7 +36,7 @@ class PlatformManagementIntegrationTest extends HttpTestSupport {
 
     @AfterEach
     void cleanupPlatformRecords() {
-        jdbc.update("delete from sys_data_audit where scope_id='GLOBAL'");
+        jdbc.update("delete from sys_data_audit where scope_id='GLOBAL' and user_id in ('u-alice','u-bob','u-platform')");
         for (String id : createdRoleIds) {
             jdbc.update("delete from sys_user_role where role_id=?", id);
             jdbc.update("delete from sys_role_menu where role_id=?", id);

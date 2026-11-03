@@ -147,8 +147,8 @@ try {
     if ((Get-FileHash -LiteralPath $objectBackup -Algorithm SHA256).Hash -ne $fileHash) { throw 'File backup mismatch' }
     Fixture clear | Out-Null
     Remove-Item -LiteralPath $object
-    $empty = Snapshot 'cleared-owned-data'
-    if (@($empty | Where-Object {$_ -notmatch '^flyway_schema_history ' -and $_ -notmatch ' rows=0 '}).Count) { throw 'Fixture clear did not leave empty business tables' }
+    Snapshot 'cleared-owned-data' | Out-Null
+    Fixture verify-clear | Out-Null
     $restore = Start-Process -FilePath $mysql -ArgumentList @("--defaults-extra-file=$clientConfig",'cyys_frame') -WindowStyle Hidden -PassThru -RedirectStandardInput "$backup/data.sql" -RedirectStandardOutput "$backup/restore.log" -RedirectStandardError "$backup/restore-error.log"
     $restore.WaitForExit()
     if ($restore.ExitCode -ne 0) { throw 'Data restore failed; leave evidence and keep API stopped' }

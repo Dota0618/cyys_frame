@@ -11,6 +11,26 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class UnifiedRoleIdentityTest {
+    @Test void legacyNumericAccountIdHasNoImplicitAdministratorPrivilege() {
+        var accounts = mock(SysUserMapper.class);
+        var profiles = mock(SysUserScopeMapper.class);
+        var roles = mock(SysUserRoleMapper.class);
+        var service = new IdentityService(accounts, profiles, roles);
+        var user = new SysUser(); user.setId("1");
+        var profile = new com.cyys.admin.user.model.SysUserScope();
+        profile.setUserId("1"); profile.setScopeId("a"); profile.setDataRange(1);
+        when(profiles.profile("1")).thenReturn(profile);
+        when(profiles.selectAvailableScopes("1")).thenReturn(List.of(new ScopeInfo("a", "A", "机构 A", true, "0")));
+        when(roles.selectRoleCodes("1")).thenReturn(List.of());
+        when(roles.selectPermissionCodes("1")).thenReturn(List.of());
+
+        var identity = service.forLogin(user, "a").identity();
+
+        assertThat(identity.roles()).isEmpty();
+        assertThat(identity.permissions()).isEmpty();
+        verify(roles, never()).selectActivePermissionCodes();
+    }
+
     @Test void institutionFilterDoesNotChangeRolesOrPermissions() {
         var accounts = mock(SysUserMapper.class);
         var profiles = mock(SysUserScopeMapper.class);

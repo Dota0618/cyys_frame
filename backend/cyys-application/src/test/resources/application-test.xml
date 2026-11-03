@@ -13,7 +13,7 @@
     <entry key="spring.datasource.password">${CYYS_TEST_DB_PASSWORD}</entry>
     <entry key="spring.datasource.driver-class-name">com.mysql.cj.jdbc.Driver</entry>
 
-    <entry key="cyys.environment">phase3-test</entry>
+    <entry key="cyys.environment">${CYYS_ENVIRONMENT:framework-test}</entry>
     <entry key="cyys.data-isolation.mode">single</entry>
     <entry key="cyys.data-isolation.single-scope-id">scope-a</entry>
     <entry key="logging.level.root">WARN</entry>

@@ -2,82 +2,37 @@
 
 ## 规则
 
-- 关联展示字段使用返回 DTO 的 `@CacheValue`，复用已登记缓存。
-- 主记录自身字段直接返回，不额外缓存回填。
-- 整页批量读缓存，未命中再批量查库，不保留重复展示查询。
-- 授权、筛选、排序、候选和保存校验不依赖展示缓存。
-- 用户展示缓存包含停用和跨机构用户，不重复查其机构或权限。
-- 缓存只保存最小展示 DTO，不保存敏感实体。
-- 取值时校验声明类型，缺记录或字段返回 null。
-- 接收字段使用可空类型，不做启动预检查或历史值回退。
-- 写事务提交后失效相关缓存，回滚不失效。
-- 自动失效和手动刷新共用分组，不清空 Redis 或登录会话。
-- 修改缓存时更新下方来源、字段、使用处和失效入口。
-- 需要手动刷新时增加迁移记录，保持 `cache_key`、刷新组和作用范围与代码一致。
-- 不在业务代码中直接拼接 Redis 键、扫描 Redis 或缓存完整实体。
+- 关联展示字段用 DTO 的 `@CacheValue`，批量读取缓存及回源；主记录字段直接返回。
+- 缓存保存最小 DTO，缺失值返回 null；授权、筛选和保存校验使用实时数据。
+- 接收字段使用可空类型，展示缓存不回退历史值。
+- 写事务提交后失效缓存；自动失效和手动刷新使用同一分组。
+- 业务复用缓存组件，不直接拼接、扫描 Redis 键或清理登录会话。
 
 ## 已缓存清单
 
-| cache | 形态 / 类型与字段 | 匹配键 | 范围 | 来源 |
-|---|---|---|---|---|
-| `user` | 记录 `UserLabel`：id、name 为 String，active 为 boolean | 用户 ID | 系统共享，含停用用户 | `UserCacheSource` |
-| `scope` | 记录 `ScopeLabel`：id、name、shortName 为 String | 单位 ID | 系统共享，含停用单位 | `ScopeCacheSource` |
-| `department` | 记录 `DepartmentLabel`：id、name 为 String | 部门 ID | 实际所属单位 | `DepartmentCacheSource` |
-| `dictionary-item` | 记录 `DictionaryOption`：value、label 为 String，disabled 为 boolean | 字典内部名称＋value | 系统共享 | `DictionaryItemCacheSource` |
-| `dictionary-options` | 列表 `List<DictionaryOption>`，仅有效候选 | 字典内部名称；列表项按 value 匹配 | 系统共享 | `DictionaryOptionsCacheSource` |
-| `configuration-values` | Hash 字符串值 | 参数名称 | 系统共享 | `ConfigurationLookupService` |
-
-| 缓存组 | 已使用处 | 提交后失效入口 |
+| cache | 范围 | 来源 |
 |---|---|---|
-| 用户 | `OrgNoticeReadView.userName`、`DepartmentView.leaderName/leaderActive`、`UserDisplayService.names`、`RecycleRecord.deletedByName` | `MemberService.create/edit`，仅对应用户 ID |
-| 单位 | `ScopeInfo.name`：登录资料、当前用户资料、右上角单位列表、工作台；`MemberView.scopeName`：用户列表、详情；`RecycleRecord.scopeName` | `ScopeManagementService.create/update`，仅对应单位 ID；当前没有单位删除入口 |
-| 部门 | `MemberView.orgName`：用户列表、详情、导出；`RecycleRecord.departmentName`，按记录实际单位取值 | `DepartmentService` 新增、修改、删除，失效对应单位部门组 |
-| 字典 | `OrgNoticeView`、`SystemNoticeView`、`ReleaseView` 的类型名称/状态；`OrgNoticeOptions.types`、`AuditView` 的操作/结果名称、`AuditOptions` 候选列表；系统通知/版本候选列表 | `DictionaryService` 分类和字典项增删改，同时失效记录与列表缓存 |
-| 全局参数 | 配置管理列表/详情、公共配置接口、地区根节点和密码策略 | `ConfigurationService` 新增、修改后按参数名称失效；支持手动刷新全局参数缓存 |
+| `user` | 系统共享，含停用用户 | `UserCacheSource` |
+| `scope` | 系统共享，含停用单位 | `ScopeCacheSource` |
+| `department` | 实际所属单位 | `DepartmentCacheSource` |
+| `dictionary-item`、`dictionary-options` | 系统共享 | `DictionaryItemCacheSource/DictionaryOptionsCacheSource` |
+| `configuration-values` | 系统共享 | `ConfigurationLookupService` |
+
+字段、调用处和失效入口以来源类及 `BusinessCacheGroups` 为准。
 
 ## 用法
 
-- `cache` 指定来源，`key` 指定当前 DTO 的匹配字段。
-- `field` 指定展示字段；省略时取整条记录或列表项。
-- 列表缓存省略 `key` 时返回完整列表。
-- `variant` 指定字典内部名称。
-- `scopeKey` 指定实际机构字段；按机构缓存省略时使用当前机构。
-- 成功 HTTP 响应自动回填，其他调用使用 `CachedResponseValues.enrich`。
-- JSON 省略 null，前端接收字段声明为可选。
-- 写事务提交后，组失效使用 `invalidateAfterCommit`，按 ID 失效使用 `invalidateEntriesAfterCommit`。
+- `cache/key/field` 分别指定来源、匹配键和展示字段，省略 `field` 时取记录或列表项。
+- 列表省略 `key` 返回完整列表；`variant` 指定字典名称，`scopeKey` 指定实际机构。
+- HTTP 成功响应自动回填，其他调用用 `CachedResponseValues.enrich`。
+- 组及记录失效分别用 `invalidateAfterCommit`、`invalidateEntriesAfterCommit`。
 
 ## 新功能接入
 
-- 在 `BusinessCacheGroups` 声明 `CacheRegion` 和 `CacheGroup`。
-- 展示缓存实现 `CacheValueSource<T extends Record>`，使用 `RecordCache` 或 `ScopedHashCache` 回源。
-
-```java
-public record ProductLabel(String id, String name) {}
-
-public static final CacheRegion PRODUCT_NAMES =
-        new CacheRegion("product-records", CacheScope.UNIT);
-public static final CacheGroup PRODUCTS =
-        new CacheGroup("product-display", List.of(PRODUCT_NAMES));
-```
-
-```java
-public record ProductView(String productId, String scopeId,
-    @CacheValue(cache = "product", key = "productId", scopeKey = "scopeId", field = "name")
-    String productName) {}
-```
-
-- 来源类使用 `@Component`，`name()` 必须与 `@CacheValue.cache` 相同。
-- 刷新组迁移只登记缓存区域，不创建缓存值。
+- 在 `BusinessCacheGroups` 登记区域及分组，来源实现 `CacheValueSource` 并复用 `RecordCache` 或 `ScopedHashCache`。
+- 来源 `name()` 与注解名称一致；手动刷新登记对应定义。
 
 ## 缓存管理
 
-- 缓存管理维护缓存定义，不保存或编辑缓存值。
-- 每个定义登记展示名称、实际缓存区域标识、展示分组、刷新组和作用范围。
-- 同一刷新组中的多个缓存区域必须使用同一作用范围，手动操作只能刷新整个刷新组。
-- 自动失效和手动刷新共用 `BusinessCacheGroups` 的真实缓存区域，不通过数据库配置类名、方法名或 Redis 键执行反射。
-- 缓存定义的新增、修改、删除和刷新均使用 `cache:user:refresh` 权限。
-
-```java
-public record ReaderView(String userId,
-    @CacheValue(cache="user", key="userId", field="name") String userName) {}
-```
+- 管理页维护定义和刷新组，字段与已登记区域一致；同组使用相同范围并整体刷新。
+- 定义维护及刷新使用 `cache:user:refresh`，配置限已登记区域。

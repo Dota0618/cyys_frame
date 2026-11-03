@@ -33,10 +33,12 @@ abstract class HttpTestSupport {
 
     @Autowired JdbcTemplate jdbc;
     @Value("${local.server.port}") int port;
+    private List<Map<String,Object>> originalMenus;
 
     @BeforeEach
     void fixtures() {
         cleanupFixtures();
+        originalMenus = jdbc.queryForList("select * from sys_menu");
         user("u-alice", "alice");
         user("u-bob", "bob");
         membership("u-alice", "scope-a", true);
@@ -51,7 +53,7 @@ abstract class HttpTestSupport {
 
     @AfterEach
     void cleanupFixtures() {
-        jdbc.update("delete from sys_login_audit where user_id in ('u-alice','u-bob','u-platform','1') "
+        jdbc.update("delete from sys_login_audit where user_id in ('u-alice','u-bob','u-platform','g1-legacy-account') "
                 + "or login_name in ('unknown','g4-audit-unknown') or login_name like 'g4-%'");
         for (String id : jdbc.queryForList("select id from sys_user where login_name like 'g4-%'",String.class)) {
             StpUtil.logout(id);
@@ -59,23 +61,24 @@ abstract class HttpTestSupport {
             jdbc.update("delete from sys_user_scope where user_id=?",id);
             jdbc.update("delete from sys_user where id=?",id);
         }
-        for (String id : List.of("u-alice", "u-bob", "u-platform", "1")) {
+        for (String id : List.of("u-alice", "u-bob", "u-platform", "g1-legacy-account")) {
             StpUtil.logout(id);
         }
-        // 启动前已确认这是空的测试 schema；只清理由本组用例插入的记录。
+        // 启动前已核对夹具标识未被占用；只清理由本组用例插入的记录。
         jdbc.update("delete from sys_data_audit where scope_id in ('scope-a','scope-b')");
         jdbc.update("delete from sys_user_scope_org where scope_id in ('scope-a','scope-b')");
         jdbc.update("delete from sys_role_menu where role_id in ('role-a','role-b','role-platform')");
         jdbc.update("delete from sys_role_menu where role_id like 'g1-%'");
-        jdbc.update("delete from sys_user_role where user_id in ('u-alice','u-bob','u-platform','1')");
-        jdbc.update("delete from sys_user_scope where user_id in ('u-alice','u-bob','u-platform','1')");
+        jdbc.update("delete from sys_user_role where user_id in ('u-alice','u-bob','u-platform','g1-legacy-account')");
+        jdbc.update("delete from sys_user_scope where user_id in ('u-alice','u-bob','u-platform','g1-legacy-account')");
         jdbc.update("delete from sys_role where id in ('role-a','role-b','role-platform')");
         jdbc.update("delete from sys_role where id like 'g1-%'");
-        jdbc.update("delete from sys_user where id in ('u-alice','u-bob','u-platform','1')");
+        jdbc.update("delete from sys_user where id in ('u-alice','u-bob','u-platform','g1-legacy-account')");
         jdbc.update("delete from sys_menu where id in ('permission-read','permission-write','platform-access','bad')");
         jdbc.update("delete from sys_menu where id like 'g1-%'");
         jdbc.update("delete from sys_org where scope_id in ('scope-a','scope-b')");
         jdbc.update("update sys_scope set status=1, deleted=0 where id in ('scope-a','scope-b')");
+        MySqlTestFixtures.restoreMenus(jdbc, originalMenus);
     }
 
     @AfterAll

@@ -1,4 +1,5 @@
-import { PageContainer, ProTable } from '@ant-design/pro-components';
+import { managementTableProps, PageContainer, PageTable as ProTable } from '@/components/ManagementLayout';
+
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Popconfirm } from 'antd';
@@ -37,9 +38,9 @@ function FileRecycleContent() {
         onConfirm={() => run(() => purgeFile(row))}><Button type="link" danger>{row.state === 'PURGING' ? '重试清理' : '永久删除'}</Button></Popconfirm>,
     ].filter(Boolean) },
   ];
-  return <PageContainer title="文件回收站" subTitle="恢复到默认目录；永久删除后无法找回文件。">
+  return <PageContainer title="文件回收站">
     {error && <Alert type="error" title={error} showIcon />}
-    <ProTable<ManagedFile> actionRef={action} rowKey="id" columns={columns} form={{ name: 'file-recycle-search' }}
+    <ProTable<ManagedFile> {...managementTableProps} actionRef={action} rowKey="id" columns={columns} form={{ name: 'file-recycle-search' }}
       rowSelection={access.canRestoreFiles ? { selectedRowKeys: selected.map((file) => file.id), onChange: (_, rows) => setSelected(rows), getCheckboxProps: (row) => ({ disabled: row.state !== 'READY' }) } : false}
       tableAlertOptionRender={() => <Button disabled={!selected.length} onClick={() => { void run(() => restoreFiles(selected)); }}>批量恢复到默认目录</Button>}
       request={async (params) => {

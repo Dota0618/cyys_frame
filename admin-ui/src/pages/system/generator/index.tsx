@@ -1,5 +1,5 @@
-import { compactFormProps, verticalFormItemProps } from '@/components/ManagementLayout';
-import { PageContainer, ProForm, ProFormDigit, ProFormList, ProFormSelect, ProFormSwitch, ProFormText } from '@ant-design/pro-components';
+import { compactFormProps, verticalFormItemProps, PageContainer } from '@/components/ManagementLayout';
+import { ProForm, ProFormDigit, ProFormList, ProFormSelect, ProFormSwitch, ProFormText } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Card, Form, Select, Space, Tabs, Typography, Upload } from 'antd';
 import { useEffect, useRef, useState } from 'react';
@@ -61,7 +61,7 @@ export default function GeneratorPage() {
       setResult({ command: structuredClone(command), preview }); setFile(preview.files[0]?.path || ''); return true;
     } catch (failure) { failed(failure); return false; } finally { setBusy(false); }
   };
-  return <PageContainer title="代码生成器" subTitle="配置业务字段，预览后下载后端、前端和建表脚本。">
+  return <PageContainer title="代码生成器">
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
       <Alert type="info" showIcon title="沿用当前框架的单位隔离和权限规则" description="支持普通列表与树形列表。单位、部门、审计和版本字段自动生成；业务代码可在下载后修改。" />
       {error && <Alert type="error" title={error} showIcon />}

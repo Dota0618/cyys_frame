@@ -1,22 +1,37 @@
 import type { ProLayoutProps } from '@ant-design/pro-components';
 
-/**
- * @name
- */
 const Settings = {
   navTheme: 'light',
-  // 拂晓蓝
   colorPrimary: '#1890ff',
   layout: 'mix',
   contentWidth: 'Fluid',
   fixedHeader: false,
   fixSiderbar: true,
+  siderWidth: 224,
   colorWeak: false,
   logo: '/logo.svg',
   iconfontUrl: '',
   token: {
-    // 参见ts声明，demo 见文档，通过token 修改样式
-    //https://procomponents.ant.design/components/layout#%E9%80%9A%E8%BF%87-token-%E4%BF%AE%E6%94%B9%E6%A0%B7%E5%BC%8F
+    bgLayout: 'var(--ant-color-bg-container)',
+    header: {
+      colorBgHeader: 'var(--ant-color-bg-container)',
+      colorBgScrollHeader: 'var(--ant-color-bg-container)',
+    },
+    sider: {
+      colorMenuBackground: 'var(--ant-color-bg-container)',
+      colorBgMenuItemHover: 'var(--ant-color-primary-bg-hover)',
+      colorBgMenuItemSelected: 'var(--ant-color-primary-bg)',
+      colorTextMenuSelected: 'var(--ant-color-primary-text-active)',
+      colorTextMenuActive: 'var(--ant-color-primary-text-active)',
+      colorTextMenuItemHover: 'var(--ant-color-primary-text)',
+      colorTextMenu: 'var(--ant-color-text-secondary)',
+      colorTextMenuSecondary: 'var(--ant-color-text-tertiary)',
+      colorTextSubMenuSelected: 'var(--ant-color-primary-text-active)',
+      colorTextMenuTitle: 'var(--ant-color-text)',
+      colorBgMenuItemCollapsedElevated: 'var(--ant-color-bg-elevated)',
+      paddingInlineLayoutMenu: 8,
+      paddingBlockLayoutMenu: 8,
+    },
   },
 } satisfies ProLayoutProps;
 

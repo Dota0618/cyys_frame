@@ -72,7 +72,7 @@ class MultiScopeIntegrationTest extends HttpTestSupport {
     }
 
     @Test
-    void unitRoleCannotGrantPlatformOnlyPermissionAndOldIdHasNoPrivilege() throws Exception {
+    void unitRoleCannotGrantPlatformOnlyPermissionAndLegacyAccountHasNoPrivilege() throws Exception {
         permission("role-a", "platform-access", "platform:scope:access", true);
         String token = token("alice");
         assertThat(request("GET", "/api/auth/me", token, "scope-b", null).status()).isEqualTo(403);
@@ -80,8 +80,8 @@ class MultiScopeIntegrationTest extends HttpTestSupport {
         assertThat(alice.body().at("/data/platformPermissions").isEmpty()).isTrue();
         assertThat(alice.body().at("/data/permissions").toString()).doesNotContain("platform:scope:access");
 
-        user("1", "old-root");
-        membership("1", "scope-a", true);
+        user("g1-legacy-account", "old-root");
+        membership("g1-legacy-account", "scope-a", true);
         String oldRoot = token("old-root");
         assertThat(request("GET", "/api/auth/me", oldRoot, "scope-b", null).status()).isEqualTo(403);
     }

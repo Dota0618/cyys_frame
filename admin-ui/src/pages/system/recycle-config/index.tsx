@@ -1,5 +1,5 @@
 import { PlusOutlined } from '@ant-design/icons';
-import { ModalForm, PageContainer } from '@ant-design/pro-components';
+import { ModalForm } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
@@ -8,7 +8,7 @@ import {
 } from '@/services/system/recycleConfig';
 import type { RecycleConfiguration, RecycleConfigurationInput, RecycleTableOption } from '@/services/system/recycleConfig';
 import { ApiError, StaleRequest } from '@/utils/request';
-import { CompactFields, compactFormProps, compactModalProps } from '@/components/ManagementLayout';
+import { CompactFields, compactFormProps, compactModalProps, PageContainer } from '@/components/ManagementLayout';
 import { setDirty } from '@/utils/session';
 
 type FormValues = RecycleConfigurationInput;
@@ -41,7 +41,6 @@ function RecycleConfigForm({ tables, editing, onDone, onCancel }: { tables: Recy
     modalProps={compactModalProps} initialValues={editing ?? { scopeRequired: false, enabled: true, sort: 0 }}
     onValuesChange={() => setDirty(true)} onOpenChange={(open) => { if (!open) { setDirty(false); onCancel(); } }}
     onFinish={submit}>
-    <Alert type="info" showIcon message="系统字段（版本、删除标记、创建/更新时间等）按统一约定自动识别；这里仅登记业务表、展示字段和数据范围。" style={{ marginBottom: 16 }} />
     <CompactFields><div>
       <Form.Item name="name" label="资源名称" rules={[{ required: true, max: 50 }]}><Input maxLength={50} placeholder="例如订单" /></Form.Item>
       <Form.Item name="tableName" label="业务表" rules={[{ required: true }]}><Select showSearch disabled={!!editing} options={tables.map((item) => ({ value: item.tableName, label: item.tableName }))} onChange={() => form.resetFields(['titleColumn', 'searchColumn'])} /></Form.Item>
@@ -49,7 +48,6 @@ function RecycleConfigForm({ tables, editing, onDone, onCancel }: { tables: Recy
       <Form.Item name="searchColumn" label="搜索字段" rules={columnRule}><Select showSearch options={textOptions} /></Form.Item>
       <Form.Item name="scopeRequired" label="按当前机构隔离" valuePropName="checked"><Switch /></Form.Item>
     </div><div>
-      <Alert type="info" showIcon message="机构、部门、创建人、版本、删除标记及审计时间字段均按系统约定自动使用。" />
       <Form.Item name="sort" label="排序"><InputNumber precision={0} /></Form.Item>
       {editing && <Form.Item name="enabled" label="启用" valuePropName="checked"><Switch /></Form.Item>}
     </div></CompactFields>
@@ -69,9 +67,9 @@ export default function RecycleConfigPage() {
   };
   useEffect(() => { void load(); }, []);
   if (!access.canReadRecycleConfig) return <PageContainer title="回收站配置" />;
-  return <PageContainer title="回收站配置" subTitle="选择业务表和软删除字段后即可接入数据回收站。">
-    {error && <Alert type="error" showIcon title={error} style={{ marginBottom: 16 }} />}
-    {access.canCreateRecycleConfig && <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)} style={{ marginBottom: 16 }}>登记资源</Button>}
+  return <PageContainer title="回收站配置">
+    {error && <Alert type="error" showIcon title={error} style={{ marginBottom: 12 }} />}
+    {access.canCreateRecycleConfig && <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)} style={{ marginBottom: 12 }}>登记资源</Button>}
     <Table rowKey="id" dataSource={rows} pagination={false} columns={[
       { title: '资源名称', dataIndex: 'name' }, { title: '业务表', dataIndex: 'tableName' },
       { title: '范围', render: (_: unknown, row: RecycleConfiguration) => row.scopeRequired ? <Tag color="blue">按机构</Tag> : <Tag>全局</Tag> },

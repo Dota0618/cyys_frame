@@ -23,10 +23,10 @@ export default function ScopeSwitch() {
     });
     else apply();
   };
-  return <Space>
+  return <Space size={8} style={{ padding: 0 }}>
     <span className="scope-label">机构</span>
     <TreeSelect
-      aria-label="机构筛选" placeholder="选择机构" style={{ minWidth: 200, maxWidth: 320 }}
+      aria-label="机构筛选" placeholder="选择机构" style={{ width: 'clamp(96px, 16vw, 220px)', maxWidth: '100%' }}
       value={context.scopeId} treeData={tree} fieldNames={{ label: 'title', value: 'key' }}
       treeDefaultExpandAll showSearch={{ treeNodeFilterProp: 'title' }} onChange={change}
     />

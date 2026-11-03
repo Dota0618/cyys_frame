@@ -1,4 +1,5 @@
-import { PageContainer, ProTable } from '@ant-design/pro-components';
+import { managementTableProps, tableSearchProps, PageContainer, PageTable as ProTable } from '@/components/ManagementLayout';
+
 import type { ProColumns } from '@ant-design/pro-components';
 import { Alert } from 'antd';
 import { useEffect, useState } from 'react';
@@ -30,9 +31,9 @@ export default function LoginAuditsPage() {
     { title: '原因', dataIndex: 'reason', search: false },
   ];
 
-  return <PageContainer title="登录记录" subTitle="当前单位内的登录结果记录。">
+  return <PageContainer title="登录记录">
     {loadError && <Alert type="error" showIcon title={loadError} />}
-    <ProTable<LoginAuditRecord> rowKey="id" columns={columns} options={{ fullScreen: false, setting: false }}
+    <ProTable<LoginAuditRecord> {...managementTableProps} rowKey="id" columns={columns} options={{ fullScreen: false, setting: false }}
       pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: [20, 50, 100, 200] }}
       request={async ({ current = 1, pageSize = 20, loginName, outcome }) => {
         setLoadError('');
@@ -45,7 +46,7 @@ export default function LoginAuditsPage() {
           return { data: [], total: 0, success: false };
         }
       }}
-      search={{ labelWidth: 'auto' }}
+      search={tableSearchProps}
     />
   </PageContainer>;
 }

@@ -4,12 +4,14 @@ import {
   ForkOutlined,
   GlobalOutlined,
 } from '@ant-design/icons';
-import { getAllLocales, getLocale, history, setLocale } from '@umijs/max';
+import { getAllLocales, getLocale, history, Link, setLocale, useAccess, useLocation, useModel } from '@umijs/max';
 import type { MenuProps } from 'antd';
-import { Button, Tooltip } from 'antd';
+import { Breadcrumb, Button, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useMemo } from 'react';
 import HeaderDropdown from '../HeaderDropdown';
+import { pageTitles } from '../PageContainer';
+import routes from '../../../config/routes';
 
 export const localeLabelMap: Record<string, { emoji: string; label: string }> =
   {
@@ -28,14 +30,35 @@ const useStyles = createStyles(({ token, css }) => ({
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    height: 36px !important;
-    min-width: 36px;
+    height: 32px !important;
+    min-width: 32px;
     padding-inline: 8px !important;
     padding-block: 0 !important;
     border-radius: ${token.borderRadius}px !important;
   `,
+  breadcrumb: css`
+    min-width: 0;
+    padding-inline: 12px;
+    overflow: hidden;
+    .ant-breadcrumb ol { flex-wrap: nowrap; }
+    .ant-breadcrumb li:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    @media (max-width: 767px) { display: none; }
+  `,
 }));
 
+export function HeaderBreadcrumb() {
+  const { styles } = useStyles();
+  const { initialState } = useModel('@@initialState');
+  const access = useAccess();
+  const location = useLocation();
+  const title = pageTitles(initialState?.user?.navigation || [], routes, access).get(location.pathname)?.path;
+  if (!title) return null;
+  const items = title === '工作台' ? [{ title }] : [
+    { title: <Link to="/workspace">工作台</Link> },
+    ...title.split(' > ').map(name => ({ title: name })),
+  ];
+  return <nav className={styles.breadcrumb} aria-label="当前位置"><Breadcrumb items={items} /></nav>;
+}
 export const DocLink: React.FC = () => {
   const { styles } = useStyles();
   return (

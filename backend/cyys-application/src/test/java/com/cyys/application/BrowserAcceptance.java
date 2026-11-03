@@ -82,7 +82,7 @@ class BrowserAcceptance extends IsolationTestSupport {
         }
         membership("u-alice","scope-b",false);
         grant("u-alice","role-b","scope-b");
-        jdbc.update("update sys_user_scope set display_name=case when scope_id='scope-a' then '单位 A 姓名' else '单位 B 姓名' end");
+        jdbc.update("update sys_user_scope set display_name=case when scope_id='scope-a' then '单位 A 姓名' else '单位 B 姓名' end where user_id in ('u-alice','u-bob')");
         platformUser();
         for (String permission : List.of("user:read","user:create")) allow("role-platform",permission,false);
         allow("role-platform","platform:data:read-all",true);

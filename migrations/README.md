@@ -2,49 +2,26 @@
 
 ## 新库入口
 
-单租户框架只维护一份初始化文件：[system/V1__init_system_schema.sql](system/V1__init_system_schema.sql)，直接创建当前表结构和必要基础数据。
+[system/V1__init_system_schema.sql](system/V1__init_system_schema.sql) 创建系统结构及内置数据。数据库使用 MySQL 8、InnoDB、utf8mb4。
 
-初始化内容：
-
-- 27 张系统表及其字段注释、索引和检查约束，统一使用 MySQL 8、InnoDB、utf8mb4、utf8mb4_unicode_ci，无数据库外键。
-- 中文菜单、操作权限、数据回收站目录与资源登记；入口启用范围见[当前开发范围](../docs/development/current-scope.md)。
-- 登录结果、操作审计操作、操作审计结果三类系统字典及字典项。
-- 系统名称、密码策略、文件类型等 15 项全局参数，以及 6 项缓存定义。
-
-不创建账号、密码、角色、授权关系、机构、部门、地区样本或业务数据。初始管理员和实际总单位由接入项目按部署流程受控准备。
+初始化不创建账号、密码或实际机构，接入项目按部署流程准备管理员及总单位。
 
 ## 执行方式
 
-1. 在 MySQL 中准备明确选定的空数据库，设置字符集和排序规则。
-2. 按[运行配置](../README.md#运行配置)提供数据库及 Redis 连接配置。
-3. 启动应用，由唯一的 Flyway 引擎执行 V1，并写入 `flyway_schema_history`。再次启动只校验历史，不重复初始化。
-
-应用默认加载 `classpath:db/migration`，构建将 `system/V*.sql` 和后续 `business/V*.sql` 打入唯一可执行 JAR。保留 `validate-on-migrate=true`、`baseline-on-migrate=false`、`clean-disabled=true`；非空且未纳管的数据库会被拒绝。
-
-不要先手工导入 SQL 再启动应用，也不要配置另一套 SQL 初始化容器。菜单、系统字典、全局参数、回收站资源和缓存定义已包含在 V1 中，无需额外导入文件。初始化后通过现有管理页面维护可编辑内容。
+- 按[运行配置](../README.md#运行配置)提供数据库和 Redis，应用启动时由 Flyway 执行迁移。
+- 新库执行 V1，已有受管库沿用迁移历史及增量脚本；已有未纳管库先适配结构和历史。
+- 仅使用应用内的 Flyway，不重复手工导入 SQL 或设置另一套初始化容器。
 
 ## 同步到其他项目
 
-V1 仅用于新库初始化，接入项目共用同一个 Flyway 引擎和迁移历史表。
-
-- 新项目使用本目录的 V1；应用的 Flyway 位置和构建资源配置见上文。
-- 若项目目录已有编译产物，重建前只删除 `backend/cyys-application/target/classes/db/migration` 中复制的旧 SQL，防止旧版本残留打包。保留其他 `target` 内容；其中可能保存本机配置、附件和备份。
-- 已初始化项目同步前，先备份并核对现有结构、数据及历史，单独完成基线切换或增量升级；不能将 V1 作为已有库的升级脚本，不能清空数据或迁移历史来跳过校验。
-- 已有独立业务模块或业务迁移的项目，保留自身业务脚本及版本序列，不能套用框架的空库重建流程。
-- 新基线之后需要变更结构或内置数据时，继续使用新的版本迁移；已执行的 V1 不再改写。`system` 与 `business` 共用同一版本序列和历史表。
+- 保留接入项目的业务迁移，system/business 共用版本序列及历史表。
+- 已执行迁移保持不变，结构和内置数据变化新增迁移。
+- 更新打包资源时清除旧 SQL 副本，保留构建目录内的本机配置和文件。
 
 ## 当前表与关联职责
 
-- `sys_user` 保存统一登录账号；`sys_user_scope` 为每账号唯一用户资料，保存所属机构、部门、姓名、状态、版本和数据范围；自定义部门范围保存在 `sys_user_scope_org`。
-- `sys_scope` 是机构树，只允许一个启用的实际总单位；`sys_org` 是机构内部门树。业务表的 `scope_id` 保存真实归属，筛选或移动机构不改写历史数据归属。
-- `sys_role`、`sys_user_role`、`sys_role_menu`、`sys_menu` 构成统一角色和菜单授权体系；角色编码系统唯一，账号与角色关系唯一。
-- 字典、地区、全局参数、系统通知和版本是系统共享资源，仍需对应操作权限；单位通知保留独立阅读记录，文件引用通过 `sys_file_binding` 维护。
-- `sys_file_entry`、`sys_file_part`、`sys_file_dir` 记录文件、分片和目录；文件元数据与对象需配套备份，永久清理沿用文件状态机。
-- `sys_recycle_resource` 保存受控的表和字段映射，不接受任意 SQL；恢复和彻底删除仍校验版本、数据范围、依赖和独立权限。
-- `sys_serial_rule`、`sys_serial_counter` 使用数据库唯一约束与事务锁保证取号一致，不导入旧计数、不预置业务规则。
-
-表间关系、查询与写入校验见[数据库与 SQL 规则](../docs/development/backend/database-query.md)；身份和数据范围见[身份规则](../docs/development/backend/identity-context.md)及[权限规则](../docs/development/backend/data-permission.md)；文件配置与清理见[文件存储规则](../docs/development/backend/storage.md)。
+结构以初始化 SQL 和后续迁移为准；业务接入见[数据库规则](../docs/development/backend/database-query.md)、[身份规则](../docs/development/backend/identity-context.md)及[权限规则](../docs/development/backend/data-permission.md)。
 
 ## 验证边界
 
-数据库验证使用独立 MySQL 空库，核对一次初始化、再次启动不重复执行、最终表结构及内置数据。测试守卫允许当前 V1 的原始初始化数据，拒绝未知表、业务数据和残留测试记录；不会自动清空已有数据库。
+数据库使用约定统一见[验证与保存](../docs/development/verification.md)。

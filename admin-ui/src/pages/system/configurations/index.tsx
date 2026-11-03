@@ -1,8 +1,6 @@
-import { compactFormProps } from '@/components/ManagementLayout';
+import { compactFormProps, managementTableProps, PageContainer, PageTable as ProTable } from '@/components/ManagementLayout';
 import { PlusOutlined } from '@ant-design/icons';
-import {
-  ModalForm, PageContainer, ProFormDigit, ProFormSelect, ProFormText, ProTable,
-} from '@ant-design/pro-components';
+import { ModalForm, ProFormDigit, ProFormSelect, ProFormText } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button } from 'antd';
@@ -54,9 +52,9 @@ export default function ConfigurationsPage() {
     ].filter(Boolean) },
   ];
 
-  return <PageContainer title="通用配置" subTitle="全局共享的业务参数；密码、密钥和部署设置由外部配置管理。">
+  return <PageContainer title="通用配置">
     {loadError && <Alert type="error" showIcon title={loadError} />}
-    <ProTable<Configuration> rowKey="id" actionRef={action} columns={columns} headerTitle="配置列表"
+    <ProTable<Configuration> {...managementTableProps} rowKey="id" actionRef={action} columns={columns} headerTitle="配置列表"
       form={{ name: 'configuration-search' }}
       options={{ fullScreen: false, setting: false }}
       pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: [20, 50, 100, 200] }}

@@ -21,6 +21,8 @@ import {
 import { currentUser } from '@/services/auth';
 import { publicConfigurations } from '@/services/system/configurations';
 import IdentityBoundary from '@/components/IdentityBoundary';
+import PageTabs, { PageTabsToggle } from '@/components/PageTabs';
+import { HeaderBreadcrumb } from '@/components/RightContent';
 import ScopeSwitch from '@/components/ScopeSwitch';
 import type { PublicConfiguration, UserInfo } from '@/types/api';
 import { clearSession, session } from '@/utils/session';
@@ -81,6 +83,7 @@ export const layout: RunTimeLayoutConfig = ({
       return dom;
     },
     actionsRender: () => [
+      <PageTabsToggle key="page-tabs" />,
       <ScopeSwitch key="scope" />,
       <LangDropdown key="lang" />,
     ],
@@ -107,26 +110,8 @@ export const layout: RunTimeLayoutConfig = ({
         );
       }
     },
-    bgLayoutImgList: [
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/D2LWSqNny4sAAAAAAAAAAAAAFl94AQBr',
-        left: 85,
-        bottom: 100,
-        height: '303px',
-      },
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/C2TWRpJpiC0AAAAAAAAAAAAAFl94AQBr',
-        bottom: -68,
-        right: -45,
-        height: '303px',
-      },
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/F6vSTbj8KpYAAAAAAAAAAAAAFl94AQBr',
-        bottom: 0,
-        left: 0,
-        width: '331px',
-      },
-    ],
+    bgLayoutImgList: [],
+    headerContentRender: () => <HeaderBreadcrumb />,
     // Replace ProLayout's default ErrorBoundary with our offline-aware version,
     // so chunk load errors show friendly messages instead of "Something went wrong."
     ErrorBoundary,
@@ -150,7 +135,7 @@ export const layout: RunTimeLayoutConfig = ({
           <Helmet>
             <title>{systemName}</title>
           </Helmet>
-          <IdentityBoundary>{children}</IdentityBoundary>
+          <IdentityBoundary><PageTabs>{children}</PageTabs></IdentityBoundary>
           <SettingDrawer
             disableUrlParams
             enableDarkTheme

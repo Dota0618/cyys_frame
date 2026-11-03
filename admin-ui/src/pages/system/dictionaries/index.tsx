@@ -1,9 +1,9 @@
 import { PlusOutlined } from '@ant-design/icons';
-import { ModalForm, PageContainer, ProFormDigit, ProFormText } from '@ant-design/pro-components';
+import { ModalForm, ProFormDigit, ProFormText } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Card, Empty, Input, Pagination, Popconfirm, Space, Spin, Tag, Tree, Typography } from 'antd';
 import { useEffect, useState } from 'react';
-import { CompactFields, compactModalProps, ManagementSplit, compactFormProps } from '@/components/ManagementLayout';
+import { CompactFields, compactModalProps, ManagementSplit, compactFormProps, PageContainer, usePageState } from '@/components/ManagementLayout';
 import { createDictionary, deleteDictionary, dictionaryDetail, listDictionaries, updateDictionary } from '@/services/system/dictionaries';
 import type { CreateDictionary, Dictionary } from '@/types/api';
 import { ApiError, StaleRequest } from '@/utils/request';
@@ -17,9 +17,9 @@ export default function DictionariesPage() {
   const [editor, setEditor] = useState<{ dictionary?: Dictionary }>();
   const [loadError, setLoadError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [searchText, setSearchText] = useState('');
-  const [query, setQuery] = useState('');
-  const [page, setPage] = useState(1);
+  const [searchText, setSearchText] = usePageState('dictionaries.input', '');
+  const [query, setQuery] = usePageState('dictionaries.query', '');
+  const [page, setPage] = usePageState('dictionaries.page', 1);
   const [total, setTotal] = useState(0);
   const [revision, setRevision] = useState(0);
   const reload = () => setRevision(value => value + 1);
@@ -38,13 +38,13 @@ export default function DictionariesPage() {
     return () => { active = false; };
   }, [page, query, revision]);
 
-  return <PageContainer title="数据字典" subTitle="左侧选择字典分类，右侧维护对应的编码、字典值和说明。">
-    {loadError && <Alert type="error" title={loadError} showIcon style={{ marginBottom: 16 }} action={<Button onClick={reload}>重试</Button>} />}
+  return <PageContainer title="数据字典">
+    {loadError && <Alert type="error" title={loadError} showIcon style={{ marginBottom: 12 }} action={<Button onClick={reload}>重试</Button>} />}
     <ManagementSplit navigation={<Card title="字典分类" size="small" extra={access.canCreateDictionaries && <Button type="link" size="small" icon={<PlusOutlined />} onClick={() => setEditor({})}>新增字典</Button>}>
       <Input.Search aria-label="搜索字典分类" placeholder="搜索字典名称" value={searchText} allowClear maxLength={20}
         onChange={event => setSearchText(event.target.value)} onSearch={value => { setQuery(value); setPage(1); reload(); }} style={{ marginBottom: 12 }} />
       <Spin spinning={loading}>
-        <div style={{ maxHeight: 'calc(100dvh - 340px)', minHeight: 220, overflow: 'auto' }}>
+        <div style={{ maxHeight: '60dvh', overflow: 'auto' }}>
           {categories.length ? <Tree aria-label="字典分类" blockNode selectedKeys={selected ? [selected.id] : []}
             treeData={categories.map(row => ({ key: row.id, title: <Space size={4}>{row.name}<Tag color={row.systemBuiltin ? 'blue' : undefined}>{row.systemBuiltin ? '系统' : '业务'}</Tag></Space>, isLeaf: true }))}
             onSelect={keys => { const row = categories.find(item => item.id === keys[0]); if (row) setSelected(row); }} />
@@ -55,7 +55,7 @@ export default function DictionariesPage() {
       <Typography.Text type="secondary">共 {total} 个分类</Typography.Text>
     </Card>}>
       {selected ? <>
-        <Card size="small" title={<Space>{selected.name}<Tag color={selected.systemBuiltin ? 'blue' : undefined}>{selected.systemBuiltin ? '系统字典 · 只读' : '业务字典'}</Tag></Space>} style={{ marginBottom: 16 }} extra={<Space>
+        <Card size="small" title={<Space>{selected.name}<Tag color={selected.systemBuiltin ? 'blue' : undefined}>{selected.systemBuiltin ? '系统字典 · 只读' : '业务字典'}</Tag></Space>} style={{ marginBottom: 12 }} extra={<Space>
           {!selected.systemBuiltin && access.canEditDictionaries && <Button size="small" onClick={() => { void dictionaryDetail(selected.id).then(dictionary => { if (!dictionary.systemBuiltin) setEditor({ dictionary }); else reload(); }).catch(() => {}); }}>修改分类</Button>}
           {!selected.systemBuiltin && access.canDeleteDictionaries && <Popconfirm title="删除该字典？" description="存在字典项时不能删除。" okText="删除" cancelText="取消"
             onConfirm={async () => { try { await deleteDictionary(selected.id, selected.version); setSelected(undefined); reload(); } catch { /* 保留当前分类。 */ } }}>

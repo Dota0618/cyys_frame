@@ -1,10 +1,10 @@
-import { ModalForm, PageContainer, ProFormSelect, ProFormText, ProTable } from '@ant-design/pro-components';
+import { ModalForm, ProFormSelect, ProFormText } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, App, Button, Card, Input, Popconfirm, Select, Space, Tree, Typography } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import FileUpload from '@/components/FileUpload';
-import { compactModalProps, compactFormProps } from '@/components/ManagementLayout';
+import { compactModalProps, compactFormProps, managementTableProps, ListFilters, FilterField, PageContainer, PageTable as ProTable, usePageState } from '@/components/ManagementLayout';
 import { cancelUpload, cleanupUpload, downloadFile, listFiles, renameFile, trashFile, type ManagedFile } from '@/services/system/files';
 import { createDirectory, deleteDirectory, listDirectories, moveDirectoryOptions, moveFiles, renameDirectory, trashFiles, type FileDirectory } from '@/services/system/files';
 import { ApiError, StaleRequest } from '@/utils/request';
@@ -26,9 +26,9 @@ function FilesContent() {
   const [resuming, setResuming] = useState<string>();
   const [error, setError] = useState('');
   const [directories, setDirectories] = useState<FileDirectory[]>([]);
-  const [directoryId, setDirectoryId] = useState('__all__');
-  const [searchInput, setSearchInput] = useState('');
-  const [searchName, setSearchName] = useState('');
+  const [directoryId, setDirectoryId] = usePageState('files.directory', '__all__');
+  const [searchInput, setSearchInput] = usePageState('files.input', '');
+  const [searchName, setSearchName] = usePageState('files.query', '');
   const [directoryForm, setDirectoryForm] = useState<{ record?: FileDirectory }>();
   const [selected, setSelected] = useState<ManagedFile[]>([]);
   const [moving, setMoving] = useState<ManagedFile[]>();
@@ -80,23 +80,25 @@ function FilesContent() {
     { value: '__root__', label: '默认目录' },
     ...directories.map((item) => ({ value: item.id, label: item.name })),
   ];
-  return <PageContainer title="文件管理" subTitle="大文件支持暂停和续传；恢复时请选择同一个原文件。">
+  return <PageContainer title="文件管理">
     {error && <Alert type="error" title={error} showIcon />}
     <div className={styles.layout}>
       <main className={styles.main}>
-        <Card size="small" title="搜索文件" style={{ marginBottom: 16 }}>
-          <Space wrap size="middle" style={{ width: '100%' }}>
-            <Input.Search aria-label="文件名" allowClear enterButton="搜索" placeholder="输入文件名" value={searchInput}
+        <ListFilters actions={<>
+          <Button onClick={() => { setSearchInput(''); setSearchName(''); selectDirectory('__all__'); }}>重置</Button>
+          <Button type="primary" onClick={() => setSearchName(searchInput.trim())}>查询</Button>
+        </>} description={currentDirectory ? `上传文件将保存到“${currentDirectory.name}”。` : '新上传的文件保存到默认目录。'}>
+          <FilterField label="文件名" htmlFor="file-name-search">
+            <Input id="file-name-search" aria-label="文件名" allowClear placeholder="输入文件名" value={searchInput}
               onChange={(event) => { const value = event.target.value; setSearchInput(value); if (!value) setSearchName(''); }}
-              onSearch={(value) => setSearchName(value.trim())} style={{ width: 320, maxWidth: '100%' }} />
-            <Select aria-label="文件目录" showSearch={{ optionFilterProp: 'label' }} value={directoryId} options={directoryOptions}
-              onChange={(value) => selectDirectory(String(value))} style={{ width: 220, maxWidth: '100%' }} />
-          </Space>
-          <Typography.Text type="secondary" style={{ display: 'block', marginTop: 12 }}>
-            {currentDirectory ? `上传文件将保存到“${currentDirectory.name}”。` : '新上传的文件保存到默认目录。'}
-          </Typography.Text>
-        </Card>
-        <ProTable<ManagedFile> form={{ name: 'file-search' }} actionRef={action} rowKey="id" columns={columns}
+              onPressEnter={() => setSearchName(searchInput.trim())} />
+          </FilterField>
+          <FilterField label="文件目录" htmlFor="file-directory-filter">
+            <Select id="file-directory-filter" aria-label="文件目录" showSearch={{ optionFilterProp: 'label' }} value={directoryId} options={directoryOptions}
+              onChange={(value) => selectDirectory(String(value))} />
+          </FilterField>
+        </ListFilters>
+        <ProTable<ManagedFile> {...managementTableProps} form={{ name: 'file-search' }} actionRef={action} rowKey="id" columns={columns}
           search={false} headerTitle="文件列表" size="small" scroll={{ x: 800 }} options={{ fullScreen: false }}
           toolBarRender={() => [
             ...(access.canUploadFiles ? [<FileUpload key={`${directoryId}-${resuming || 'new'}`} resumeId={resuming} directoryId={currentDirectory?.id} onChanged={changed} />] : []),
@@ -124,7 +126,6 @@ function FilesContent() {
               ] }]}
               onSelect={keys => { if (keys.length) selectDirectory(String(keys[0])); }} />
           </div>
-          <Typography.Paragraph type="secondary">目录用于整理自己上传的文件。</Typography.Paragraph>
           <Space wrap>
             {access.canEditFileDirectories && currentDirectory && <Button size="small" onClick={() => setDirectoryForm({ record: currentDirectory })}>重命名目录</Button>}
             {access.canDeleteFileDirectories && currentDirectory && <Popconfirm title="删除目录？" description="目录内文件移回默认目录，文件内容不会删除。" onConfirm={() => run(async () => {

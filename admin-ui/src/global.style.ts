@@ -5,8 +5,8 @@ const useStyles = createStyles(() => {
     colorWeak: {
       filter: 'invert(80%)',
     },
-    'ant-layout': {
-      minHeight: '100vh',
+    'ant-pro-layout': {
+      minHeight: '100dvh',
     },
     'ant-pro-sider.ant-layout-sider.ant-pro-sider-fixed': {
       left: 'unset',
@@ -28,7 +28,7 @@ const useStyles = createStyles(() => {
         overflowX: 'auto',
         '&-thead > tr,    &-tbody > tr': {
           '> th,      > td': {
-            whiteSpace: 'pre',
+            whiteSpace: 'normal',
             '> span': {
               display: 'block',
             },

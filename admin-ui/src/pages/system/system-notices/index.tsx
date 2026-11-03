@@ -1,5 +1,5 @@
-import { compactFormProps, verticalFormItemProps } from '@/components/ManagementLayout';
-import { ModalForm, PageContainer, ProForm, ProFormText, ProFormTextArea, ProTable } from '@ant-design/pro-components';
+import { compactFormProps, verticalFormItemProps, managementTableProps, PageContainer, PageTable as ProTable } from '@/components/ManagementLayout';
+import { ModalForm, ProForm, ProFormText, ProFormTextArea } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Modal, Popconfirm, Switch } from 'antd';
@@ -46,9 +46,9 @@ export default function SystemNoticesPage() {
     ].filter(Boolean) },
   ];
   const detail = editor?.detail;
-  return <PageContainer title="系统通知" subTitle="平台统一维护，各单位共享。">
+  return <PageContainer title="系统通知">
     {error && <Alert type="error" showIcon title={error} />}
-    <ProTable<SystemNotice> rowKey="id" actionRef={action} columns={columns} headerTitle="系统通知列表"
+    <ProTable<SystemNotice> {...managementTableProps} rowKey="id" actionRef={action} columns={columns} headerTitle="系统通知列表"
       form={{ name: 'system-notice-search' }} options={{ fullScreen: false, setting: false }}
       pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: [20, 50, 100, 200] }}
       request={async ({ current = 1, pageSize = 20, title }) => {

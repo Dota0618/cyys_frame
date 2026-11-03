@@ -1,4 +1,5 @@
-import { PageContainer, ProTable } from '@ant-design/pro-components';
+import { managementTableProps, tableSearchProps, PageContainer, PageTable as ProTable } from '@/components/ManagementLayout';
+
 import type { ProColumns } from '@ant-design/pro-components';
 import { Alert } from 'antd';
 import { useEffect, useState } from 'react';
@@ -46,9 +47,9 @@ export default function AuditsPage() {
       render: (_, row) => row.outcomeLabel || row.outcome },
   ];
 
-  return <PageContainer title="操作审计" subTitle="当前单位内已成功完成的管理操作。">
+  return <PageContainer title="操作审计">
     {loadError && <Alert type="error" showIcon title={loadError} />}
-    <ProTable<AuditRecord> rowKey="id" columns={columns} options={{ fullScreen: false, setting: false }}
+    <ProTable<AuditRecord> {...managementTableProps} rowKey="id" columns={columns} options={{ fullScreen: false, setting: false }}
       pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: [20, 50, 100, 200] }}
       request={async ({ current = 1, pageSize = 20, resource, operation, outcome }) => {
         setLoadError('');
@@ -61,7 +62,7 @@ export default function AuditsPage() {
           return { data: [], total: 0, success: false };
         }
       }}
-      search={{ labelWidth: 'auto' }}
+      search={tableSearchProps}
     />
   </PageContainer>;
 }

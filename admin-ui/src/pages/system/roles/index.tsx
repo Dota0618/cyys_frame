@@ -1,20 +1,11 @@
 import { PlusOutlined } from '@ant-design/icons';
-import {
-  ModalForm,
-  PageContainer,
-  ProForm,
-  ProFormDigit,
-  ProFormRadio,
-  ProFormText,
-  ProFormTextArea,
-  ProTable,
-} from '@ant-design/pro-components';
+import { ModalForm, ProForm, ProFormDigit, ProFormRadio, ProFormText, ProFormTextArea } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, App, Button, Popconfirm, Tag } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import CheckedTree from '@/components/CheckedTree';
-import { compactModalProps, ManagementSplit, verticalFormItemProps, compactFormProps } from '@/components/ManagementLayout';
+import { compactModalProps, ManagementSplit, verticalFormItemProps, compactFormProps, managementTableProps, tableSearchProps, PageContainer, PageTable as ProTable } from '@/components/ManagementLayout';
 import {
   createRole,
   deleteRole,
@@ -110,16 +101,15 @@ export default function RolesPage() {
   return (
     <PageContainer
       title="角色管理"
-      subTitle="角色统一管理；用户的数据范围在用户管理中配置。"
     >
-      {loadError && <Alert type="error" showIcon title={loadError} style={{ marginBottom: 20 }} />}
-      <ProTable<Role>
+      {loadError && <Alert type="error" showIcon title={loadError} style={{ marginBottom: 12 }} />}
+      <ProTable<Role> {...managementTableProps}
         actionRef={action}
         rowKey="id"
         headerTitle="角色列表"
         columns={columns}
         form={{ name: 'role-search' }}
-        search={{ labelWidth: 'auto' }}
+        search={tableSearchProps}
         options={{ density: true, fullScreen: false, setting: false, reload: true }}
         pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: [10, 20, 50, 100, 200] }}
         request={async (params) => {

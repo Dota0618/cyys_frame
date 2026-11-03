@@ -1,5 +1,5 @@
-import { compactFormProps, verticalFormItemProps } from '@/components/ManagementLayout';
-import { ModalForm, PageContainer, ProForm, ProFormText, ProFormTextArea, ProTable } from '@ant-design/pro-components';
+import { compactFormProps, verticalFormItemProps, managementTableProps, PageContainer, PageTable as ProTable } from '@/components/ManagementLayout';
+import { ModalForm, ProForm, ProFormText, ProFormTextArea } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Modal, Popconfirm } from 'antd';
@@ -57,9 +57,9 @@ export default function OrgNoticesPage() {
     ].filter(Boolean) },
   ];
   const detail = editor?.detail;
-  return <PageContainer title="单位通知" subTitle="当前单位内按授权范围查看；保存后即可阅读，记录首次阅读时间。">
+  return <PageContainer title="单位通知">
     {error && <Alert type="error" title={error} showIcon />}
-    <ProTable<OrgNotice> actionRef={action} rowKey="id" columns={columns} form={{ name: 'org-notice-search' }}
+    <ProTable<OrgNotice> {...managementTableProps} actionRef={action} rowKey="id" columns={columns} form={{ name: 'org-notice-search' }}
       toolBarRender={() => access.canCreateOrgNotices ? [<Button key="create" type="primary" onClick={() => { void edit(); }}>新增通知</Button>] : []}
       request={async (params) => {
         try { const result = await listNotices(params.current || 1, params.pageSize || 20, params.title); return { data: result.records, total: result.total, success: true }; }
@@ -91,7 +91,7 @@ export default function OrgNoticesPage() {
       </li>)}</ul></>}
     </Modal>
     <Modal title="阅读记录" open={!!readers} destroyOnHidden footer={null} width={720} onCancel={() => setReaders(undefined)}>
-      {readers && <ProTable<NoticeReader> key={readers.id} rowKey="userId" search={false} options={false}
+      {readers && <ProTable<NoticeReader> {...managementTableProps} key={readers.id} rowKey="userId" search={false} options={false}
         columns={[{ title: '阅读人', dataIndex: 'userName' }, { title: '首次阅读时间', dataIndex: 'firstReadAt', valueType: 'dateTime' }]}
         request={async (params) => {
           try { const result = await noticeReaders(readers.id, params.current || 1, params.pageSize || 20); return { data: result.records, total: result.total, success: true }; }

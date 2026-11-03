@@ -34,7 +34,7 @@ class FileIntegrationTest extends IsolationTestSupport {
     @Autowired StorageProperties storage;
     @Autowired FileCleanupService cleanup;
     @Autowired FileCleanupProperties cleanupSettings;
-    @Autowired FileCleanupMapper cleanupMapper;
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean FileCleanupMapper cleanupMapper;
     @Autowired TemporaryFileCleaner temporaryCleaner;
     @Autowired DataAuditService fileAudit;
     @Autowired PlatformTransactionManager transactionManager;
@@ -43,6 +43,7 @@ class FileIntegrationTest extends IsolationTestSupport {
     private Path second;
 
     @BeforeEach void setupFiles() throws Exception {
+        MySqlTestFixtures.restrictFileCleanup(cleanupMapper);
         cleanupSettings.setBatchSize(25);
         Path target = Path.of("target").toAbsolutePath().normalize();
         root = Files.createTempDirectory(target, "file-test-");

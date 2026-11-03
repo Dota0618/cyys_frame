@@ -2,118 +2,60 @@ package com.cyys.application;
 
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.core.io.ClassPathResource;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
+import java.util.*;
 
-/** 在 Flyway 和测试数据写入之前，仅接受空库或只含原始初始化数据的测试库。 */
+/** 复用本机开发测试库，检查失败迁移和固定夹具冲突，允许已有业务数据及新增业务表。 */
 public class MySqlTestDatabaseGuard implements ApplicationContextInitializer<ConfigurableApplicationContext> {
-    private static final Set<String> TABLES = Set.of(
-            "sys_scope", "sys_user", "sys_user_scope", "sys_user_scope_org", "sys_role", "sys_user_role",
-            "sys_menu", "sys_role_menu", "sys_org", "sys_data_audit", "sys_login_audit", "sys_configure",
-            "param_basic", "param_basic_type", "param_region", "sys_file_entry", "sys_file_part", "sys_file_dir",
-            "sys_file_binding", "sys_org_notice", "sys_org_notice_ref", "sys_notice", "sys_version",
-            "sys_serial_rule", "sys_serial_counter", "sys_recycle_resource", "sys_cache_definition",
-            "flyway_schema_history");
-    private static final Pattern INSERT = Pattern.compile("INSERT INTO `(\\w+)` \\((.+)\\) VALUES");
-    private static final Pattern VALUE = Pattern.compile("'((?:''|\\\\.|[^'])*)'|\\bNULL\\b|-?\\d+");
+    private static final String USERS = "('u-alice','u-bob','u-platform','g1-legacy-account')";
+    private static final String SCOPES = "('scope-a','scope-b','scope-disabled')";
 
-    @Override
-    public void initialize(ConfigurableApplicationContext context) {
+    @Override public void initialize(ConfigurableApplicationContext context) {
         var environment = context.getEnvironment();
-        String url = environment.getRequiredProperty("CYYS_TEST_DB_URL");
-        if (!url.startsWith("jdbc:mysql:")) {
-            throw new IllegalStateException("测试只支持明确指定的现有 MySQL schema。");
-        }
+        String url = environment.getRequiredProperty("spring.datasource.url");
+        if (!url.matches("jdbc:mysql://(?:localhost|127\\.0\\.0\\.1):[0-9]+/[A-Za-z0-9_]+(?:\\?.*)?")
+                || url.matches("(?is).*?[?&](?:user|password)=.*"))
+            throw new IllegalStateException("测试必须指定本机 MySQL 开发测试库，连接地址不能包含凭据。");
         try (var connection = DriverManager.getConnection(url,
-                environment.getRequiredProperty("CYYS_TEST_DB_USERNAME"),
-                environment.getRequiredProperty("CYYS_TEST_DB_PASSWORD"))) {
-            String schema = connection.getCatalog();
-            if (schema == null || schema.isBlank()) {
-                throw new IllegalStateException("CYYS_TEST_DB_URL 必须指定数据库名。");
-            }
-            Set<String> actualTables = new HashSet<>();
-            try (var query = connection.prepareStatement(
-                    "select table_name from information_schema.tables where table_schema=?")) {
-                query.setString(1, schema);
+                environment.getRequiredProperty("spring.datasource.username"), environment.getRequiredProperty("spring.datasource.password"))) {
+            var tables = new LinkedHashMap<String,Set<String>>();
+            try (var query = connection.prepareStatement("select table_name,column_name from information_schema.columns where table_schema=?")) {
+                query.setString(1, connection.getCatalog());
                 try (var rows = query.executeQuery()) {
-                    while (rows.next()) actualTables.add(rows.getString(1));
+                    while (rows.next()) tables.computeIfAbsent(rows.getString(1), ignored -> new HashSet<>()).add(rows.getString(2));
                 }
             }
-            if (actualTables.isEmpty()) return;
-            if (!actualTables.equals(TABLES)) {
-                throw new IllegalStateException("测试拒绝未知或未纳管的数据库结构；不会删表或自动 baseline。");
-            }
-            var seeds = initializationRows();
-            try (var statement = connection.createStatement()) {
-                for (String table : actualTables) {
-                    if (table.equals("flyway_schema_history")) continue;
-                    var expected = seeds.getOrDefault(table, Map.of());
-                    try (var rows = statement.executeQuery("select * from " + table)) {
-                        while (rows.next()) {
-                            var seed = expected.get(rows.getString("id"));
-                            boolean matches = seed != null;
-                            if (matches) {
-                                for (var field : seed.entrySet()) {
-                                    if (!java.util.Objects.equals(field.getValue(), rows.getString(field.getKey()))) {
-                                        matches = false;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (!matches) {
-                                throw new IllegalStateException("测试拒绝含已有数据或已修改初始化数据的 schema（" + table
-                                        + "）；不会清空业务数据或自动处理残留测试记录。");
-                            }
-                        }
-                    }
+            if (tables.containsKey("flyway_schema_history")) {
+                try (var statement = connection.createStatement(); var rows = statement.executeQuery("select 1 from flyway_schema_history where success=0 limit 1")) {
+                    if (rows.next()) throw new IllegalStateException("开发测试库存在失败迁移，需先核对实际执行状态。");
                 }
             }
-        } catch (SQLException | IOException exception) {
-            throw new IllegalStateException("MySQL 测试库预检失败；请核对目标、连接和结构，尚未执行测试写入。",
-                    exception);
+            for (var entry : tables.entrySet()) {
+                String table = entry.getKey();
+                if (!table.matches("(?:sys|param)_[A-Za-z0-9_]+")) continue;
+                var columns = entry.getValue();
+                var conditions = new ArrayList<String>();
+                if (columns.contains("id")) conditions.add("id in ('u-alice','u-bob','u-platform','scope-a','scope-b','scope-disabled',"
+                        + "'role-a','role-b','role-platform','permission-read','permission-write','platform-access','platform-read','bad',"
+                        + "'98101','98111','98301','98311','98401','98411','990000000001','990000000002') or id like 'g1-%' or id like 'g4-%'");
+                if (table.equals("sys_user")) conditions.add("login_name in ('alice','bob','platform','system-admin','old-root') or login_name like 'g4-%'");
+                if (table.equals("sys_scope")) conditions.add("code in ('unit-a','unit-b','unit-disabled')");
+                if (columns.contains("scope_id")) conditions.add("scope_id in " + SCOPES);
+                for (String column : List.of("user_id", "created_by", "actor_id"))
+                    if (columns.contains(column)) conditions.add(column + " in " + USERS);
+                if (columns.contains("name") && table.equals("sys_configure")) conditions.add("name like 'g4-config-%' or name like 'g4-browser-global-%'");
+                if (columns.contains("system_name")) conditions.add("system_name like 'g4-browser-global-%'");
+                if (columns.contains("code")) conditions.add("code like 'g4p:%' or code like 'G4_BROWSER_%' or code='g4-browser-menu'");
+                if (table.equals("sys_login_audit")) conditions.add("login_name in ('unknown','g4-audit-unknown') or login_name like 'g4-%'");
+                if (conditions.isEmpty()) continue;
+                try (var statement = connection.createStatement(); var rows = statement.executeQuery(
+                        "select 1 from `" + table + "` where " + String.join(" or ", conditions) + " limit 1")) {
+                    if (rows.next()) throw new IllegalStateException("测试夹具标识已被占用：" + table + "；不会清理现有记录。");
+                }
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("开发测试库连接、迁移或夹具检查失败，尚未执行测试写入。", exception);
         }
-    }
-
-    /** 初始化数据直接取自唯一 V1，避免另行维护一份种子清单。 */
-    private static Map<String, Map<String, Map<String, String>>> initializationRows() throws IOException {
-        var result = new HashMap<String, Map<String, Map<String, String>>>();
-        String table = null;
-        List<String> columns = List.of();
-        var resource = new ClassPathResource("db/migration/system/V1__init_system_schema.sql");
-        for (String line : resource.getContentAsString(StandardCharsets.UTF_8).lines().toList()) {
-            var insert = INSERT.matcher(line);
-            if (insert.matches()) {
-                table = insert.group(1);
-                columns = List.of(insert.group(2).replace("`", "").split(", "));
-                result.put(table, new HashMap<>());
-            } else if (table != null && line.startsWith("    (")) {
-                var values = new ArrayList<String>();
-                var matcher = VALUE.matcher(line);
-                while (matcher.find()) {
-                    values.add(matcher.group(1) != null
-                            ? matcher.group(1).replace("''", "'").replace("\\\\", "\\")
-                            : matcher.group().equals("NULL") ? null : matcher.group());
-                }
-                if (values.size() != columns.size()) {
-                    throw new IOException("无法读取 V1 初始化行：" + table);
-                }
-                var row = new HashMap<String, String>();
-                for (int i = 0; i < columns.size(); i++) row.put(columns.get(i), values.get(i));
-                result.get(table).put(row.get("id"), row);
-                if (line.endsWith(";")) table = null;
-            }
-        }
-        if (result.size() != 6) throw new IOException("V1 初始化数据清单不完整。");
-        return result;
     }
 }

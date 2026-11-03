@@ -1,13 +1,6 @@
-import { compactFormProps } from '@/components/ManagementLayout';
+import { compactFormProps, managementTableProps, tableSearchProps, PageContainer, PageTable as ProTable } from '@/components/ManagementLayout';
 import { PlusOutlined } from '@ant-design/icons';
-import {
-  ModalForm,
-  PageContainer,
-  ProFormSelect,
-  ProFormText,
-  ProFormTreeSelect,
-  ProTable,
-} from '@ant-design/pro-components';
+import { ModalForm, ProFormSelect, ProFormText, ProFormTreeSelect } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, App, Button, Popconfirm } from 'antd';
@@ -122,23 +115,22 @@ export default function DepartmentsPage() {
   return (
     <PageContainer
       title="部门管理"
-      subTitle="维护当前单位的组织结构；父部门候选和保存操作均按服务端权限范围校验。"
     >
       {loadError && (
         <Alert
           type="error"
           showIcon
           title={loadError}
-          style={{ marginBottom: 20 }}
+          style={{ marginBottom: 12 }}
         />
       )}
-      <ProTable<Department>
+      <ProTable<Department> {...managementTableProps}
         actionRef={action}
         rowKey="id"
         headerTitle="部门列表"
         columns={columns}
         form={{ name: 'department-search' }}
-        search={{ labelWidth: 'auto' }}
+        search={tableSearchProps}
         options={{ density: true, fullScreen: false, setting: false, reload: true }}
         pagination={{
           defaultPageSize: 20,

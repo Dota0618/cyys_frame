@@ -39,7 +39,7 @@ class ScopeCacheIntegrationTest extends HttpTestSupport {
     @AfterEach void cleanupScopeCache() {
         ScopeContext.clear();
         clearCaches();
-        jdbc.update("delete from sys_data_audit where scope_id='GLOBAL' and "
+        jdbc.update("delete from sys_data_audit where scope_id='GLOBAL' and user_id='u-alice' and "
                 + "((resource='scope' and record_id='scope-a') or (resource='cache' and operation='REFRESH'))");
     }
     private void clearCaches() {
@@ -68,14 +68,14 @@ class ScopeCacheIntegrationTest extends HttpTestSupport {
         try {
             tx.executeWithoutResult(status -> {
                 scopes.update("scope-a",new UpdateScopeCommand(0,"回滚单位",null,null,null,true,0,
-                        "CYYS automated test fixture","0"));
+                        "CYYS automated test fixture",MySqlTestFixtures.parent(jdbc,"scope-a")));
                 assertThat(redis.opsForHash().hasKey(key,"scope-a")).isTrue();
                 status.setRollbackOnly();
             });
         } finally { ScopeContext.clear(); }
         assertThat(source.records(null,"",List.of("scope-a")).get("scope-a").name()).isEqualTo("总单位 A");
         var updated=request("PUT","/api/admin/platform/scopes/scope-a",token,"scope-a",JSON.writeValueAsString(Map.of(
-                "version",0,"name","改名单位","enabled",true,"sort",0,"parentId","0","remark","CYYS automated test fixture")));
+                "version",0,"name","改名单位","enabled",true,"sort",0,"parentId",MySqlTestFixtures.parent(jdbc,"scope-a"),"remark","CYYS automated test fixture")));
         assertThat(updated.status()).as(updated.raw()).isEqualTo(200);
         assertThat(redis.opsForHash().hasKey(key,"scope-a")).isFalse();
         assertThat(redis.opsForHash().hasKey(key,"scope-b")).isTrue();

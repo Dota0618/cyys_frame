@@ -1,10 +1,10 @@
 import { DeleteOutlined, EditOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
-import { ModalForm, PageContainer, ProFormSelect, ProFormText, ProFormTextArea, ProTable } from '@ant-design/pro-components';
+import { ModalForm, ProFormSelect, ProFormText, ProFormTextArea } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, Button, Card, Empty, Input, Popconfirm, Space, Spin, Tag, Tree, Typography } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
-import { compactFormProps, compactModalProps, ManagementSplit, verticalFormItemProps } from '@/components/ManagementLayout';
+import { compactFormProps, compactModalProps, ManagementSplit, verticalFormItemProps, managementTableProps, PageContainer, PageTable as ProTable, usePageState } from '@/components/ManagementLayout';
 import {
   createCacheDefinition, deleteCacheDefinition, listCacheDefinitions, refreshCacheGroup, updateCacheDefinition,
 } from '@/services/system/caches';
@@ -40,9 +40,9 @@ function DefinitionFields() {
 export default function CachesPage() {
   const access = useAccess();
   const [definitions, setDefinitions] = useState<CacheDefinition[]>([]);
-  const [selectedGroupName, setSelectedGroupName] = useState<string>();
-  const [groupQuery, setGroupQuery] = useState('');
-  const [cacheQuery, setCacheQuery] = useState('');
+  const [selectedGroupName, setSelectedGroupName] = usePageState<string | undefined>('caches.group', undefined);
+  const [groupQuery, setGroupQuery] = usePageState('caches.group-query', '');
+  const [cacheQuery, setCacheQuery] = usePageState('caches.query', '');
   const [pending, setPending] = useState<string>();
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; title: string }>();
@@ -129,13 +129,13 @@ export default function CachesPage() {
     ] : [] },
   ];
 
-  return <PageContainer title="缓存管理" subTitle="维护缓存定义、展示分组和刷新组；手动操作只刷新整个刷新组，不编辑缓存数据。">
-    {feedback && <Alert {...feedback} showIcon style={{ marginBottom: 16 }} />}
+  return <PageContainer title="缓存管理">
+    {feedback && <Alert {...feedback} showIcon style={{ marginBottom: 12 }} />}
     <ManagementSplit navigation={<Card title="缓存分组" size="small" extra={<Button type="link" size="small" icon={<ReloadOutlined />} loading={loading} onClick={reload}>刷新</Button>}>
       <Input.Search aria-label="搜索缓存分组" placeholder="搜索分组名称" value={groupQuery} allowClear maxLength={50}
         onChange={event => setGroupQuery(event.target.value)} style={{ marginBottom: 12 }} />
       <Spin spinning={loading}>
-        <div style={{ maxHeight: 'calc(100dvh - 340px)', minHeight: 220, overflow: 'auto' }}>
+        <div style={{ maxHeight: '60dvh', overflow: 'auto' }}>
           {filteredGroups.length ? <Tree aria-label="缓存分组" blockNode selectedKeys={selectedGroupName ? [selectedGroupName] : []}
             treeData={filteredGroups.map(name => ({
               key: name,
@@ -158,7 +158,7 @@ export default function CachesPage() {
                 刷新组：{group.name}
               </Button>;
             })}
-          </Space>} style={{ marginBottom: 16 }}>
+          </Space>} style={{ marginBottom: 12 }}>
           <Typography.Text type="secondary">刷新组内的所有缓存区域会一起失效；不会刷新单个缓存。</Typography.Text>
         </Card>
         <Card size="small" title="缓存定义列表"
@@ -174,7 +174,7 @@ export default function CachesPage() {
               <DefinitionFields />
             </ModalForm>}
           </Space>}>
-          <ProTable<CacheDefinition> rowKey="id" columns={columns} dataSource={filteredRows} search={false}
+          <ProTable<CacheDefinition> {...managementTableProps} rowKey="id" columns={columns} dataSource={filteredRows} search={false}
             loading={loading} options={{ fullScreen: false, setting: false, density: false, reload: false }} pagination={false} />
         </Card>
       </> : <Card><Empty description={loading ? '正在加载缓存分组' : '暂无缓存定义'} /></Card>}

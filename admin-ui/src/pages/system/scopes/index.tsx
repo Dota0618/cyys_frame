@@ -1,11 +1,11 @@
-import { ModalForm, PageContainer, ProFormDigit, ProFormSwitch, ProFormText, ProFormTextArea, ProFormTreeSelect, ProTable } from '@ant-design/pro-components';
+import { ModalForm, ProFormDigit, ProFormSwitch, ProFormText, ProFormTextArea, ProFormTreeSelect } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, App, Button, Card, Tag, Tree } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import { createScope, scopeTree, updateScope } from '@/services/system/scopes';
 import type { CreateScope, ScopeRow, UpdateScope } from '@/services/system/scopes';
-import { compactFormProps, compactModalProps, CompactFields, ManagementSplit, verticalFormItemProps } from '@/components/ManagementLayout';
+import { compactFormProps, compactModalProps, CompactFields, ManagementSplit, verticalFormItemProps, managementTableProps, PageContainer, PageTable as ProTable, usePageState } from '@/components/ManagementLayout';
 import { ApiError, StaleRequest } from '@/utils/request';
 import { refreshIdentity, setDirty } from '@/utils/session';
 import { roleTreeData } from '@/utils/roles';
@@ -14,7 +14,7 @@ export default function ScopesPage() {
   const access = useAccess();
   const { message } = App.useApp();
   const [rows, setRows] = useState<ScopeRow[]>([]);
-  const [selected, setSelected] = useState('');
+  const [selected, setSelected] = usePageState('scopes.selected', '');
   const [editor, setEditor] = useState<{ row?: ScopeRow }>();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,14 +46,14 @@ export default function ScopesPage() {
       access.canEditScopes && <Button key="edit" type="link" onClick={() => setEditor({ row })}>修改</Button>,
     ].filter(Boolean) },
   ];
-  return <PageContainer title="机构管理" subTitle="总单位统一管理下属机构。">
+  return <PageContainer title="机构管理">
     {error && <Alert type="error" title={error} showIcon />}
     <ManagementSplit navigation={<Card title="机构树" size="small" extra={<Button type="link" size="small" loading={loading} onClick={() => void load()}>刷新</Button>}>
       <Tree key={root?.id || 'empty'} aria-label="机构树" blockNode defaultExpandedKeys={root ? [root.id] : []} selectedKeys={[selected]}
         treeData={tree}
         onSelect={keys => { if (keys.length) setSelected(String(keys[0])); }} />
     </Card>}>
-      <ProTable<ScopeRow> rowKey="id" headerTitle={selectedRow ? selectedRow.name + ' · 下级机构' : '总单位'}
+      <ProTable<ScopeRow> {...managementTableProps} rowKey="id" headerTitle={selectedRow ? selectedRow.name + ' · 下级机构' : '总单位'}
         columns={columns} search={false} options={false} loading={loading}
         dataSource={rows.filter(row => row.parentId === selected)} pagination={{ defaultPageSize: 20, showSizeChanger: true }}
         toolBarRender={() => [

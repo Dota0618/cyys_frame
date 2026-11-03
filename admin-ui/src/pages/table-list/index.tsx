@@ -1,12 +1,6 @@
-import { compactFormProps, verticalFormItemProps } from '@/components/ManagementLayout';
+import { compactFormProps, verticalFormItemProps, managementTableProps, tableSearchProps, PageContainer, PageTable as ProTable } from '@/components/ManagementLayout';
 import { useAccess, useModel } from '@umijs/max';
-import {
-  PageContainer,
-  ProTable,
-  ProDescriptions,
-  ModalForm,
-  ProFormSelect,
-} from '@ant-design/pro-components';
+import { ProDescriptions, ModalForm, ProFormSelect } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { Alert, App, Button, Drawer, Tag } from 'antd';
 import { useEffect, useRef, useState } from 'react';
@@ -146,23 +140,22 @@ function MemberTable() {
   return (
     <PageContainer
       title="用户管理"
-      subTitle="统一维护用户、角色与数据范围。"
     >
       {loadError && (
         <Alert
           type="error"
           showIcon
           title={loadError}
-          style={{ marginBottom: 20 }}
+          style={{ marginBottom: 12 }}
         />
       )}
-      <ProTable<Member>
+      <ProTable<Member> {...managementTableProps}
         actionRef={action}
         rowKey="id"
         headerTitle="用户列表"
         columns={columns}
         form={{ name: 'member-search' }}
-        search={{ labelWidth: 'auto' }}
+        search={tableSearchProps}
         options={{
           density: true,
           fullScreen: false,
